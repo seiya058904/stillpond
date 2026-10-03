@@ -41,7 +41,7 @@ describe("living pond continuity", () => {
       }
     }
     expect(resting/samples).toBeLessThan(0.025);
-  });
+  }, 20_000); // Full five-minute simulation also runs on shared CI CPUs.
   it("resting retains drift and independent fin motion", () => {
     const school = new School(); school.setCount(1);
     const f=school.fish[0]; f.state=SwimState.Hover; f.stateAge=0; f.stateDuration=4;
@@ -112,7 +112,7 @@ describe("living pond continuity", () => {
         if(f.position.x < -f.bodyLength || f.position.x>width+f.bodyLength || f.position.y < -f.bodyLength || f.position.y>height+f.bodyLength) throw new Error("Fish escaped pond");
       }
     }
-  });
+  }, 20_000); // Keep every 48-fish frame; allow slower shared CI CPUs.
   it("ramps rain in and drains existing ripples when rain stops", () => {
     const ripples=new RippleSystem();
     ripples.setRainIntensity(1);
