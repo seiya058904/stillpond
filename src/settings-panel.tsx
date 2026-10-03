@@ -1,9 +1,9 @@
-import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, RotateCcw, Undo2 } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "./hooks/use-mobile";
-import { QuickSettings, preferenceTitles, type PreferencePage, type QuickSettingsProps } from "./quick-settings";
+import { QuickSettings, type PreferencePage, type QuickSettingsProps } from "./quick-settings";
 import { useI18n } from "./i18n";
 import { settings } from "./settings/store";
 import { useSettingsMeta } from "./settings/react";
@@ -23,11 +23,13 @@ interface Props extends Pick<QuickSettingsProps, "sound" | "frameRate" | "onFram
   onPreviewChange: (index: number | null) => void;
 }
 
-function SettingsPage({children, page, direction, reduced, onEntered}: {
-  children: ReactNode; page: PreferencePage; direction: number; reduced: boolean; onEntered: () => void;
+function SettingsPage({children, page, direction, reduced, scrollTop, onEntered}: {
+  children: ReactNode; page: PreferencePage; direction: number; reduced: boolean; scrollTop: number; onEntered: () => void;
 }) {
   const present = useIsPresent();
-  return <motion.div className="settings-page" custom={direction} initial="enter" animate="visible" exit="exit"
+  const content = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => { if (content.current) content.current.scrollTop = scrollTop; }, [scrollTop]);
+  return <motion.div ref={content} className="settings-page" custom={direction} initial="enter" animate="visible" exit="exit"
     inert={!present || undefined} style={{zIndex:page === "root" ? 1 : 2}}
     variants={{enter:(d:number) => ({opacity:reduced ? 1 : 0.6,x:reduced ? 0 : d > 0 ? "100%" : "-22%"}),
       visible:{opacity:1,x:0}, exit:(d:number) => ({opacity:reduced ? 1 : 0.4,x:reduced ? 0 : d > 0 ? "-22%" : "100%"})}}
@@ -52,18 +54,17 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
   const [page, setPage] = useState<PreferencePage>("root");
   const advanced = page === "advanced";
   const direction = useRef(1);
-  const returnTo = useRef<PreferencePage>("pond");
+  const rootScroll = useRef(0);
   const [reset, setReset] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedFamily, setSelectedFamily] = useState(0);
   const scroll = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (!open) { setReset(false); setPage("root"); onPreviewChange(null); } }, [open, onPreviewChange]);
+  useEffect(() => { if (!open) { setReset(false); setPage("root"); rootScroll.current = 0; onPreviewChange(null); } }, [open, onPreviewChange]);
   const navigate = (next: PreferencePage) => {
     direction.current = next === "root" ? -1 : 1;
-    if (next !== "root") returnTo.current = next;
+    if (next === "advanced") rootScroll.current = scroll.current?.querySelector<HTMLDivElement>(".settings-page:not([inert])")?.scrollTop ?? 0;
     setPage(next); setReset(false); setQuery(""); onPreviewChange(null);
-    scroll.current?.scrollTo({top:0});
   };
   const resetSection = (ids: readonly SectionId[]) => settings.resetSections(ids);
   return <MotionConfig reducedMotion={reduced ? "always" : "never"}><Drawer open={open} onOpenChange={onOpenChange} modal={false}
@@ -71,25 +72,24 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape") onOpenChange(false); }}>
       <DrawerHeader className="settings-drawer__header">
         <div className="settings-navbar">
-          {page !== "root" ? <button ref={back} className="settings-back" aria-label={t("product.back")} onClick={() => navigate("root")}><ChevronLeft aria-hidden="true" /><span>{t("settings.button")}</span></button> : <span />}
-          {page !== "root" && <DrawerTitle>{t(preferenceTitles[page])}</DrawerTitle>}
+          {advanced ? <button ref={back} className="settings-back" aria-label={t("product.back")} onClick={() => navigate("root")}><ChevronLeft aria-hidden="true" /><span>{t("settings.button")}</span></button> : <DrawerTitle className="settings-large-title">{t("settings.title")}</DrawerTitle>}
+          {advanced && <DrawerTitle>{t("advanced.title")}</DrawerTitle>}
           <button className="settings-done" aria-label={t("settings.close")} onClick={() => onOpenChange(false)}>{t("action.done")}</button>
         </div>
-        {page === "root" && <DrawerTitle className="settings-large-title">{t("settings.title")}</DrawerTitle>}
-        <DrawerDescription className={page !== "root" && !advanced ? "sr-only" : undefined}>{t(advanced ? "advanced.hint" : "product.settingsHint")}</DrawerDescription>
+        <DrawerDescription>{t(advanced ? "advanced.hint" : "product.settingsHint")}</DrawerDescription>
       </DrawerHeader>
       <div ref={scroll} className="settings-scroll" data-base-ui-swipe-ignore>
         <AnimatePresence mode="sync" initial={false} custom={direction.current}>
-          <SettingsPage key={page} page={page} direction={direction.current} reduced={!!reduced}
+          <SettingsPage key={page} page={page} direction={direction.current} reduced={reduced} scrollTop={advanced ? 0 : rootScroll.current}
             onEntered={() => { if(page !== "root") back.current?.focus({preventScroll:true});
-              else scroll.current?.querySelector<HTMLButtonElement>(`[data-preference="${returnTo.current}"]`)?.focus({preventScroll:true}); }}>
+              else scroll.current?.querySelector<HTMLButtonElement>('.settings-page:not([inert]) [data-preference="advanced"]')?.focus({preventScroll:true}); }}>
             {advanced ? <AdvancedBoundary fallback={<p role="alert" className="preference-note">{t("settings.loadFailed")}</p>}><Suspense fallback={<p role="status" className="preference-note">{t("settings.loading")}</p>}>
               <ConfigEditor query={query} onQueryChange={setQuery} onResetSection={resetSection}
                 selectedFamily={selectedFamily} previewFamily={preview} onFamilyChange={index => {setSelectedFamily(index); onPreviewChange(index);}}
                 onPreviewFamilyChange={onPreviewChange} />
             </Suspense></AdvancedBoundary> : <>
               <QuickSettings {...preferences} weather={meta.weather} rain={meta.rain}
-                page={page} onNavigate={navigate}
+                onAdvanced={() => navigate("advanced")}
                 onWeatherChange={id => settings.setWeather(id)} onRainChange={on => settings.setRain(on)} />
             </>}
           </SettingsPage>

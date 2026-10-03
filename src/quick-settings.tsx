@@ -1,4 +1,4 @@
-import { Check, ChevronRight, SlidersHorizontal, Cloud, CloudFog, CloudRain, Fish, Globe2, Maximize2, Moon, Sun, Sunset, Volume2, Waves, Monitor } from "lucide-react";
+import { Check, ChevronRight, SlidersHorizontal, Cloud, CloudFog, CloudRain, Maximize2, Moon, Sun, Sunset, Waves } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { motion } from "motion/react";
 import { Switch } from "@/components/ui/switch";
@@ -8,9 +8,7 @@ import { WEATHER_PRESETS, type WeatherPresetId } from "./weather";
 import type { FrameRateCap } from "./performance-prefs";
 
 const weatherIcons = {sunny: Sun, rain: CloudRain, "deep-clear": Waves, overcast: Cloud, mist: CloudFog, sunset: Sunset, moonlight: Moon};
-export const preferenceTitles = {pond:"product.pond", atmosphere:"quick.atmosphere", sound:"controls.sound", language:"settings.language", display:"product.display", advanced:"advanced.title"} as const;
-export type PreferencePage = "root" | keyof typeof preferenceTitles;
-const preferenceIcons = {pond:Fish, atmosphere:Sun, sound:Volume2, language:Globe2, display:Monitor};
+export type PreferencePage = "root" | "advanced";
 
 export interface QuickSettingsProps {
   weather: WeatherPresetId;
@@ -22,46 +20,30 @@ export interface QuickSettingsProps {
   onFrameRateChange: (value: string) => void;
   ambient: boolean;
   onAmbientChange: () => void;
-  page: PreferencePage;
-  onNavigate: (page: PreferencePage) => void;
+  onAdvanced: () => void;
 }
 
 function Group({title, children, note, status, flush}: {title: string; children: ReactNode; note?: string; status?: boolean; flush?: boolean}) {
   return <section className="preference-group" aria-label={title}>
+    <h3>{title}</h3>
     <div className={"preference-card" + (flush ? " preference-card--flush" : "")}>{children}</div>
     {note && <p className="preference-note" role={status ? "status" : undefined}>{note}</p>}
   </section>;
 }
 
-export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, page, onNavigate}: QuickSettingsProps) {
+export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onAdvanced}: QuickSettingsProps) {
   const {t, language, setLanguage} = useI18n();
   const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
   const [shoals, setShoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
-  const summaries = {pond:t("product.koi", {count}), atmosphere:t(`weather.${weather}`), sound:t(sound.enabled ? "product.on" : "product.off"),
-    language:languages.find(option => option.id === language)?.label, display:t(`product.fps.${frameRate}`)};
-  if (page === "root") return <nav className="settings-menu" aria-label={t("settings.title")}>
-    <div className="settings-list">
-      {(["pond","atmosphere","sound","language","display"] as const).map(id => {
-        const Icon = preferenceIcons[id];
-        return <button key={id} className="settings-menu-row" data-preference={id} onClick={() => onNavigate(id)}>
-          <span className="settings-menu-icon"><Icon aria-hidden="true" /></span><span>{t(preferenceTitles[id])}</span>
-          <span className="settings-menu-value">{summaries[id]}</span><ChevronRight aria-hidden="true" />
-        </button>;
-      })}
-    </div>
-    <div className="settings-list settings-list--advanced"><button className="settings-menu-row" data-preference="advanced" onClick={() => onNavigate("advanced")}>
-      <span className="settings-menu-icon"><SlidersHorizontal aria-hidden="true" /></span><span>{t("advanced.title")}</span><ChevronRight aria-hidden="true" />
-    </button></div><p className="settings-menu-note">{t("product.advancedHint")}</p>
-  </nav>;
   return <div className="preferences">
-    {page === "pond" && <Group title={t("product.pond")} note={t("product.medakaHint")}>
+    <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
       <input id="pond-density" className="pond-range" type="range" min="1" max="48" step="1" value={count}
         aria-valuetext={t("product.koi", {count})} style={{"--range": ((count-1)/47*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
       <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
       <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => setShoals(on ? 3 : 0)} /></div>
-    </Group>}
-    {page === "atmosphere" && <Group title={t("quick.atmosphere")}>
+    </Group>
+    <Group title={t("quick.atmosphere")}>
       <div className="weather-cards" role="group" aria-label={t("controls.weatherLighting")}>
         {WEATHER_PRESETS.map(preset => {
           const Icon = weatherIcons[preset.id];
@@ -74,18 +56,18 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
         })}
       </div>
       <div className="preference-row divided"><label htmlFor="pond-rain">{t("quick.rain")}</label><Switch id="pond-rain" checked={rain} onCheckedChange={onRainChange} /></div>
-    </Group>}
-    {page === "sound" && <Group title={t("controls.sound")} note={t(sound.unavailable ? "audio.unavailable" : "product.soundHint")} status={sound.unavailable}>
+    </Group>
+    <Group title={t("controls.sound")} note={t(sound.unavailable ? "audio.unavailable" : "product.soundHint")} status={sound.unavailable}>
       <div className="preference-row"><label htmlFor="pond-sound">{t("quick.sound")}</label><Switch id="pond-sound" checked={sound.enabled} onCheckedChange={sound.change} /></div>
-    </Group>}
-    {page === "language" && <Group title={t("settings.language")} flush>
-      <div className="settings-list" role="group" aria-label={t("settings.language")}>
+    </Group>
+    <Group title={t("settings.language")} flush>
+      <div className="settings-choices" role="group" aria-label={t("settings.language")}>
         {languages.map(option => <button className="selection-row" key={option.id} aria-pressed={language===option.id} lang={option.id} onClick={() => setLanguage(option.id)}>
           <span>{option.label}</span>{language===option.id && <Check aria-hidden="true" />}</button>)}
       </div>
-    </Group>}
-    {page === "display" && <Group title={t("product.display")} flush>
-      <div className="settings-list" role="group" aria-label={t("product.motion")}>
+    </Group>
+    <Group title={t("product.display")} flush>
+      <div className="settings-choices" role="group" aria-label={t("product.motion")}>
         {(["60","30","20","native"] as const).map(id => <button className="selection-row" key={id} aria-pressed={frameRate===id} onClick={() => onFrameRateChange(id)}>
           <span><strong>{t(`product.fps.${id}`)}</strong><small>{id === "native" ? t("fps.native.hint") : t(`fps.${id}`)}</small></span>
           {frameRate===id && <motion.span layoutId="display-check"><Check aria-hidden="true" /></motion.span>}</button>)}
@@ -93,6 +75,11 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
       <button className="preference-row row-button divided" aria-pressed={ambient} onClick={onAmbientChange}>
         <span><Maximize2 aria-hidden="true" />{t(ambient ? "controls.exitAmbient" : "controls.enterAmbient")}</span><ChevronRight aria-hidden="true" />
       </button>
-    </Group>}
+    </Group>
+    <div>
+      <div className="settings-list settings-list--advanced"><button className="settings-menu-row" data-preference="advanced" onClick={onAdvanced}>
+        <SlidersHorizontal aria-hidden="true" /><span>{t("advanced.title")}</span><ChevronRight aria-hidden="true" />
+      </button></div><p className="settings-menu-note">{t("product.advancedHint")}</p>
+    </div>
   </div>;
 }

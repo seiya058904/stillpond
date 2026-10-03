@@ -73,18 +73,19 @@ Existing ripple fading, water clarity and depth attenuation stay intact.
 
 ## Settings and compatibility
 
-Pond, Atmosphere, Sound, Language and Display are grouped navigation rows with
-current-value summaries. Advanced has a separate group and retains the complete
+Pond, Atmosphere, Sound, Language and Display are directly editable groups in a
+single scrolling page. Advanced has a separate entry and retains the complete
 editor. Normal settings are eagerly imported, so opening them never requests a
 chunk. Advanced remains lazy and has its own error boundary, allowing a return
 to ordinary settings if its download fails. Push/pop navigation restores focus;
 English, Chinese, keyboard controls and reduced motion are retained.
 
-The settings follow-up uses iOS-style inset white groups on a cool gray sheet,
-system typography, blue navigation and green switches. A large root title becomes
-a compact navigation bar on detail pages; pages push and pop together, and exiting
-content is inert until removed. The sheet retains drag-to-dismiss and the sliders
-retain native pointer/keyboard interaction. Reduced-motion changes apply live.
+The settings follow-up uses a translucent, green-tinted dark frosted sheet,
+system typography, soft mint accents and green switches. Ordinary controls need
+no page navigation; the Advanced page retains push/pop motion, restores the prior
+scroll position and focus, and makes exiting content inert. The sheet retains
+drag-to-dismiss and the sliders retain native pointer/keyboard interaction.
+Reduced-motion changes apply live.
 Switch thumbs use one CSS translation, with a 2px inset in both states and during
 press feedback; combining Tailwind `translate` with a second `transform` previously
 moved the checked thumb 14px beyond its track.
