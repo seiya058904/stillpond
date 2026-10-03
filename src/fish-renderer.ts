@@ -421,16 +421,28 @@ export class FishRenderer {
   }
 
   public dispose(): void {
+    // Dispose shared geometry/materials once, including plants and the bed.
+    // renderer.dispose() alone releases caches, not these GPU allocations.
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    for (const scene of [this.bedScene, this.shadowScene, this.fishShadowScene, this.fishScene,
+      this.surfaceScene, this.surfaceShadowScene, this.surfaceObjectScene, this.weatherScene]) {
+      scene.traverse(object => {
+        const drawable = object as THREE.Mesh;
+        if (drawable.geometry) geometries.add(drawable.geometry);
+        if (drawable.material) for (const material of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) materials.add(material);
+      });
+    }
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
     this.underwaterTarget.dispose();
     this.compositeTarget.dispose();
     this.surfaceDisturbance.dispose();
-    this.fishShadowMaterial.dispose();
-    this.weather.dispose();
     this.renderer.dispose();
   }
 
-  public setWeatherPreset(id: WeatherPresetId): void {
-    this.weather.setPreset(id);
+  public setWeatherPreset(id: WeatherPresetId, immediate = false): void {
+    this.weather.setPreset(id, immediate);
   }
 
   public setPreviewFamily(index: number | null): void {
@@ -502,7 +514,7 @@ export class FishRenderer {
     );
     this.waterSurface.update(school, time);
     this.duckweed.update(time, school.ripples);
-    this.lotusLeaves.update(time);
+    this.lotusLeaves.update(time, school.ripples);
     this.butterflies.update(time);
 
     this.renderer.setRenderTarget(this.underwaterTarget);

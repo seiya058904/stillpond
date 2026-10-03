@@ -5,25 +5,16 @@ import { memo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { QuickSettings } from "./quick-settings";
 import { SettingsColorInput, SettingsSlider } from "./settings-controls";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
 import { definition, SETTINGS_GROUPS, type SectionId } from "./settings/definition";
 import type { AnyNode, SettingPath } from "./settings/schema";
-import type { WeatherPresetId } from "./weather";
 
 interface ConfigEditorProps {
   query: string;
   onQueryChange: (query: string) => void;
-  weather: WeatherPresetId;
-  rainEnabled: boolean;
-  soundEnabled: boolean;
-  onWeatherChange: (id: WeatherPresetId) => void;
-  onRainChange: (enabled: boolean) => void;
-  onSoundChange: (enabled: boolean) => void;
   onResetSection: (sectionIds: readonly SectionId[]) => void;
-  onResetAtmosphere: () => void;
   selectedFamily: number;
   previewFamily: number | null;
   onFamilyChange: (index: number) => void;
@@ -364,96 +355,29 @@ function AdvancedGroup({
 }
 
 export const ConfigEditor = memo(function ConfigEditor({
-  query,
-  onQueryChange,
-  weather,
-  rainEnabled,
-  soundEnabled,
-  onWeatherChange,
-  onRainChange,
-  onSoundChange,
-  onResetSection,
-  onResetAtmosphere,
-  selectedFamily,
-  previewFamily,
-  onFamilyChange,
-  onPreviewFamilyChange,
+  query, onQueryChange, onResetSection, selectedFamily, previewFamily, onFamilyChange, onPreviewFamilyChange,
 }: ConfigEditorProps) {
   const i18n = useI18n();
-  const { t } = i18n;
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const {t, family} = i18n;
   const normalizedQuery = query.trim().toLowerCase();
-  const showAdvanced = advancedOpen || Boolean(normalizedQuery);
-  const visibleGroups = showAdvanced
-    ? SETTINGS_GROUPS.filter((group) =>
-        !normalizedQuery ||
-        group.sectionIds.some((sectionId) =>
-          matchesQuery(definition.children[sectionId], [sectionId], t(`section.${sectionId}`), normalizedQuery, i18n),
-        ),
-      )
-    : [];
-
-  return (
-    <>
-      {!normalizedQuery && (
-        <QuickSettings
-          weather={weather}
-          rainEnabled={rainEnabled}
-          soundEnabled={soundEnabled}
-          onWeatherChange={onWeatherChange}
-          onRainChange={onRainChange}
-          onSoundChange={onSoundChange}
-          onResetSection={onResetSection}
-          onResetAtmosphere={onResetAtmosphere}
-          selectedFamily={selectedFamily}
-          previewFamily={previewFamily}
-          onFamilyChange={onFamilyChange}
-          onPreviewFamilyChange={onPreviewFamilyChange}
-        />
-      )}
-      <details
-        className="config-advanced"
-        open={showAdvanced}
-        onToggle={(event) => {
-          if (!normalizedQuery) setAdvancedOpen(event.currentTarget.open);
-        }}
-      >
-        <summary>
-          <ChevronRight aria-hidden="true" />
-          <span>
-            <strong>{t("advanced.title")}</strong>
-            <small>{t("advanced.hint")}</small>
-          </span>
-        </summary>
-        {showAdvanced && (
-          <>
-            <div className="settings-search">
-              <Search aria-hidden="true" />
-              <Input
-                value={query}
-                onChange={(event) => onQueryChange(event.target.value)}
-                placeholder={t("advanced.searchPlaceholder")}
-                aria-label={t("advanced.search")}
-              />
-            </div>
-            {visibleGroups.length === 0 ? (
-              <p className="config-empty">{t("advanced.empty", { query })}</p>
-            ) : (
-              <div className="config-sections" aria-label={t("advanced.categories")}>
-                {visibleGroups.map((group) => (
-                  <AdvancedGroup
-                    key={group.id}
-                    group={group}
-                    query={normalizedQuery}
-                    onResetSection={onResetSection}
-                    onPreviewFamilyChange={onPreviewFamilyChange}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </details>
-    </>
-  );
+  const visibleGroups = SETTINGS_GROUPS.filter(group => !normalizedQuery || group.sectionIds.some(sectionId =>
+    matchesQuery(definition.children[sectionId], [sectionId], t(`section.${sectionId}`), normalizedQuery, i18n)));
+  return <div className="advanced-settings">
+    <div className="settings-search"><Search aria-hidden="true" /><Input value={query} onChange={event => onQueryChange(event.target.value)}
+      placeholder={t("advanced.searchPlaceholder")} aria-label={t("advanced.search")} /></div>
+    {!normalizedQuery && <div className="appearance-preview preference-card">
+      <label htmlFor="preview-family">{t("quick.family")}</label>
+      <select id="preview-family" className="quick-setting__select" value={selectedFamily} onChange={event => onFamilyChange(Number(event.target.value))}>
+        {settings.live["koi-palettes"].map((palette,index) => <option key={palette.name} value={index}>{family(palette.name)}</option>)}
+      </select>
+      <button className="family-preview-toggle" aria-pressed={previewFamily !== null} onClick={() => onPreviewFamilyChange(previewFamily === null ? selectedFamily : null)}>
+        {t(previewFamily === null ? "quick.preview" : "quick.showAll", {family:family(settings.live["koi-palettes"][selectedFamily].name)})}
+      </button>
+    </div>}
+    {visibleGroups.length === 0 ? <p className="config-empty">{t("advanced.empty",{query})}</p> :
+      <div className="config-sections" aria-label={t("advanced.categories")}>
+        {visibleGroups.map(group => <AdvancedGroup key={group.id} group={group} query={normalizedQuery}
+          onResetSection={onResetSection} onPreviewFamilyChange={onPreviewFamilyChange} />)}
+      </div>}
+  </div>;
 });

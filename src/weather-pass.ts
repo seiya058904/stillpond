@@ -127,8 +127,14 @@ export class WeatherPass {
     this.mesh.frustumCulled = false;
   }
 
-  public setPreset(id: WeatherPresetId): void {
+  public setPreset(id: WeatherPresetId, immediate = false): void {
     this.target = stateFromPreset(getWeatherPreset(id));
+    if (immediate) {
+      this.current.tint.copy(this.target.tint);
+      this.current.lightColor.copy(this.target.lightColor);
+      this.current.lightDirection.copy(this.target.lightDirection);
+      for (const property of scalarProperties) this.current[property] = this.target[property];
+    }
   }
 
   public update(time: number): void {

@@ -32,6 +32,8 @@ export class Koi {
   public callDelay = 0;
   public respondedToCall = false;
   public callResponseAge = 0;
+  public callInfluence = 0;
+  public escapeTime = 0;
   public tailEffort = 0.6;
   public depth = 0.08;
   public targetDepth = 0.08;
@@ -66,6 +68,8 @@ export class Koi {
     this.callDelay = 0;
     this.respondedToCall = false;
     this.callResponseAge = 0;
+    this.callInfluence = 0;
+    this.escapeTime = 0;
     this.behaviorRng = (0x9e3779b9 ^ Math.imul(index + 1, 0x85ebca6b)) >>> 0;
     this.depth = random.range(FISH.depth.initialRange[0], FISH.depth.initialRange[1]);
     this.targetDepth = this.depth;

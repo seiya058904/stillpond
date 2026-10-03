@@ -4,7 +4,10 @@ import {
   LOTUS_FLOWERS,
   LOTUS_LEAVES,
   viewportPoint,
+  RIPPLES,
 } from "./config";
+import { duckweedRippleDisplacement } from "./duckweed-geometry";
+import type { RippleSystem } from "./ripple-system";
 
 interface Point {
   x: number;
@@ -205,7 +208,7 @@ export class LotusLeavesPass {
     this.rebuild();
   }
 
-  public update(time: number): void {
+  public update(time: number, ripples?: RippleSystem): void {
     if (
       LOTUS_LEAVES.length !== this.leaves.length ||
       LOTUS_FLOWERS.length !== this.flowers.length
@@ -216,6 +219,13 @@ export class LotusLeavesPass {
     const visibleLeafCount = LOTUS.visibleLeafCount;
     const visibleFlowerCount = LOTUS.visibleFlowerCount;
     const shadowOffset = LOTUS.shadow.offset;
+    // Use the same expanding fronts as duckweed; larger leaves move less.
+    const surfaceRipples = (ripples?.instances ?? []).filter(r => r.alive && r.age >= 0).map(r => ({
+      x: r.center.x, y: r.center.y, age: r.age, strength: r.strength * (r.type === "rain" ? 0.12 : 1),
+      lifetime: RIPPLES.types[r.type].lifetime,
+      startRadius: RIPPLES.types[r.type].startRadius,
+      expansionSpeed: RIPPLES.types[r.type].expansionSpeed,
+    }));
 
     for (const [leafIndex, mesh] of this.leaves.entries()) {
       const visible = leafIndex < visibleLeafCount;
@@ -225,13 +235,16 @@ export class LotusLeavesPass {
 
       const leaf = LOTUS_LEAVES[leafIndex];
       const placement = viewportPoint(leaf.x, leaf.y);
+      const response = duckweedRippleDisplacement(placement.x, placement.y, surfaceRipples, {
+        strength: 1.15, bandWidth: 12, falloffDistance: 100, maxPush: 0.85, spin: 0.008,
+      });
       const centerX =
-        placement.x + Math.sin(time * 0.12 + leaf.phase) * LOTUS.driftX;
+        placement.x + Math.sin(time * 0.12 + leaf.phase) * LOTUS.driftX + response.pushX;
       const centerY =
         placement.y +
-        Math.cos(time * 0.15 + leaf.phase * 1.3) * LOTUS.driftY;
+        Math.cos(time * 0.15 + leaf.phase * 1.3) * LOTUS.driftY + response.pushY;
       const sway =
-        Math.sin(time * 0.085 + leaf.phase) * LOTUS.rotationAmount;
+        Math.sin(time * 0.085 + leaf.phase) * LOTUS.rotationAmount + response.spin;
       const pulse = 1 + Math.sin(time * 0.11 + leaf.phase) * 0.012;
 
       const center = this.leafCenters[leafIndex];

@@ -3,13 +3,14 @@
 
 A calm digital pond with procedural koi, full-viewport scenery, and English / Simplified Chinese controls.
 
-**V1.0.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
+**V1.1.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
 A quiet, observational pond. Click or tap the water to call the koi; enjoy the
 existing procedural swimming, water, plants, weather, and optional river sound.
-This V1 establishes an independent, reproducible baseline. It adds no species,
-scenes, art assets, progression, economy, or new game systems.
+V1.1 refines this one pond: simpler everyday controls, a separate detailed editor,
+gentler swimming and weather transitions, and a smaller initial download. It
+adds no species, scenes, art assets, progression, economy, or new game systems.
 
 ## Run and verify
 
@@ -34,6 +35,15 @@ runs at `/`; a production preview uses the path configured in `siteUrl`.
 - `D`: procedural spine debug view. `R`: reset the simulation.
 - Settings → **Language**: **English** (first-visit default) or **简体中文**.
   Changes apply immediately, including detailed controls and accessibility labels.
+- Everyday settings group **Pond**, **Atmosphere**, **Sound**, **Language**, and
+  **Display**. Weather cards preview the existing seven atmospheres. Display
+  offers Smooth (60 fps), Balanced (30), Save energy (20), and Native.
+- **Advanced settings** retains every detailed color, body, plant, water,
+  movement, and shader control, with search, categories, family preview, and
+  per-group reset. Undo and confirmed Reset all are available in both views.
+- Settings use a side panel on desktop and landscape phones, and a bottom sheet
+  on narrow portrait screens. Focus, touch targets, and reduced-motion preferences
+  are respected throughout.
 - Pond settings, frame rate, language, and sound preference save on this device.
   Sound starts off on the first visit; browsers require a gesture to resume audio.
   Reset all resets pond settings; language, sound, and frame-rate preferences are
@@ -54,6 +64,20 @@ The default is 60 fps, with 30 fps in ambient mode unless a frame rate was
 explicitly selected. Performance depends on the device and browser. Emulated
 mobile viewports do not substitute for physical iOS / Android testing.
 
+Rendering, simulation, and audio pause while the page is hidden. Returning starts
+from the same simulation time without fast-forwarding. If WebGL loses its context,
+the pond keeps its fish state and rebuilds GPU resources when the context returns;
+a localized recovery control remains available. Settings and the advanced editor
+load separately on demand, keeping their drawer and animation code off the initial
+rendering path.
+
+Fish retain the original individual reactivity, delayed response, and movement
+states. V1.1 smooths scattering, approaches, orbiting, and loss of interest in a
+call. Tail timing varies with each fish; shallow wakes and ripple-responsive lily
+pads connect their motion to the water. Rain intensity fades smoothly while
+existing ripples finish naturally. The logical rendering scale and default population
+remain unchanged.
+
 ## Project configuration and development
 
 `project.config.json` is the source of truth for name, slug, version, description,
@@ -71,7 +95,11 @@ When transferring or renaming the GitHub repository, update its About fields
 to match the configuration as well. Never change `storagePrefix` merely to
 change display branding; it identifies saved preferences.
 
-- `src/app.tsx`: interaction, controls, renderer lifecycle.
+- `src/app.tsx`: application state, HUD, keyboard and pointer controls.
+- `src/pond-runtime.ts`: simulation clock, resizing, visibility, and GPU recovery.
+- `src/use-pond-audio.ts`: sound loading, fades, and page/audio lifecycle.
+- `src/settings-panel.tsx`, `src/quick-settings.tsx`: on-demand everyday settings.
+- `src/config-editor.tsx`: separately loaded, searchable advanced controls.
 - `src/viewport.ts`: viewport/world and input mapping.
 - `src/i18n/`: all English/Chinese product text and schema labels.
 - `src/settings/`: typed settings, persistence, undo, rendering effects.

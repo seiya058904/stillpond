@@ -40,6 +40,7 @@ export class RippleSystem {
 
   private readonly random = new XorShift32(0x7a11fa11);
   private rainIntensity = 0;
+  private targetRainIntensity = 0;
   private rainCountdown = 0;
 
   public trigger(type: RippleType, point: Vec2): void {
@@ -62,11 +63,11 @@ export class RippleSystem {
   }
 
   public setRainIntensity(intensity: number): void {
-    this.rainIntensity = clamp(intensity, 0, 1);
-    if (this.rainIntensity <= 0) this.rainCountdown = 0;
+    this.targetRainIntensity = clamp(intensity, 0, 1);
   }
 
   public update(deltaTime: number): void {
+    this.rainIntensity += (this.targetRainIntensity - this.rainIntensity) * (1 - Math.exp(-deltaTime * 1.8));
     for (const ripple of this.instances) {
       if (!ripple.alive) continue;
       ripple.age += deltaTime;
@@ -75,7 +76,7 @@ export class RippleSystem {
       }
     }
 
-    if (this.rainIntensity <= 0) return;
+    if (this.rainIntensity < 0.015) { this.rainCountdown = 0; return; }
     const rainEmitter = RIPPLES.rainEmitter;
     this.rainCountdown -= deltaTime;
     let emitted = 0;

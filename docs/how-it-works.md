@@ -114,8 +114,8 @@ styles.
 
 When you tap or click the water:
 
-1. The screen position is converted into the pond’s `480 × 270` coordinate
-   system.
+1. The screen position is converted into the pond’s logical coordinate system
+   (`480 × 270` at 16:9, with the same short-edge scale at other aspect ratios).
 2. A ripple starts at that point.
 3. Every large koi receives its own response delay.
 4. Farther or less reactive fish can respond later.
@@ -124,6 +124,9 @@ When you tap or click the water:
 
 Near the target, koi receive a small circling force. This keeps them moving
 around the ripple instead of stacking directly on top of one another.
+V1.1 blends the approach into an individual orbit and lets each koi's attention
+fade gradually. Scattering changes its intended heading and swimming state;
+the same acceleration and turning limits still apply.
 
 ## 6. The water is made from layers
 
@@ -140,6 +143,9 @@ Intermediate render textures let the water distort the underwater scene
 without also distorting objects that float above the surface.
 
 Some ripples come from visitors, but others come from rain or a feeding koi.
+V1.1 reuses these wave fronts to gently move lily pads as well as duckweed.
+Shallow swimming also creates a subtle local wake tied to tail effort and depth.
+Rain emission eases toward its target intensity when weather changes.
 ## 7. Weather and settings change the rules
 
 Weather presets are more than colored filters. A preset supplies final values
@@ -155,9 +161,10 @@ subsystem should refresh when it changes. A single store
 ([`src/settings/store.ts`](../src/settings/store.ts)) computes each setting's
 effective value as `defaults ⊕ weather ⊕ your edits`, writes it into one
 mutable object (`store.live`), and notifies the affected subsystem. The
-settings panel ([`src/config-editor.tsx`](../src/config-editor.tsx),
-[`src/quick-settings.tsx`](../src/quick-settings.tsx)) is generated from that
-same schema, so a new setting never needs its own hand-written slider.
+advanced editor ([`src/config-editor.tsx`](../src/config-editor.tsx)) is generated
+from that same schema. The separate everyday controls in
+[`src/quick-settings.tsx`](../src/quick-settings.tsx) deliberately expose only a
+small, curated set. Both views use the same store and preview changes immediately.
 
 [`src/config.ts`](../src/config.ts) re-exports pieces of `store.live` under
 their old names (`FISH`, `WATER`, `LOTUS_LEAVES`, …) so the simulation and
@@ -169,7 +176,7 @@ a default not get silently overwritten by an old save.
 **To add a setting:** add a node in `src/settings/definition.ts` with its
 bounds and, if a subsystem needs to react to it, an `effect` tag. If that tag
 is new, add a handler for it in `src/settings/effects.ts`. Nothing else needs
-to change — the UI picks it up automatically.
+to change — the advanced editor picks it up automatically.
 
 ## Why the pond stays responsive
 
@@ -190,7 +197,10 @@ garbage-collection work low.
 
 | File | Responsibility |
 | --- | --- |
-| [`src/app.tsx`](../src/app.tsx) | Runs the update/render loop and handles input and UI |
+| [`src/app.tsx`](../src/app.tsx) | Handles application state, input, HUD, and lazy settings |
+| [`src/pond-runtime.ts`](../src/pond-runtime.ts) | Owns the update/render loop, resizing, visibility, and GPU recovery |
+| [`src/use-pond-audio.ts`](../src/use-pond-audio.ts) | Loads and fades audio, suspending it with page visibility |
+| [`src/settings-panel.tsx`](../src/settings-panel.tsx) | Separates everyday settings from the on-demand advanced editor |
 | [`src/koi.ts`](../src/koi.ts) | Stores the state of one koi |
 | [`src/school.ts`](../src/school.ts) | Controls behavior, steering, depth, and interactions |
 | [`src/fish-renderer.ts`](../src/fish-renderer.ts) | Builds fish geometry and combines render layers |

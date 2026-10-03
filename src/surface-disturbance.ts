@@ -27,9 +27,11 @@ const depthVertexShader = /* glsl */ `
   attribute vec2 aDirection;
   attribute vec2 aSize;
   attribute vec2 aDepth;
+  attribute vec2 aMotion;
   varying vec2 vLocal;
   varying vec2 vForward;
   varying vec2 vDepth;
+  varying vec2 vMotion;
 
   void main() {
     vec2 normal = vec2(-aDirection.y, aDirection.x);
@@ -40,6 +42,7 @@ const depthVertexShader = /* glsl */ `
     vLocal = position.xy;
     vForward = aDirection;
     vDepth = aDepth;
+    vMotion = aMotion;
     gl_Position = pondPosition(point);
   }
 `;
@@ -53,6 +56,7 @@ const depthFragmentShader = /* glsl */ `
   varying vec2 vLocal;
   varying vec2 vForward;
   varying vec2 vDepth;
+  varying vec2 vMotion;
 
   void main() {
     float radiusSquared = dot(vLocal, vLocal);
@@ -73,6 +77,11 @@ const depthFragmentShader = /* glsl */ `
       * mask
       * vDepth.x
       * uStrength;
+    // A quiet stern wake belongs to the swimming fish, not a global clock.
+    // It fades with depth and tail effort; deeper fish keep their refraction.
+    float stern = 1.0 - smoothstep(-0.7, 0.25, vLocal.x);
+    float wake = sin(vLocal.y * 7.0 + abs(vLocal.x) * 4.0 - vMotion.y * 1.4);
+    displacement += normal * wake * mask * stern * vMotion.x * (1.0 - vDepth.x) * uStrength * 0.16;
     gl_FragColor = vec4(displacement, 0.0, 1.0);
   }
 `;
@@ -148,6 +157,7 @@ export class SurfaceDisturbancePass {
   private readonly depthDirections = new Float32Array(MAX_FISH * 2);
   private readonly depthSizes = new Float32Array(MAX_FISH * 2);
   private readonly depthValues = new Float32Array(MAX_FISH * 2);
+  private readonly motionValues = new Float32Array(MAX_FISH * 2);
   private readonly depthAttributes: THREE.InstancedBufferAttribute[];
   private readonly depthMaterial: THREE.ShaderMaterial;
   private readonly clearColor = new THREE.Color();
@@ -162,6 +172,7 @@ export class SurfaceDisturbancePass {
       instanceAttribute(this.depthGeometry, "aDirection", this.depthDirections, 2),
       instanceAttribute(this.depthGeometry, "aSize", this.depthSizes, 2),
       instanceAttribute(this.depthGeometry, "aDepth", this.depthValues, 2),
+      instanceAttribute(this.depthGeometry, "aMotion", this.motionValues, 2),
     ];
 
     this.depthMaterial = dynamicMaterial(depthVertexShader, depthFragmentShader, {
@@ -221,7 +232,6 @@ export class SurfaceDisturbancePass {
         1,
       );
       const smoothDepth = visualDepth * visualDepth * (3 - 2 * visualDepth);
-      if (smoothDepth <= 0.005) continue;
       const offset = count * 2;
       this.depthCenters[offset] = previewFishIndex === null ? fish.position.x : CANVAS_WIDTH * 0.5;
       this.depthCenters[offset + 1] = previewFishIndex === null ? fish.position.y : CANVAS_HEIGHT * 0.5;
@@ -233,6 +243,8 @@ export class SurfaceDisturbancePass {
         fish.bodyWidth * FISH.depth.localDistortion.widthScale * (previewFishIndex === null ? 1 : 1.6);
       this.depthValues[offset] = smoothDepth;
       this.depthValues[offset + 1] = fish.phaseOffset;
+      this.motionValues[offset] = clamp(fish.speed / Math.max(fish.maximumSpeed, 1), 0, 1.5) * fish.tailEffort;
+      this.motionValues[offset + 1] = fish.swimPhase;
       count += 1;
     }
     this.depthGeometry.instanceCount = count;

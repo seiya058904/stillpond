@@ -115,7 +115,7 @@ export class School {
       const response = FISH.callResponse;
       const distanceToCall = length(sub(fish.position, point));
       const distanceAmount = Math.pow(
-        clamp(distanceToCall / response.distanceAtMaximumDelay, 0, 1),
+        clamp(distanceToCall / Math.max(1, response.distanceAtMaximumDelay), 0, 1),
         response.distanceExponent,
       );
       fish.callDelay =
@@ -133,9 +133,8 @@ export class School {
   public scatter(): void {
     for (let index = 0; index < this.count; index += 1) {
       const fish = this.fish[index];
-      fish.heading += this.random.range(-1.35, 1.35);
-      fish.speed = fish.maximumSpeed;
-      fish.angularVelocity += this.random.range(-2, 2);
+      fish.pivotHeading = wrapAngle(fish.heading + this.random.range(-1.35, 1.35));
+      fish.escapeTime = 0.65 + fish.reactivity * 0.55;
       this.enterState(fish, SwimState.Burst);
     }
     this.targetActive = false;
@@ -145,7 +144,7 @@ export class School {
     this.targetAge += dt;
     if (
       this.targetActive &&
-      this.targetAge > FISH.callResponse.targetLifetimeSeconds
+      this.targetAge > FISH.callResponse.targetLifetimeSeconds * 1.15
     ) {
       this.targetActive = false;
     }
@@ -154,6 +153,7 @@ export class School {
     const desiredSpeed: number[] = [];
     for (let index = 0; index < this.count; index += 1) {
       const fish = this.fish[index];
+      fish.escapeTime = Math.max(0, fish.escapeTime - dt);
       fish.callDelay = Math.max(0, fish.callDelay - dt);
       if (this.targetActive && fish.respondedToCall) {
         fish.callResponseAge += dt;
@@ -165,6 +165,13 @@ export class School {
         fish.depthTransitionRate = 3 / Math.max(FISH.depth.callRiseSeconds, 0.1);
         this.enterState(fish, SwimState.Burst);
       }
+      // Each fish loses interest at its own pace. Both arrival and departure
+      // are continuous, including a second tap while a call is already active.
+      const attentionEnd = FISH.callResponse.targetLifetimeSeconds * (0.82 + fish.reactivity * 0.33);
+      const attention = this.targetActive && fish.respondedToCall
+        ? clamp((attentionEnd - this.targetAge) / 1.35, 0, 1) * clamp(fish.callResponseAge / 0.55, 0, 1)
+        : 0;
+      fish.callInfluence += (attention - fish.callInfluence) * (1 - Math.exp(-3.2 * dt));
       this.updateNaturalState(fish, dt);
       this.updateDepth(fish, dt);
       this.updateFeeding(fish, dt);
@@ -182,7 +189,7 @@ export class School {
 
   private updateDepth(fish: Koi, dt: number): void {
     fish.depthStateAge += dt;
-    const risingForCall = this.targetActive && fish.respondedToCall;
+    const risingForCall = fish.callInfluence > 0.2;
     if (!risingForCall && fish.depthStateAge >= fish.depthStateDuration) {
       fish.depthStateAge = 0;
       if (this.behaviorUnit(fish) < FISH.depth.changeProbability) {
@@ -331,7 +338,7 @@ export class School {
     const forward = fromAngle(fish.heading);
     let steering = mul(forward, 0.95);
 
-    if (fish.state === SwimState.Pivot) {
+    if (fish.state === SwimState.Pivot || fish.escapeTime > 0) {
       steering = mul(fromAngle(fish.pivotHeading), 4.7);
     } else if (fish.state !== SwimState.Hover) {
       const wander =
@@ -347,14 +354,18 @@ export class School {
 
     for (let other = 0; other < this.count; other += 1) {
       if (other === index) continue;
-      const offset = sub(fish.position, this.fish[other].position);
+      // A short look ahead softens avoidance before bodies overlap. Keep the
+      // small, predictable O(n²) neighbourhood rather than adding an index.
+      const offset = sub(add(fish.position, mul(fish.velocity, 0.2)),
+        add(this.fish[other].position, mul(this.fish[other].velocity, 0.2)));
       const distance = length(offset);
       if (distance > 0.001 && distance < 37) {
         neighbours += 1;
         cohesion = add(cohesion, this.fish[other].position);
         alignment = add(alignment, normalize(this.fish[other].velocity));
-        if (distance < 14) {
-          separation = add(separation, mul(normalize(offset), (14 - distance) / 14));
+        const personalSpace = 12 + (fish.bodyWidth + this.fish[other].bodyWidth) * 0.65;
+        if (distance < personalSpace) {
+          separation = add(separation, mul(normalize(offset), (personalSpace - distance) / personalSpace));
         }
       }
     }
@@ -379,20 +390,16 @@ export class School {
     }
     steering = add(steering, mul(edgeForce, 4.8));
 
-    if (this.targetActive && fish.callDelay <= 0) {
+    if (fish.callInfluence > 0.001) {
       const toTarget = sub(this.target, fish.position);
       const distance = length(toTarget);
-      if (distance > 13) {
-        const chasePull =
-          fish.callResponseAge < FISH.callResponse.chaseBoostSeconds
-            ? 3.35
-            : 2.45;
-        steering = add(steering, mul(normalize(toTarget), chasePull));
-      } else {
-        const targetDirection = normalize(toTarget, forward);
-        steering = add(steering, mul(perpendicular(targetDirection), 2.2));
-        steering = add(steering, mul(targetDirection, -0.5));
-      }
+      const orbitRadius = 12 + fish.bodyWidth * 1.5 + fish.reactivity * 7;
+      const approach = clamp((distance - orbitRadius) / 22, 0, 1);
+      const direction = normalize(toTarget, forward);
+      const orbitSign = Math.sin(fish.phaseOffset) < 0 ? -1 : 1;
+      const radial = approach * 2.8 - clamp((orbitRadius - distance) / orbitRadius, 0, 1) * 1.4;
+      const orbit = add(mul(direction, radial), mul(perpendicular(direction), (1 - approach) * 1.65 * orbitSign));
+      steering = add(steering, mul(orbit, fish.callInfluence));
     }
 
     return normalize(steering, forward);
@@ -402,23 +409,24 @@ export class School {
     const fish = this.fish[index];
     const chaseDuration = FISH.callResponse.chaseBoostSeconds;
     const chasing =
-      this.targetActive &&
-      fish.respondedToCall &&
+      fish.callInfluence > 0.001 &&
       fish.callResponseAge < chaseDuration;
     if (chasing) {
-      const chaseFade = 1 - clamp(fish.callResponseAge / chaseDuration, 0, 1);
-      return (
+      const chaseFade = 1 - clamp(fish.callResponseAge / Math.max(chaseDuration, 0.01), 0, 1);
+      const arrival = clamp(length(sub(this.target, fish.position)) / 95, 0.16, 1);
+      const pursuit = (
         fish.maximumSpeed *
         (FISH.callResponse.chaseSpeedMultiplier +
           chaseFade * FISH.callResponse.initialExtraSpeedMultiplier)
-      );
+      ) * arrival;
+      return fish.cruiseSpeed + (pursuit - fish.cruiseSpeed) * fish.callInfluence;
     }
 
     let intention = fish.cruiseSpeed;
-    if (this.targetActive && fish.callDelay <= 0) {
+    if (fish.callInfluence > 0.001) {
       const distance = length(sub(this.target, fish.position));
       const urgency = clamp(distance / 105, 0.2, 1);
-      intention = fish.cruiseSpeed + (fish.maximumSpeed - fish.cruiseSpeed) * urgency;
+      intention = fish.cruiseSpeed + (fish.maximumSpeed - fish.cruiseSpeed) * urgency * fish.callInfluence;
     }
 
     switch (fish.state) {
@@ -439,12 +447,12 @@ export class School {
     const desiredHeading = Math.atan2(desired.y, desired.x);
     const headingError = wrapAngle(desiredHeading - fish.heading);
     const pivoting = fish.state === SwimState.Pivot;
-    const turnMultiplier = pivoting ? 2.65 : 1;
-    const angularDamping = pivoting ? 2.15 : 3.8;
+    const turnMultiplier = pivoting ? 1.9 : 1;
+    const angularDamping = pivoting ? 3.4 : 4.1;
     const angularAcceleration =
       headingError * fish.turnStrength * turnMultiplier - fish.angularVelocity * angularDamping;
     fish.angularVelocity += angularAcceleration * dt;
-    const maximumTurnRate = pivoting ? 4.35 : 2.25;
+    const maximumTurnRate = pivoting ? 2.9 : 2.1;
     fish.angularVelocity = clamp(fish.angularVelocity, -maximumTurnRate, maximumTurnRate);
     fish.heading = wrapAngle(fish.heading + fish.angularVelocity * dt);
 
@@ -458,25 +466,26 @@ export class School {
         desiredTailEffort = 0.16;
         break;
       case SwimState.Hover:
-        speedResponse = 3.6;
+        speedResponse = 2.4;
         desiredTailEffort = 0.05;
         break;
       case SwimState.Burst:
-        speedResponse = 6.4;
+        speedResponse = 4.2;
         desiredTailEffort = 1.22;
         break;
       case SwimState.Pivot:
-        speedResponse = 4.2;
+        speedResponse = 3.2;
         desiredTailEffort = 1;
         break;
     }
 
-    fish.speed += (desiredSpeed - fish.speed) * (1 - Math.exp(-speedResponse * dt));
+    const corneringSpeed = desiredSpeed * (1 - 0.38 * clamp(Math.abs(headingError) / Math.PI, 0, 1));
+    fish.speed += (corneringSpeed - fish.speed) * (1 - Math.exp(-speedResponse * dt));
     fish.tailEffort += (desiredTailEffort - fish.tailEffort) * (1 - Math.exp(-4.5 * dt));
     fish.velocity = mul(fromAngle(fish.heading), fish.speed);
     fish.position = add(fish.position, mul(fish.velocity, dt));
 
-    const beatRate = 0.45 + (fish.speed / fish.maximumSpeed) * 4.6 + fish.tailEffort * 0.9;
+    const beatRate = (0.45 + (fish.speed / fish.maximumSpeed) * 4.6 + fish.tailEffort * 0.9) * (0.9 + fish.reactivity * 0.18);
     fish.swimPhase += beatRate * dt;
 
     fish.spine[0] = { ...fish.position };

@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+html, body, #root { width:100%; min-width:0; min-height:100%; margin:0; }
+html, body { overflow:hidden; background:#102923; }
+body { position:relative; }
+button, input, select { font:inherit; -webkit-tap-highlight-color:transparent; }
+button { cursor:pointer; }
+button:disabled { cursor:default; opacity:.38; }
+button, input, select, summary { outline-offset:4px; }
+:focus-visible { outline:2px solid #c0f0d7; }
+button svg { width:19px; height:19px; flex:none; stroke-width:1.7; }
+::selection { color:#102c24; background:#b4dec7; }
+.stage { position:relative; width:100vw; height:100vh; height:100dvh; overflow:hidden; background:#102923; }
+.pond-shell, .display, #pond { position:absolute; inset:0; width:100%; height:100%; }
+.display { overflow:hidden; }
+#pond { display:block; image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
+.pond-ui { position:absolute; inset:0; pointer-events:none; z-index:4; transition:opacity .28s ease; }
+.pond-ui > * { pointer-events:auto; }
+.pond-ui--hidden { opacity:0; }
+.pond-ui--hidden > * { pointer-events:none; }
+.stage--idle, .stage--idle #pond { cursor:none; }
+.glass-button, .brand-float, .control-dock, .pond-preview-label, .pond-status, .settings-loading {
+  background:rgb(19 36 32 / 74%); color:#f0f5ed; backdrop-filter:blur(16px) saturate(125%);
+  box-shadow:0 8px 28px rgb(4 22 17 / 18%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  border:0;
+}
+.brand-float { position:absolute; top:max(22px, env(safe-area-inset-top)); left:max(24px, env(safe-area-inset-left)); border-radius:14px; padding:13px 17px; }
+.brand-float h1 { font-size:14px; font-weight:600; letter-spacing:.055em; line-height:20px; margin:0; }
+.glass-button { display:flex; align-items:center; justify-content:center; gap:9px; border-radius:14px; min-height:46px; padding:0 16px; font-size:14px; font-weight:550; }
+.settings-trigger { position:absolute; top:max(22px, env(safe-area-inset-top)); right:max(24px, env(safe-area-inset-right)); }
+.control-dock { display:flex; align-items:center; gap:2px; position:absolute; bottom:max(24px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); padding:5px; border-radius:20px; }
+.control-dock button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; min-width:48px; padding:0 14px; border-radius:15px; font-size:13px; color:inherit; background:transparent; border:0; }
+.control-dock button[aria-pressed=true] { background:rgb(194 229 206 / 13%); color:#d2f5de; }
+.control-dock button, .glass-button { transition:background-color .18s ease, transform .22s cubic-bezier(.2,.9,.3,1.2); }
+@media (hover:hover) { .control-dock button:hover, .glass-button:hover { background-color:rgb(206 233 214 / 18%); } }
+.control-dock button:active, .glass-button:active { transform:scale(.96); }
+.restore-ui { position:absolute; right:20px; bottom:max(20px, env(safe-area-inset-bottom)); opacity:.55; }
+.restore-ui:hover, .restore-ui:focus-visible { opacity:1; }
+.pond-preview-label { position:absolute; top:24px; left:50%; transform:translateX(-50%); padding:10px 16px; border-radius:14px; font-size:13px; pointer-events:none; }
+.pond-status { position:absolute; z-index:60; top:50%; left:50%; transform:translate(-50%,-50%); width:min(360px,90vw); border-radius:20px; padding:24px; text-align:center; }
+.pond-status p { color:#c0d0c8; font-size:14px; margin:12px 0 20px; }
+.pond-status button { border:0; border-radius:10px; background:#d7ecd9; color:#163728; padding:12px 20px; }
+.settings-loading { position:fixed; z-index:50; top:82px; right:24px; padding:22px; border-radius:20px; font-size:14px; }
+.settings-load-error { max-width:calc(100vw - 48px); }
+.settings-load-error p { margin:0 0 16px; }
+.settings-load-error > div { display:flex; justify-content:flex-end; gap:8px; }
+@media(min-width:3000px) { .brand-float, .settings-trigger { top:32px; } .brand-float { left:32px; } .settings-trigger { right:32px; } .control-dock { bottom:32px; } .glass-button, .brand-float h1, .control-dock button { font-size:16px; } .control-dock button { min-height:52px; padding-inline:20px; } }
+@media(max-width:767px) { .brand-float { top:max(14px, env(safe-area-inset-top)); left:14px; padding:12px 14px; } .brand-float h1 { font-size:13px; } .settings-trigger { top:max(14px, env(safe-area-inset-top)); right:14px; width:46px; padding:0; } .settings-trigger span { display:none; } .control-dock { bottom:max(14px, env(safe-area-inset-bottom)); max-width:calc(100vw - 24px); } .control-dock button { padding:0 11px; font-size:12px; gap:6px; } .control-dock button:last-child span { display:none; } .pond-preview-label { top:74px; max-width:90vw; white-space:nowrap; } }
+@media(max-height:450px) { .brand-float, .settings-trigger { top:12px; } .control-dock { bottom:10px; } }
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; } }
