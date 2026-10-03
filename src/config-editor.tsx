@@ -5,7 +5,7 @@ import { memo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SettingsColorInput, SettingsSlider } from "./settings-controls";
+import { SettingsColorInput, SettingsSelect, SettingsSlider } from "./settings-controls";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
 import { definition, SETTINGS_GROUPS, type SectionId } from "./settings/definition";
@@ -214,19 +214,15 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       return (
         <div className="config-property-row" data-base-ui-swipe-ignore>
           <Label htmlFor={id}>{field(label)}</Label>
-          <select
+          <SettingsSelect
             id={id}
-            className="quick-setting__select"
             value={String(value)}
-            onChange={(event) => {
-              const option = node.options.find((candidate) => String(candidate.value) === event.target.value);
+            options={node.options.map(option => ({value:String(option.value), label:t(option.label as MessageKey)}))}
+            onValueChange={next => {
+              const option = node.options.find((candidate) => String(candidate.value) === next);
               if (option) setValue(option.value);
             }}
-          >
-            {node.options.map((option) => (
-              <option key={String(option.value)} value={String(option.value)}>{t(option.label as MessageKey)}</option>
-            ))}
-          </select>
+          />
         </div>
       );
     }
@@ -367,9 +363,8 @@ export const ConfigEditor = memo(function ConfigEditor({
       placeholder={t("advanced.searchPlaceholder")} aria-label={t("advanced.search")} /></div>
     {!normalizedQuery && <div className="appearance-preview preference-card">
       <label htmlFor="preview-family">{t("quick.family")}</label>
-      <select id="preview-family" className="quick-setting__select" value={selectedFamily} onChange={event => onFamilyChange(Number(event.target.value))}>
-        {settings.live["koi-palettes"].map((palette,index) => <option key={palette.name} value={index}>{family(palette.name)}</option>)}
-      </select>
+      <SettingsSelect id="preview-family" value={String(selectedFamily)} onValueChange={next => onFamilyChange(Number(next))}
+        options={settings.live["koi-palettes"].map((palette,index) => ({value:String(index), label:family(palette.name)}))} />
       <button className="family-preview-toggle" aria-pressed={previewFamily !== null} onClick={() => onPreviewFamilyChange(previewFamily === null ? selectedFamily : null)}>
         {t(previewFamily === null ? "quick.preview" : "quick.showAll", {family:family(settings.live["koi-palettes"][selectedFamily].name)})}
       </button>

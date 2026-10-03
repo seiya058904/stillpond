@@ -31,9 +31,10 @@ function SettingsPage({children, page, direction, reduced, scrollTop, onEntered}
   useLayoutEffect(() => { if (content.current) content.current.scrollTop = scrollTop; }, [scrollTop]);
   return <motion.div ref={content} className="settings-page" custom={direction} initial="enter" animate="visible" exit="exit"
     inert={!present || undefined} style={{zIndex:page === "root" ? 1 : 2}}
-    variants={{enter:(d:number) => ({opacity:reduced ? 1 : 0.6,x:reduced ? 0 : d > 0 ? "100%" : "-22%"}),
-      visible:{opacity:1,x:0}, exit:(d:number) => ({opacity:reduced ? 1 : 0.4,x:reduced ? 0 : d > 0 ? "-22%" : "100%"})}}
-    transition={reduced ? {duration:0} : {type:"spring",stiffness:360,damping:38,mass:0.9}}
+    // Transparent pages must travel edge-to-edge together, never over each other.
+    variants={{enter:(d:number) => ({x:reduced ? 0 : d > 0 ? "100%" : "-100%"}),
+      visible:{x:0}, exit:(d:number) => ({x:reduced ? 0 : d > 0 ? "-100%" : "100%"})}}
+    transition={reduced ? {duration:0} : {duration:0.28,ease:[0.22,1,0.36,1]}}
     onAnimationComplete={definition => { if(present && definition === "visible") onEntered(); }}>
     {children}
   </motion.div>;
@@ -69,7 +70,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
   const resetSection = (ids: readonly SectionId[]) => settings.resetSections(ids);
   return <MotionConfig reducedMotion={reduced ? "always" : "never"}><Drawer open={open} onOpenChange={onOpenChange} modal={false}
     swipeDirection={mobile ? "down" : "right"} showSwipeHandle={mobile} disablePointerDismissal>
-    <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape") onOpenChange(false); }}>
+    <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape" && !event.defaultPrevented) onOpenChange(false); }}>
       <DrawerHeader className="settings-drawer__header">
         <div className="settings-navbar">
           {advanced ? <button ref={back} className="settings-back" aria-label={t("product.back")} onClick={() => navigate("root")}><ChevronLeft aria-hidden="true" /><span>{t("settings.button")}</span></button> : <DrawerTitle className="settings-large-title">{t("settings.title")}</DrawerTitle>}

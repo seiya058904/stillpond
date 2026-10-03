@@ -86,6 +86,10 @@ no page navigation; the Advanced page retains push/pop motion, restores the prio
 scroll position and focus, and makes exiting content inert. The sheet retains
 drag-to-dismiss and the sliders retain native pointer/keyboard interaction.
 Reduced-motion changes apply live.
+Page changes use a matched 280ms full-width slide with a fixed header, so the
+transparent pages never overlap. Advanced dropdowns share a dark, readable
+popup for family, numeric and text choices, with keyboard navigation and focus
+restoration; Escape dismisses a dropdown before closing the settings sheet.
 Switch thumbs use one CSS translation, with a 2px inset in both states and during
 press feedback; combining Tailwind `translate` with a second `transform` previously
 moved the checked thumb 14px beyond its track.
