@@ -3,14 +3,16 @@
 
 A calm digital pond with procedural koi, full-viewport scenery, and English / Simplified Chinese controls.
 
-**V1.1.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
+**V1.2.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
 A quiet, observational pond. Click or tap the water to call the koi; enjoy the
 existing procedural swimming, water, plants, weather, and optional river sound.
-V1.1 refines this one pond: simpler everyday controls, a separate detailed editor,
-gentler swimming and weather transitions, and a smaller initial download. It
-adds no species, scenes, art assets, progression, economy, or new game systems.
+V1.2 — Natural Pond Pass refines this one pond: forward coasting and body-led
+turns, continuously swimming Medaka shoals, peltate lotus leaves, and weather
+that affects surface reflections and plant movement. Everyday settings open
+immediately into a grouped list; the detailed editor remains separate. It adds
+no progression, economy, tasks, or new scenes.
 
 ## Run and verify
 
@@ -67,16 +69,23 @@ mobile viewports do not substitute for physical iOS / Android testing.
 Rendering, simulation, and audio pause while the page is hidden. Returning starts
 from the same simulation time without fast-forwarding. If WebGL loses its context,
 the pond keeps its fish state and rebuilds GPU resources when the context returns;
-a localized recovery control remains available. Settings and the advanced editor
-load separately on demand, keeping their drawer and animation code off the initial
-rendering path.
+a localized recovery control remains available. Ordinary settings ship with the application so a first click never waits for a
+network request. Only the advanced editor loads on demand. The larger initial
+bundle is an intentional tradeoff for immediate settings; no dependencies were added.
 
-Fish retain the original individual reactivity, delayed response, and movement
-states. V1.1 smooths scattering, approaches, orbiting, and loss of interest in a
-call. Tail timing varies with each fish; shallow wakes and ripple-responsive lily
-pads connect their motion to the water. Rain intensity fades smoothly while
-existing ripples finish naturally. The logical rendering scale and default population
-remain unchanged.
+Fish retain individual reactivity, delayed call response, avoidance, depth, and
+group behavior. Coasting preserves forward momentum with quadratic drag and
+relaxing body undulation. Brief rest is rare and retains drift and fin movements;
+routine turns bend and recoil without braking to a halt. Medaka replace the
+previous generic tiny fish using the same population and rendering batches, with
+continuous tail beats and coordinated acceleration, steady swimming, and deceleration.
+Lotus leaves have an entire margin, central petiole, branching radial veins, varied
+tilt and rim shading. Rain, mist, and low sunlight change surface movement,
+reflections, and shadows through the same smoothly blended weather state.
+The logical rendering scale and default population remain unchanged.
+
+Motion and botanical references, including the distinction between measured
+behavior and our artistic coefficients, are in [Natural Pond Pass](docs/natural-pond.md).
 
 ## Project configuration and development
 
@@ -98,7 +107,7 @@ change display branding; it identifies saved preferences.
 - `src/app.tsx`: application state, HUD, keyboard and pointer controls.
 - `src/pond-runtime.ts`: simulation clock, resizing, visibility, and GPU recovery.
 - `src/use-pond-audio.ts`: sound loading, fades, and page/audio lifecycle.
-- `src/settings-panel.tsx`, `src/quick-settings.tsx`: on-demand everyday settings.
+- `src/settings-panel.tsx`, `src/quick-settings.tsx`: immediate grouped everyday settings.
 - `src/config-editor.tsx`: separately loaded, searchable advanced controls.
 - `src/viewport.ts`: viewport/world and input mapping.
 - `src/i18n/`: all English/Chinese product text and schema labels.

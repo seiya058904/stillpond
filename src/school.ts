@@ -281,19 +281,19 @@ export class School {
         fish.stateDuration = this.behaviorRange(fish, 1.7, 5.2);
         break;
       case SwimState.Coast:
-        fish.stateDuration = this.behaviorRange(fish, 0.7, 2.1);
+        fish.stateDuration = this.behaviorRange(fish, 0.9, 2.3);
         break;
       case SwimState.Hover:
-        fish.stateDuration = this.behaviorRange(fish, 0.65, 3.1);
+        fish.stateDuration = this.behaviorRange(fish, 1.2, 1.9);
         break;
       case SwimState.Burst:
         fish.stateDuration = this.behaviorRange(fish, 0.32, 0.92);
         break;
       case SwimState.Pivot: {
-        fish.stateDuration = this.behaviorRange(fish, 0.3, 0.78);
+        fish.stateDuration = this.behaviorRange(fish, 0.55, 0.95);
         const direction = this.behaviorUnit(fish) < 0.5 ? -1 : 1;
         fish.pivotHeading = wrapAngle(
-          fish.heading + direction * this.behaviorRange(fish, 0.85, 2.35),
+          fish.heading + direction * this.behaviorRange(fish, 0.45, 1.55),
         );
         break;
       }
@@ -302,21 +302,27 @@ export class School {
 
   private updateNaturalState(fish: Koi, dt: number): void {
     fish.stateAge += dt;
+    // Resume propulsion before passive drag can turn coasting into a stop.
+    if (fish.state === SwimState.Coast && fish.speed < fish.cruiseSpeed * 0.48) {
+      this.enterState(fish, SwimState.Glide);
+    }
+    if (fish.state === SwimState.Hover && fish.callInfluence > 0.2) {
+      this.enterState(fish, SwimState.Glide);
+    }
     if (fish.stateAge < fish.stateDuration) return;
 
     const roll = this.behaviorUnit(fish);
     switch (fish.state) {
       case SwimState.Glide:
-        if (roll < 0.25) this.enterState(fish, SwimState.Coast);
-        else if (roll < 0.43) this.enterState(fish, SwimState.Hover);
-        else if (roll < 0.61) this.enterState(fish, SwimState.Pivot);
-        else if (roll < 0.72) this.enterState(fish, SwimState.Burst);
+        if (roll < 0.40) this.enterState(fish, SwimState.Coast);
+        else if (roll < 0.42) this.enterState(fish, SwimState.Hover);
+        else if (roll < 0.56) this.enterState(fish, SwimState.Pivot);
+        else if (roll < 0.73) this.enterState(fish, SwimState.Burst);
         else this.enterState(fish, SwimState.Glide);
         break;
       case SwimState.Coast:
-        if (roll < 0.38) this.enterState(fish, SwimState.Hover);
-        else if (roll < 0.72) this.enterState(fish, SwimState.Glide);
-        else if (roll < 0.9) this.enterState(fish, SwimState.Pivot);
+        if (roll < 0.70) this.enterState(fish, SwimState.Glide);
+        else if (roll < 0.85) this.enterState(fish, SwimState.Pivot);
         else this.enterState(fish, SwimState.Burst);
         break;
       case SwimState.Hover:
@@ -433,13 +439,13 @@ export class School {
       case SwimState.Glide:
         return intention;
       case SwimState.Coast:
-        return intention * 0.28;
+        return fish.callInfluence > 0.2 ? intention : fish.speed;
       case SwimState.Hover:
-        return 0;
+        return fish.cruiseSpeed * 0.1;
       case SwimState.Burst:
         return fish.maximumSpeed * 1.08;
       case SwimState.Pivot:
-        return fish.cruiseSpeed * 0.16;
+        return fish.cruiseSpeed * 0.68;
     }
   }
 
@@ -447,8 +453,10 @@ export class School {
     const desiredHeading = Math.atan2(desired.y, desired.x);
     const headingError = wrapAngle(desiredHeading - fish.heading);
     const pivoting = fish.state === SwimState.Pivot;
-    const turnMultiplier = pivoting ? 1.9 : 1;
-    const angularDamping = pivoting ? 3.4 : 4.1;
+    const progress = clamp(fish.stateAge / fish.stateDuration, 0, 1);
+    const bendPulse = pivoting ? Math.sin(Math.PI * progress) : 0;
+    const turnMultiplier = pivoting ? 0.8 + bendPulse * 1.6 : 1;
+    const angularDamping = pivoting ? 4.8 : 4.1;
     const angularAcceleration =
       headingError * fish.turnStrength * turnMultiplier - fish.angularVelocity * angularDamping;
     fish.angularVelocity += angularAcceleration * dt;
@@ -462,31 +470,50 @@ export class School {
       case SwimState.Glide:
         break;
       case SwimState.Coast:
-        speedResponse = 1.05;
-        desiredTailEffort = 0.16;
+        speedResponse = 1.2;
+        desiredTailEffort = fish.callInfluence > 0.2 ? 0.55 : 0.025;
         break;
       case SwimState.Hover:
-        speedResponse = 2.4;
-        desiredTailEffort = 0.05;
+        speedResponse = 1.2;
+        desiredTailEffort = 0.035;
         break;
       case SwimState.Burst:
         speedResponse = 4.2;
         desiredTailEffort = 1.22;
         break;
       case SwimState.Pivot:
-        speedResponse = 3.2;
-        desiredTailEffort = 1;
+        speedResponse = 1.6;
+        desiredTailEffort = 0.5 + bendPulse * 0.4;
         break;
     }
 
     const corneringSpeed = desiredSpeed * (1 - 0.38 * clamp(Math.abs(headingError) / Math.PI, 0, 1));
-    fish.speed += (corneringSpeed - fish.speed) * (1 - Math.exp(-speedResponse * dt));
-    fish.tailEffort += (desiredTailEffort - fish.tailEffort) * (1 - Math.exp(-4.5 * dt));
+    const previousSpeed = fish.speed;
+    if (fish.state === SwimState.Coast && fish.callInfluence <= 0.2 && fish.escapeTime <= 0) {
+      // Quadratic drag: dv/dt = -k v². Coast retains momentum, independent
+      // of heading corrections. Coefficients are an artistic scale, not CFD.
+      fish.speed /= 1 + 0.48 * fish.speed / fish.cruiseSpeed * dt;
+    } else {
+      fish.speed += (corneringSpeed - fish.speed) * (1 - Math.exp(-speedResponse * dt));
+    }
+    fish.acceleration += ((fish.speed - previousSpeed) / dt - fish.acceleration) * (1 - Math.exp(-7 * dt));
+    const thrust = clamp(fish.acceleration / fish.cruiseSpeed, 0, 1);
+    if (fish.state === SwimState.Glide || fish.state === SwimState.Burst) {
+      desiredTailEffort *= 0.72 + 0.28 * clamp(fish.speed / fish.cruiseSpeed, 0, 1.5);
+      desiredTailEffort += thrust * 0.2;
+    }
+    fish.tailEffort += (desiredTailEffort - fish.tailEffort) * (1 - Math.exp(-6 * dt));
+    // A short bend followed by recoil, with a smaller bend for ordinary steering.
+    const recoil = pivoting && progress > 0.62 ? Math.sin((progress - 0.62) / 0.38 * Math.PI) * 0.3 : 0;
+    const desiredBend = clamp(headingError, -1, 1) * (pivoting ? bendPulse - recoil : 0.3);
+    fish.turnBend += (desiredBend - fish.turnBend) * (1 - Math.exp(-9 * dt));
     fish.velocity = mul(fromAngle(fish.heading), fish.speed);
     fish.position = add(fish.position, mul(fish.velocity, dt));
 
-    const beatRate = (0.45 + (fish.speed / fish.maximumSpeed) * 4.6 + fish.tailEffort * 0.9) * (0.9 + fish.reactivity * 0.18);
+    const beatRate = Math.PI * 2 * (0.55 + fish.speed / Math.max(fish.bodyLength, 1) * 1.25 + thrust * 0.35)
+      * (0.55 + Math.min(fish.tailEffort, 1) * 0.45) * (0.92 + fish.reactivity * 0.15);
     fish.swimPhase += beatRate * dt;
+    fish.finPhase += (3.2 + fish.reactivity + (1 - Math.min(fish.speed / fish.cruiseSpeed, 1)) * 2.2) * dt;
 
     fish.spine[0] = { ...fish.position };
     const spacing = fish.bodyLength / (SPINE_NODES - 1);

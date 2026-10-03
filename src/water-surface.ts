@@ -9,6 +9,7 @@ import {
 } from "./config";
 import { RIPPLE_TYPE_ORDER } from "./ripple-system";
 import { School } from "./school";
+import type { SurfaceWeather } from "./weather-pass";
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -39,6 +40,10 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D uDisturbance;
   uniform vec2 uResolution;
   uniform float uTime;
+  uniform float uWind;
+  uniform float uGlint;
+  uniform vec2 uLightDirection;
+  uniform vec3 uLightColor;
   uniform int uRippleCount;
   uniform vec4 uRipples[MAX_RIPPLES];
   uniform vec4 uRipplePhysics[MAX_RIPPLE_TYPES];
@@ -200,7 +205,7 @@ const fragmentShader = /* glsl */ `
     vec2 displacement = vec2(
       sin(pixel.y * 0.051 + uTime * 0.31) + sin(pixel.y * 0.017 - uTime * 0.19),
       cos(pixel.x * 0.043 - uTime * 0.23) + sin(pixel.x * 0.014 + uTime * 0.16)
-    ) * 0.13 / uResolution;
+    ) * (0.11 + uWind * 0.15) / uResolution;
 
     for (int index = 0; index < MAX_RIPPLES; index++) {
       if (index >= uRippleCount) break;
@@ -325,6 +330,13 @@ const fragmentShader = /* glsl */ `
         * uDetailCurrentOpacity * (1.0 - uClarity);
     }
 
+    // Ripple and tail displacement perturb the same reflection normal.
+    vec3 surfaceNormal = normalize(vec3(displacement * uResolution, 1.0));
+    vec3 halfVector = normalize(vec3(uLightDirection * 0.38, 1.0));
+    float reflection = pow(max(dot(surfaceNormal, halfVector), 0.0), 44.0);
+    float brokenLight = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(pixel.y * 0.19 + pixel.x * 0.035 + uTime * 0.62), 6.0);
+    float lightPool = smoothstep(-0.2, 0.9, dot(vUv - 0.5, uLightDirection) + 0.45);
+    color += uLightColor * reflection * brokenLight * lightPool * uGlint;
     gl_FragColor = vec4(color, 1.0);
   }
 `;
@@ -417,6 +429,10 @@ export class WaterSurfacePass {
         uDisturbance: { value: disturbanceTexture },
         uResolution: { value: new THREE.Vector2(CANVAS_WIDTH, CANVAS_HEIGHT) },
         uTime: { value: 0 },
+        uWind: { value: 0 },
+        uGlint: { value: 0 },
+        uLightDirection: { value: new THREE.Vector2(-0.58, 0.82) },
+        uLightColor: { value: new THREE.Color(1, 0.94, 0.72) },
         uRippleCount: { value: 0 },
         uRipples: { value: this.rippleData },
         uRipplePhysics: { value: this.ripplePhysics },
@@ -465,7 +481,13 @@ export class WaterSurfacePass {
     this.targetAppearance = waterAppearanceFromConfig();
   }
 
-  public update(school: School, time: number): void {
+  public update(school: School, time: number, weather?: Readonly<SurfaceWeather>): void {
+    if (weather) {
+      this.material.uniforms.uWind.value = weather.wind;
+      this.material.uniforms.uGlint.value = weather.glint;
+      this.material.uniforms.uLightDirection.value.copy(weather.lightDirection);
+      this.material.uniforms.uLightColor.value.copy(weather.lightColor);
+    }
     this.updateCurrentAppearance(time);
     for (let index = 0; index < MAX_RIPPLE_TYPES; index += 1) {
       this.ripplePhysics[index].set(1, 0, 0, 0);

@@ -1,6 +1,10 @@
 // English and Simplified Chinese share one key set. All product copy lives here.
 export const messages = {
   "product.pond": ["Pond", "池塘"],
+  "product.on": ["On", "已开启"],
+  "product.off": ["Off", "已关闭"],
+  "product.medaka": ["Medaka shoals", "青鳉鱼群"],
+  "product.medakaHint": ["Small ricefish swim together, their tails always moving.", "小小的青鳉持续摆尾，结伴游动。"],
   "product.density": ["Koi in the pond", "池中的锦鲤"],
   "product.koi": ["{count} koi", "{count} 条"],
   "product.few": ["A little space", "疏朗"],
@@ -133,8 +137,8 @@ export const messages = {
   "section.koi": ["Koi", "锦鲤"],
   "section.koi-palettes": ["Koi palettes", "锦鲤配色"],
   "section.koi-patterns": ["Koi markings", "锦鲤斑纹"],
-  "section.tiny-fish": ["Tiny fish", "小鱼"],
-  "section.tiny-fish-schools": ["Tiny fish schools", "小鱼群"],
+  "section.tiny-fish": ["Medaka", "青鳉"],
+  "section.tiny-fish-schools": ["Medaka shoals", "青鳉鱼群"],
   "section.pond-bed": ["Pond bed", "池底"],
   "section.water": ["Water", "水体"],
   "section.ripples": ["Ripples", "涟漪"],

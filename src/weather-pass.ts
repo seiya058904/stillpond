@@ -29,6 +29,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uLightColor;
   uniform float uLightStrength;
   uniform vec2 uLightDirection;
+  uniform float uMist;
   varying vec2 vUv;
 
   void main() {
@@ -51,6 +52,12 @@ const fragmentShader = /* glsl */ `
     directionalLight = smoothstep(0.05, 0.95, directionalLight);
     color += uLightColor * directionalLight * uLightStrength;
 
+    // Thin, moving banks cross the water; mist is spatial, not a flat tint.
+    float bank = sin(vUv.y * 15.0 + sin(vUv.x * 5.0 + uTime * 0.025) * 2.0 - uTime * 0.035);
+    float wisps = sin(vUv.x * 11.0 - vUv.y * 8.0 + uTime * 0.045) * 0.22;
+    float fog = smoothstep(-0.45, 0.9, bank + wisps) * uMist;
+    color = mix(color, vec3(0.64, 0.74, 0.69), fog);
+
     float edge = smoothstep(0.36, 0.76, length(centered * vec2(1.0, 1.3)));
     color *= 1.0 - edge * uVignette;
     gl_FragColor = vec4(max(color, vec3(0.0)), 1.0);
@@ -64,9 +71,25 @@ const scalarProperties = [
   "vignette",
   "cloudStrength",
   "lightStrength",
+  "wind", "mist", "glint", "shadowScale",
 ] as const;
 
-interface WeatherState {
+export interface SurfaceWeather {
+  wind: number;
+  mist: number;
+  glint: number;
+  shadowScale: number;
+  lightDirection: THREE.Vector2;
+  lightColor: THREE.Color;
+}
+
+const surfaceWeather: Record<WeatherPresetId, readonly [number, number, number, number]> = {
+  sunny: [0.22, 0, 0.055, 0.85], rain: [0.85, 0.015, 0.012, 0.6],
+  "deep-clear": [0.12, 0, 0.035, 0.85], overcast: [0.45, 0.025, 0.008, 0.65],
+  mist: [0.06, 0.17, 0.012, 0.55], sunset: [0.16, 0, 0.085, 1.4], moonlight: [0.09, 0, 0.075, 1.1],
+};
+
+interface WeatherState extends SurfaceWeather {
   tint: THREE.Color;
   lightColor: THREE.Color;
   lightDirection: THREE.Vector2;
@@ -79,7 +102,9 @@ interface WeatherState {
 }
 
 function stateFromPreset(preset: WeatherPreset): WeatherState {
+  const [wind, mist, glint, shadowScale] = surfaceWeather[preset.id];
   return {
+    wind, mist, glint, shadowScale,
     tint: new THREE.Color().setRGB(...preset.tint),
     lightColor: new THREE.Color().setRGB(...preset.lightColor),
     lightDirection: new THREE.Vector2(...preset.lightDirection),
@@ -101,6 +126,7 @@ export class WeatherPass {
   );
   private target = stateFromPreset(getWeatherPreset(DEFAULT_WEATHER_PRESET_ID));
   private previousTime = -1;
+  public get surface(): Readonly<SurfaceWeather> { return this.current; }
 
   public constructor(sceneTexture: THREE.Texture) {
     this.material = new THREE.ShaderMaterial({
@@ -116,6 +142,7 @@ export class WeatherPass {
         uLightColor: { value: this.current.lightColor },
         uLightStrength: { value: this.current.lightStrength },
         uLightDirection: { value: this.current.lightDirection },
+        uMist: { value: this.current.mist },
       },
       vertexShader,
       fragmentShader,
@@ -158,6 +185,7 @@ export class WeatherPass {
     this.material.uniforms.uVignette.value = this.current.vignette;
     this.material.uniforms.uCloudStrength.value = this.current.cloudStrength;
     this.material.uniforms.uLightStrength.value = this.current.lightStrength;
+    this.material.uniforms.uMist.value = this.current.mist;
   }
 
   public dispose(): void {

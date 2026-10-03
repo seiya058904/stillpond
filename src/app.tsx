@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Eye, EyeOff, Maximize2, Minimize2, Settings2, Shuffle, Volume2, VolumeX } from "lucide-react";
 import project from "../project.config.json";
 import { useI18n } from "./i18n";
@@ -8,12 +8,11 @@ import { connectPersistence, loadInto } from "./settings/persistence";
 import { settings } from "./settings/store";
 import { usePondAudio } from "./use-pond-audio";
 
-const loadSettings = () => import("./settings-panel");
-const SettingsPanel = lazy(loadSettings);
+import SettingsPanel from "./settings-panel";
 loadInto(settings);
 connectPersistence(settings);
 
-// A failed on-demand download must not take the running pond down with it.
+// A settings UI error must not take the running pond down with it.
 class SettingsBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
@@ -139,7 +138,7 @@ export function App() {
     {showInterface && <div className={"pond-ui" + (idle ? " pond-ui--hidden" : "")} inert={idle || undefined}>
       <header className="brand-float"><h1>{project.name}</h1></header>
       <button ref={trigger} className="glass-button settings-trigger" aria-label={t("settings.open")}
-        aria-expanded={settingsOpen} aria-haspopup="dialog" onPointerEnter={() => { void loadSettings().catch(() => undefined); }} onFocus={() => { void loadSettings().catch(() => undefined); }}
+        aria-expanded={settingsOpen} aria-haspopup="dialog"
         onClick={() => changeSettingsOpen(true)}><Settings2 aria-hidden="true" /><span>{t("settings.button")}</span></button>
       <nav className="control-dock" aria-label={t("controls.label")}>
         <button aria-label={t(ambient ? "controls.exitAmbient" : "controls.enterAmbient")} aria-pressed={ambient} aria-keyshortcuts="F" onClick={() => void toggleAmbient()}>
@@ -156,9 +155,9 @@ export function App() {
         <button className="glass-button" onClick={() => changeSettingsOpen(false)}>{t("action.cancel")}</button>
         <button className="glass-button" onClick={() => window.location.reload()}>{t("action.reload")}</button>
       </div>
-    </div>}><Suspense fallback={<div className="settings-loading" role="status">{t("settings.loading")}</div>}>
+    </div>}>
       <SettingsPanel open={settingsOpen} onOpenChange={changeSettingsOpen} sound={sound} frameRate={frameRate}
         onFrameRateChange={changeFrameRate} ambient={ambient} onAmbientChange={() => void toggleAmbient()} preview={preview} onPreviewChange={changePreview} />
-    </Suspense></SettingsBoundary>}
+    </SettingsBoundary>}
   </main>;
 }

@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronRight, SlidersHorizontal, RotateCcw, Undo2, X } from "lucide-react";
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, RotateCcw, Undo2, X } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "./hooks/use-mobile";
-import { QuickSettings, type QuickSettingsProps } from "./quick-settings";
+import { QuickSettings, preferenceTitles, type PreferencePage, type QuickSettingsProps } from "./quick-settings";
 import { useI18n } from "./i18n";
 import { settings } from "./settings/store";
 import { useSettingsMeta } from "./settings/react";
@@ -11,6 +11,11 @@ import type { SectionId } from "./settings/definition";
 import "./settings.css";
 
 const ConfigEditor = lazy(() => import("./config-editor").then(module => ({ default: module.ConfigEditor })));
+class AdvancedBoundary extends Component<{children:ReactNode; fallback:ReactNode}, {failed:boolean}> {
+  state = {failed:false};
+  static getDerivedStateFromError() { return {failed:true}; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
 interface Props extends Pick<QuickSettingsProps, "sound" | "frameRate" | "onFrameRateChange" | "ambient" | "onAmbientChange"> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,15 +28,20 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
   const mobile = useIsMobile();
   const reduced = useReducedMotion();
   const meta = useSettingsMeta();
-  const [advanced, setAdvanced] = useState(false);
+  const [page, setPage] = useState<PreferencePage>("root");
+  const advanced = page === "advanced";
+  const direction = useRef(1);
+  const returnTo = useRef<PreferencePage>("pond");
   const [reset, setReset] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedFamily, setSelectedFamily] = useState(0);
   const scroll = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (!open) { setReset(false); onPreviewChange(null); } }, [open, onPreviewChange]);
-  const navigate = (next: boolean) => {
-    setAdvanced(next); setReset(false); setQuery(""); onPreviewChange(null);
+  useEffect(() => { if (!open) { setReset(false); setPage("root"); onPreviewChange(null); } }, [open, onPreviewChange]);
+  const navigate = (next: PreferencePage) => {
+    direction.current = next === "root" ? -1 : 1;
+    if (next !== "root") returnTo.current = next;
+    setPage(next); setReset(false); setQuery(""); onPreviewChange(null);
     scroll.current?.scrollTo({top:0});
   };
   const resetSection = (ids: readonly SectionId[]) => settings.resetSections(ids);
@@ -40,27 +50,27 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     <DrawerContent className="settings-drawer" onKeyDown={event => { if(event.key === "Escape") onOpenChange(false); }}>
       <DrawerHeader className="settings-drawer__header">
         <div className="settings-heading">
-          {advanced && <button ref={back} className="icon-button" aria-label={t("product.back")} onClick={() => navigate(false)}><ArrowLeft aria-hidden="true" /></button>}
-          <div><DrawerTitle>{t(advanced ? "advanced.title" : "settings.title")}</DrawerTitle>
+          {page !== "root" && <button ref={back} className="icon-button" aria-label={t("product.back")} onClick={() => navigate("root")}><ArrowLeft aria-hidden="true" /></button>}
+          <div><DrawerTitle>{t(page === "root" ? "settings.title" : preferenceTitles[page])}</DrawerTitle>
             <DrawerDescription>{t(advanced ? "advanced.hint" : "product.settingsHint")}</DrawerDescription></div>
         </div>
         <button className="icon-button" aria-label={t("settings.close")} onClick={() => onOpenChange(false)}><X aria-hidden="true" /></button>
       </DrawerHeader>
       <div ref={scroll} className="settings-scroll" data-base-ui-swipe-ignore>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={advanced ? "advanced" : "simple"} initial={{opacity:0,x:reduced ? 0 : advanced ? 18 : -18}}
-            animate={{opacity:1,x:0}} exit={{opacity:0,x:reduced ? 0 : advanced ? 12 : -12}}
-            transition={reduced ? {duration:0} : {type:"spring",stiffness:430,damping:38,mass:.8}}
-            onAnimationComplete={() => { if(advanced) back.current?.focus({preventScroll:true}); }}>
-            {advanced ? <Suspense fallback={<p role="status" className="preference-note">{t("settings.loading")}</p>}>
+        <AnimatePresence mode="wait" initial={false} custom={direction.current}>
+          <motion.div key={page} custom={direction.current} initial="enter" animate="visible" exit="exit"
+            variants={{enter:(d:number) => ({opacity:0,x:reduced ? 0 : d * 22}), visible:{opacity:1,x:0}, exit:(d:number) => ({opacity:0,x:reduced ? 0 : -d * 12})}}
+            transition={reduced ? {duration:0} : {duration:0.16,ease:[0.22,1,0.36,1]}}
+            onAnimationComplete={() => { if(page !== "root") back.current?.focus({preventScroll:true});
+              else scroll.current?.querySelector<HTMLButtonElement>(`[data-preference="${returnTo.current}"]`)?.focus({preventScroll:true}); }}>
+            {advanced ? <AdvancedBoundary fallback={<p role="alert" className="preference-note">{t("settings.loadFailed")}</p>}><Suspense fallback={<p role="status" className="preference-note">{t("settings.loading")}</p>}>
               <ConfigEditor query={query} onQueryChange={setQuery} onResetSection={resetSection}
                 selectedFamily={selectedFamily} previewFamily={preview} onFamilyChange={index => {setSelectedFamily(index); onPreviewChange(index);}}
                 onPreviewFamilyChange={onPreviewChange} />
-            </Suspense> : <>
+            </Suspense></AdvancedBoundary> : <>
               <QuickSettings {...preferences} weather={meta.weather} rain={meta.rain}
+                page={page} onNavigate={navigate}
                 onWeatherChange={id => settings.setWeather(id)} onRainChange={on => settings.setRain(on)} />
-              <button className="advanced-link" onClick={() => navigate(true)}><SlidersHorizontal aria-hidden="true" />
-                <span><strong>{t("advanced.title")}</strong><small>{t("product.advancedHint")}</small></span><ChevronRight aria-hidden="true" /></button>
             </>}
           </motion.div>
         </AnimatePresence>

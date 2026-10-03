@@ -234,7 +234,7 @@ const tinyFish = group(
     }),
     bodyLength: range({ default: [5.8, 8.2], min: 1, max: 30, step: 0.1, effect: "tiny-fish:respawn" }),
     bodyWidthRatio: range({
-      default: [0.1, 0.32],
+      default: [0.1, 0.15],
       min: 0.02,
       max: 1,
       step: 0.01,
@@ -245,14 +245,14 @@ const tinyFish = group(
     finReachScale: num({ default: 1.28, min: 0, max: 3, step: 0.01 }),
     eyeRadius: num({ default: 0.28, min: 0, max: 2, step: 0.01 }),
     cruiseSpeed: range({ default: [19, 27], min: 1, max: 100, step: 0.5, effect: "tiny-fish:respawn" }),
-    speedVariation: num({ default: 0.46, min: 0, max: 2, step: 0.01 }),
+    speedVariation: num({ default: 0.38, min: 0, max: 2, step: 0.01 }),
     edgeMargin: num({ default: 14, min: 0, max: 100, step: 1 }),
     neighbourRadius: num({ default: 25, min: 0, max: 200, step: 1 }),
     separationRadius: num({ default: 6.2, min: 0, max: 100, step: 0.1 }),
     cohesionStrength: num({ default: 0.62, min: 0, max: 10, step: 0.01 }),
-    alignmentStrength: num({ default: 0.56, min: 0, max: 10, step: 0.01 }),
+    alignmentStrength: num({ default: 0.82, min: 0, max: 10, step: 0.01 }),
     separationStrength: num({ default: 2.8, min: 0, max: 10, step: 0.01 }),
-    swirlStrength: num({ default: 0.46, min: 0, max: 10, step: 0.01 }),
+    swirlStrength: num({ default: 0.18, min: 0, max: 10, step: 0.01 }),
     wanderStrength: num({ default: 0.34, min: 0, max: 10, step: 0.01 }),
     edgeStrength: num({ default: 4.8, min: 0, max: 20, step: 0.01 }),
     steeringResponse: num({ default: 4.7, min: 0, max: 20, step: 0.01 }),
@@ -278,10 +278,10 @@ const tinyFish = group(
     palettes: list(
       tinyFishPalette,
       [
-        { body: 0xffe66d, light: 0xfff3a0, accent: 0xff8c42, fin: 0xffc857, eye: 0x203638 },
-        { body: 0x56dffc, light: 0xb2f2ff, accent: 0x3877ed, fin: 0x85edff, eye: 0x173b52 },
-        { body: 0xff72ad, light: 0xffbad2, accent: 0xffd05e, fin: 0xff9bc2, eye: 0x4d2940 },
-        { body: 0xa8ed48, light: 0xddff8c, accent: 0x38bb78, fin: 0xc5f56d, eye: 0x254535 },
+        { body: 0xc5ae79, light: 0xe6d4a3, accent: 0x8d855e, fin: 0xa9b38b, eye: 0x263a32 },
+        { body: 0xb2c3bc, light: 0xe0e8d5, accent: 0x789b96, fin: 0x9cbdb0, eye: 0x233c38 },
+        { body: 0xd6af83, light: 0xf0d3a6, accent: 0xab8960, fin: 0xbcbb94, eye: 0x3d3e30 },
+        { body: 0x939c7d, light: 0xc1c8a7, accent: 0x687e68, fin: 0x8fa58b, eye: 0x293d31 },
       ],
       { effect: "tiny-fish:render" },
     ),
@@ -487,8 +487,9 @@ const lotus = group(
     radiusScale: num({ default: 1.18, min: 0, max: 5, step: 0.01 }),
     flowerRadiusScale: num({ default: 2.38, min: 0, max: 5, step: 0.01 }),
     leafSegments: num({ default: 24, min: 3, max: 64, step: 1, int: true }),
-    veinCount: num({ default: 5, min: 0, max: 20, step: 1, int: true }),
-    notchHalfAngle: num({ default: 0.3, min: 0, max: Math.PI, step: 0.01 }),
+    veinCount: num({ default: 9, min: 0, max: 20, step: 1, int: true }),
+    // Kept for existing custom artwork; natural Nelumbo has an entire margin.
+    notchHalfAngle: num({ default: 0, min: 0, max: Math.PI, step: 0.01 }),
     verticalScale: num({ default: 0.92, min: 0, max: 2, step: 0.01 }),
     driftX: num({ default: 0.7, min: 0, max: 20, step: 0.01 }),
     driftY: num({ default: 0.55, min: 0, max: 20, step: 0.01 }),
@@ -496,7 +497,7 @@ const lotus = group(
     shadow: group(
       {
         color: color({ default: 0x0a2b26 }),
-        opacity: num({ default: 0.5, min: 0, max: 1, step: 0.01 }),
+        opacity: num({ default: 0.34, min: 0, max: 1, step: 0.01 }),
         offset: offsetGroup(4.8, 10.4),
       },
       { effect: "lotus:rebuild" },
@@ -504,8 +505,8 @@ const lotus = group(
     leafPalettes: list(
       lotusLeafPalette,
       [
-        { base: 0x5f9d78, light: 0x76aa84, shade: 0x487c66, vein: 0x3f705e, center: 0x4f866b },
-        { base: 0x568f6f, light: 0x6ca17b, shade: 0x416f5b, vein: 0x386653, center: 0x497d63 },
+        { base: 0x78a587, light: 0x95b79a, shade: 0x527d68, vein: 0x9db89a, center: 0x698b70 },
+        { base: 0x6b9278, light: 0x91a686, shade: 0x486e59, vein: 0x91a886, center: 0x607b61 },
       ],
       { effect: "lotus:rebuild" },
     ),

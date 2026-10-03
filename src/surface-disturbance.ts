@@ -243,7 +243,7 @@ export class SurfaceDisturbancePass {
         fish.bodyWidth * FISH.depth.localDistortion.widthScale * (previewFishIndex === null ? 1 : 1.6);
       this.depthValues[offset] = smoothDepth;
       this.depthValues[offset + 1] = fish.phaseOffset;
-      this.motionValues[offset] = clamp(fish.speed / Math.max(fish.maximumSpeed, 1), 0, 1.5) * fish.tailEffort;
+      this.motionValues[offset] = clamp(fish.speed / Math.max(fish.maximumSpeed, 1), 0, 1.5) * (0.18 + fish.tailEffort * 0.82);
       this.motionValues[offset + 1] = fish.swimPhase;
       count += 1;
     }

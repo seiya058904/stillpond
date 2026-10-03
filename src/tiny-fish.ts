@@ -34,6 +34,7 @@ export interface TinyFishAgent {
   fleeDelay: number;
   fleeTime: number;
   fleeDuration: number;
+  swimState: "accelerate" | "steady" | "decelerate";
 }
 
 interface TinySchoolRange {
@@ -94,6 +95,7 @@ export class TinyFishSchools {
           fleeDelay: -1,
           fleeTime: 0,
           fleeDuration: TINY_FISH.flee.duration[0],
+          swimState: "steady",
         });
       }
       this.ranges.push({
@@ -198,11 +200,7 @@ export class TinyFishSchools {
         if (fish.fleeDelay <= 0) {
           fish.fleeDelay = -1;
           fish.fleeTime = fish.fleeDuration;
-          const away = normalize(sub(fish.position, this.callPoint), schoolForward);
-          fish.velocity = add(
-            fish.velocity,
-            mul(away, TINY_FISH.flee.initialImpulse),
-          );
+          // The startle changes intent. Momentum and heading stay continuous.
         }
       }
 
@@ -231,6 +229,12 @@ export class TinyFishSchools {
       }
 
       const forward = normalize(fish.velocity, schoolForward);
+      // Medaka keep undulating in all three kinematic modes. A common school
+      // cadence with individual response lag coordinates speed, not tail phase.
+      const cycle = 9 + range.phase * 0.7;
+      const beat = ((time + range.phase * 5 + fish.phase * 0.16) % cycle) / cycle;
+      fish.swimState = beat < 0.2 ? "accelerate" : beat < 0.8 ? "steady" : "decelerate";
+      const socialResponse = fish.swimState === "steady" ? 1.4 : fish.swimState === "accelerate" ? 1 : 0.65;
       if (neighbours > 0) {
         cohesion = normalize(
           sub(mul(cohesion, 1 / neighbours), fish.position),
@@ -261,7 +265,7 @@ export class TinyFishSchools {
       );
       steering = add(
         steering,
-        mul(alignment, TINY_FISH.alignmentStrength),
+        mul(alignment, TINY_FISH.alignmentStrength * socialResponse),
       );
       steering = add(
         steering,
@@ -285,9 +289,12 @@ export class TinyFishSchools {
         edgeForce.y -=
           (fish.position.y - (CANVAS_HEIGHT - margin)) / margin;
       }
-      let targetSpeed =
-        fish.cruiseSpeed *
-        (1 + Math.sin(time * 0.83 + fish.phase) * TINY_FISH.speedVariation);
+      let targetSpeed = fish.cruiseSpeed * (fish.swimState === "accelerate"
+        ? 1 + TINY_FISH.speedVariation * 0.6
+        : fish.swimState === "decelerate" ? Math.max(0.35, 1 - TINY_FISH.speedVariation) : 1);
+      if (fish.swimState === "steady" && neighbours > 0) {
+        targetSpeed += (length(averageVelocity) - targetSpeed) * 0.35;
+      }
       if (fish.fleeTime > 0) {
         fish.fleeTime = Math.max(0, fish.fleeTime - dt);
         const away = normalize(sub(fish.position, this.callPoint), forward);
@@ -304,10 +311,9 @@ export class TinyFishSchools {
           steering,
           mul(separation, TINY_FISH.separationStrength),
         );
-        targetSpeed = this.random.range(
-          TINY_FISH.flee.speed[0],
-          TINY_FISH.flee.speed[1],
-        );
+        const fleeSpeed = TINY_FISH.flee.speed[0] + (TINY_FISH.flee.speed[1] - TINY_FISH.flee.speed[0]) * (0.5 + Math.sin(fish.phase) * 0.5);
+        targetSpeed += (fleeSpeed + TINY_FISH.flee.initialImpulse * 0.2 - targetSpeed)
+          * Math.min(1, fish.fleeTime / 0.55);
       }
       steering = add(steering, mul(edgeForce, TINY_FISH.edgeStrength));
 
@@ -325,7 +331,7 @@ export class TinyFishSchools {
       const nextSpeed = currentSpeed + (targetSpeed - currentSpeed) * response;
       fish.velocity = mul(limitedDirection, nextSpeed);
       fish.position = add(fish.position, mul(fish.velocity, dt));
-      fish.tailPhase += (4.4 + nextSpeed * 0.16) * dt;
+      fish.tailPhase += Math.PI * 2 * (2.8 + nextSpeed / Math.max(fish.bodyLength, 1) * 0.55) * dt;
     }
   }
 }

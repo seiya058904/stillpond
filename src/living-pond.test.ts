@@ -3,6 +3,7 @@ import { FISH, setCanvasSize } from "./config";
 import { School } from "./school";
 import { RippleSystem } from "./ripple-system";
 import { wrapAngle } from "./math";
+import { SwimState } from "./koi";
 
 afterEach(() => setCanvasSize(480, 270));
 const step = (school: School, seconds: number, start = 0) => {
@@ -10,6 +11,62 @@ const step = (school: School, seconds: number, start = 0) => {
 };
 
 describe("living pond continuity", () => {
+  it("coasts forward under drag while the tail relaxes, then resumes propulsion", () => {
+    const school = new School(); school.setCount(1);
+    const f = school.fish[0];
+    f.position = {x:200,y:135}; f.heading = 0; f.angularVelocity = 0;
+    f.state = SwimState.Coast; f.stateAge = 0; f.stateDuration = 2;
+    f.speed = f.cruiseSpeed; f.tailEffort = 1;
+    let distance = 0;
+    for (let i = 0; i < 60; i++) {
+      const {x,y} = f.position, speed = f.speed;
+      school.update(1/60,i/60);
+      distance += Math.hypot(f.position.x-x,f.position.y-y);
+      expect(f.speed).toBeLessThan(speed);
+      expect(f.speed).toBeGreaterThan(f.cruiseSpeed * 0.48);
+    }
+    expect(distance).toBeGreaterThan(f.cruiseSpeed * 0.7);
+    expect(f.tailEffort).toBeLessThan(0.04);
+    step(school,1.5,1);
+    expect(f.state).not.toBe(SwimState.Coast);
+    expect(f.speed).toBeGreaterThan(f.cruiseSpeed * 0.48);
+  });
+  it("does not mechanically freeze during five minutes of unprompted swimming", () => {
+    const school = new School(); let resting = 0, samples = 0;
+    for(let i=0;i<18000;i++) {
+      school.update(1/60,i/60);
+      for(const f of school.fish.slice(0,school.count)) {
+        samples++; if(f.state === SwimState.Hover) resting++;
+        if(f.speed < 1) throw new Error(`Mechanical stop at ${i/60}s: ${f.speed}`);
+      }
+    }
+    expect(resting/samples).toBeLessThan(0.025);
+  });
+  it("resting retains drift and independent fin motion", () => {
+    const school = new School(); school.setCount(1);
+    const f=school.fish[0]; f.state=SwimState.Hover; f.stateAge=0; f.stateDuration=4;
+    const position={...f.position}, phase=f.finPhase;
+    step(school,3);
+    expect(Math.hypot(f.position.x-position.x,f.position.y-position.y)).toBeGreaterThan(3);
+    expect(f.finPhase-phase).toBeGreaterThan(9);
+    expect(f.speed).toBeGreaterThan(1);
+  });
+  it("medaka coordinate speed without locking tail phase and flee without an impulse jump", () => {
+    const school=new School(); const fish=school.tinyFish.fish;
+    const states=new Set<string>();
+    for(let i=0;i<1200;i++) {
+      const before=fish[0].tailPhase;
+      school.tinyFish.update(1/60,i/60);
+      expect(fish[0].tailPhase).toBeGreaterThan(before);
+      states.add(fish[0].swimState);
+    }
+    expect(states.size).toBe(3);
+    expect(new Set(fish.slice(0,24).map(f=>Math.round(f.tailPhase*10))).size).toBeGreaterThan(12);
+    school.tinyFish.fleeFrom({...fish[0].position});
+    const velocity={...fish[0].velocity};
+    school.tinyFish.update(1/60,20);
+    expect(Math.hypot(fish[0].velocity.x-velocity.x,fish[0].velocity.y-velocity.y)).toBeLessThan(5);
+  });
   it("scatter asks for a turn without teleporting the head, speed or body", () => {
     const school = new School();
     const before = school.fish.slice(0, school.count).map(f => ({heading:f.heading,speed:f.speed,position:{...f.position},spine:structuredClone(f.spine)}));

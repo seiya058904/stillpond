@@ -160,7 +160,7 @@ export class TinyFishRenderer {
       fish.position,
       mul(forward, -fish.bodyLength * 0.09),
     );
-    const stripeWidth = fish.bodyWidth * 0.78;
+    const stripeWidth = fish.bodyWidth * 0.2;
     this.detailBatch.triangle(
       add(stripeFront, mul(side, stripeWidth)),
       add(stripeFront, mul(side, -stripeWidth)),
@@ -205,15 +205,16 @@ export class TinyFishRenderer {
       add(center, mul(forward, fish.bodyLength * 0.16)),
       mul(side, -fish.bodyWidth),
     );
+    const undulation = Math.sin(fish.tailPhase - 0.8) * fish.bodyWidth * 0.2;
     const backLeft = add(
       add(center, mul(forward, -fish.bodyLength * 0.34)),
-      mul(side, fish.bodyWidth * 0.58),
+      mul(side, fish.bodyWidth * 0.48 + undulation),
     );
     const backRight = add(
       add(center, mul(forward, -fish.bodyLength * 0.34)),
-      mul(side, -fish.bodyWidth * 0.58),
+      mul(side, -fish.bodyWidth * 0.48 + undulation),
     );
-    const tailRoot = add(center, mul(forward, -fish.bodyLength * 0.44));
+    const tailRoot = add(add(center, mul(forward, -fish.bodyLength * 0.44)), mul(side, undulation * 1.5));
     const bodyColor = palette?.body;
     const frontColor = palette?.light;
     batch.triangle(nose, frontLeft, center, frontColor);
@@ -233,7 +234,7 @@ export class TinyFishRenderer {
     const upper = add(tailCenter, mul(side, tailHalfWidth));
     const lower = add(tailCenter, mul(side, -tailHalfWidth));
     const notch = add(
-      add(tailRoot, mul(forward, -tailLength * 0.62)),
+      add(tailRoot, mul(forward, -tailLength * 0.94)),
       mul(side, tailSwing * 0.44),
     );
     const tailColor = palette?.fin;

@@ -35,6 +35,9 @@ export class Koi {
   public callInfluence = 0;
   public escapeTime = 0;
   public tailEffort = 0.6;
+  public acceleration = 0;
+  public turnBend = 0;
+  public finPhase = 0;
   public depth = 0.08;
   public targetDepth = 0.08;
   public depthTransitionRate = 1;
@@ -88,7 +91,8 @@ export class Koi {
       FISH.feeding.intervalSeconds[1],
     );
     this.gulpAnimation = 0;
-    this.state = index % 5;
+    // Begin in forward motion; a pond should not spawn a row of resting fish.
+    this.state = index % 4 === 1 ? SwimState.Coast : SwimState.Glide;
 
     const durations: ReadonlyArray<readonly [number, number]> = [
       [1.7, 4.8],
@@ -102,6 +106,9 @@ export class Koi {
     this.stateAge = random.range(0, this.stateDuration * 0.8);
     this.pivotHeading = this.heading;
     this.tailEffort = 0.6;
+    this.acceleration = 0;
+    this.turnBend = 0;
+    this.finPhase = this.phaseOffset;
     this.angularVelocity = 0;
     this.velocity = mul(fromAngle(this.heading), this.speed);
 

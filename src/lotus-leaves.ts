@@ -8,6 +8,7 @@ import {
 } from "./config";
 import { duckweedRippleDisplacement } from "./duckweed-geometry";
 import type { RippleSystem } from "./ripple-system";
+import type { SurfaceWeather } from "./weather-pass";
 
 interface Point {
   x: number;
@@ -208,7 +209,11 @@ export class LotusLeavesPass {
     this.rebuild();
   }
 
-  public update(time: number, ripples?: RippleSystem): void {
+  public update(time: number, ripples?: RippleSystem, weather?: Readonly<SurfaceWeather>): void {
+    const wind = weather?.wind ?? 0;
+    const shadowScale = weather?.shadowScale ?? 1;
+    const shadowX = -(weather?.lightDirection.x ?? -0.58) / 0.58;
+    const shadowY = (weather?.lightDirection.y ?? 0.82) / 0.82;
     if (
       LOTUS_LEAVES.length !== this.leaves.length ||
       LOTUS_FLOWERS.length !== this.flowers.length
@@ -234,9 +239,10 @@ export class LotusLeavesPass {
       if (!visible) continue;
 
       const leaf = LOTUS_LEAVES[leafIndex];
+      const elevation = 0.3 + (0.5 + Math.sin(leaf.phase * 1.7) * 0.5) * 0.7;
       const placement = viewportPoint(leaf.x, leaf.y);
       const response = duckweedRippleDisplacement(placement.x, placement.y, surfaceRipples, {
-        strength: 1.15, bandWidth: 12, falloffDistance: 100, maxPush: 0.85, spin: 0.008,
+        strength: 1.15 * (1 - elevation * 0.6), bandWidth: 12, falloffDistance: 100, maxPush: 0.85, spin: 0.008,
       });
       const centerX =
         placement.x + Math.sin(time * 0.12 + leaf.phase) * LOTUS.driftX + response.pushX;
@@ -245,7 +251,8 @@ export class LotusLeavesPass {
         Math.cos(time * 0.15 + leaf.phase * 1.3) * LOTUS.driftY + response.pushY;
       const sway =
         Math.sin(time * 0.085 + leaf.phase) * LOTUS.rotationAmount + response.spin;
-      const pulse = 1 + Math.sin(time * 0.11 + leaf.phase) * 0.012;
+      const tilt = 0.88 + Math.sin(leaf.phase * 1.7) * 0.075;
+      const rocking = Math.sin(time * (0.45 + wind * 0.28) + leaf.phase) * (0.008 + wind * 0.014);
 
       const center = this.leafCenters[leafIndex];
       center.x = centerX;
@@ -253,14 +260,14 @@ export class LotusLeavesPass {
 
       mesh.group.position.set(centerX, centerY, 0);
       mesh.group.rotation.z = sway;
-      mesh.group.scale.setScalar(pulse);
+      mesh.group.scale.set(1, tilt + rocking + response.spin * 0.3, 1);
       mesh.shadowMesh.position.set(
-        centerX + shadowOffset.x,
-        centerY + shadowOffset.y,
+        centerX + shadowOffset.x * elevation * shadowScale * shadowX,
+        centerY + shadowOffset.y * elevation * shadowScale * shadowY + rocking * leaf.radius * LOTUS.radiusScale,
         0,
       );
       mesh.shadowMesh.rotation.z = sway;
-      mesh.shadowMesh.scale.setScalar(pulse * 1.02);
+      mesh.shadowMesh.scale.set(1 + elevation * 0.02, tilt * 1.02, 1);
     }
 
     for (const [flowerIndex, mesh] of this.flowers.entries()) {
@@ -300,7 +307,8 @@ export class LotusLeavesPass {
       const leafBuilder = new LotusGeometryBuilder();
       this.drawLeaf(leafBuilder, origin, radius, leaf.angle, leaf.phase, palette);
       const leafTriangleVertices = leafBuilder.vertexCount;
-      leafBuilder.circle(origin, Math.max(1, radius * 0.075), palette.center);
+      leafBuilder.circle(origin, Math.max(0.5, radius * 0.035), palette.center);
+      leafBuilder.circle({x:-radius * 0.015,y:-radius * 0.025}, Math.max(0.3, radius * 0.019), palette.vein);
       const leafGeometry = leafBuilder.toGeometry(`lotus leaf ${leafIndex}`);
 
       const shadowGeometry = new THREE.BufferGeometry();
@@ -380,7 +388,8 @@ export class LotusLeavesPass {
     phase: number,
   ): Point {
     const wobble =
-      1 + Math.sin(angle * 3 + phase) * 0.035 + Math.cos(angle * 5 - phase) * 0.025;
+      1 + Math.sin(angle * 2 + phase) * 0.045 + Math.cos(angle * 5 - phase) * 0.022
+      + Math.sin(angle + phase * 1.3) * 0.055;
     return {
       x: center.x + Math.cos(angle) * radius * wobble,
       y: center.y + Math.sin(angle) * radius * LOTUS.verticalScale * wobble,
@@ -398,21 +407,22 @@ export class LotusLeavesPass {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
 
-    this.leafCenterColor.copy(palette.center);
+    this.leafCenterColor.copy(palette.base).lerp(palette.center, 0.6);
 
     for (let index = 0; index < LOTUS.leafSegments; index += 1) {
       const angleA = start + (index / LOTUS.leafSegments) * span;
       const angleB = start + ((index + 1) / LOTUS.leafSegments) * span;
       this.leafColorAt(this.leafEdgeColorA, palette, angleA, phase);
       this.leafColorAt(this.leafEdgeColorB, palette, angleB, phase);
-      builder.triangleColors(
-        center,
-        this.edgePoint(center, radius, angleA, phase),
-        this.edgePoint(center, radius, angleB, phase),
-        this.leafCenterColor,
-        this.leafEdgeColorA,
-        this.leafEdgeColorB,
-      );
+      const innerA = this.edgePoint(center, radius * 0.87, angleA, phase);
+      const innerB = this.edgePoint(center, radius * 0.87, angleB, phase);
+      const edgeA = this.edgePoint(center, radius, angleA, phase);
+      const edgeB = this.edgePoint(center, radius, angleB, phase);
+      builder.triangleColors(center, innerA, innerB, this.leafCenterColor, this.leafEdgeColorA, this.leafEdgeColorB);
+      const curlA = this.leafEdgeColorA.clone().lerp(palette.light, 0.16 + Math.sin(angleA * 3 + phase) * 0.14);
+      const curlB = this.leafEdgeColorB.clone().lerp(palette.shade, 0.12 + Math.cos(angleB * 4 - phase) * 0.1);
+      builder.triangleColors(innerA, edgeA, edgeB, this.leafEdgeColorA, curlA, curlB);
+      builder.triangleColors(innerA, edgeB, innerB, this.leafEdgeColorA, curlB, this.leafEdgeColorB);
     }
   }
 
@@ -423,7 +433,7 @@ export class LotusLeavesPass {
     phase: number,
   ): void {
     const directionalLight = 0.5 + Math.cos(angle + 2.2) * 0.42;
-    const organicVariation = Math.sin(angle * 3 + phase * 0.7) * 0.045;
+    const organicVariation = Math.sin(angle * 3 + phase * 0.7) * 0.045 + Math.sin(phase * 2.3) * 0.09;
     const tone = Math.max(0, Math.min(1, directionalLight + organicVariation));
     if (tone < 0.5) {
       target.copy(palette.shade).lerp(palette.base, tone * 2);
@@ -442,13 +452,13 @@ export class LotusLeavesPass {
   ): void {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
-    for (let index = 1; index <= LOTUS.veinCount; index += 1) {
-      const veinAngle = start + (index / (LOTUS.veinCount + 1)) * span;
-      builder.line(
-        center,
-        this.edgePoint(center, radius * 0.68, veinAngle, phase),
-        palette.vein,
-      );
+    const veinColor = palette.base.clone().lerp(palette.vein, 0.48);
+    for (let index = 0; index < LOTUS.veinCount; index += 1) {
+      const veinAngle = start + (index / LOTUS.veinCount) * span + Math.sin(index * 2.4 + phase) * 0.065;
+      const branch = this.edgePoint(center, radius * 0.52, veinAngle, phase);
+      builder.line(center, branch, veinColor);
+      builder.line(branch, this.edgePoint(center, radius * 0.89, veinAngle + 0.035, phase), veinColor);
+      if (radius > 18) builder.line(branch, this.edgePoint(center, radius * 0.78, veinAngle - 0.16, phase), veinColor);
     }
   }
 
@@ -479,33 +489,29 @@ export class LotusLeavesPass {
           x: center.x + direction.x * radius * length,
           y: center.y + direction.y * radius * length,
         };
-        const halfWidth = radius * width;
+        const halfWidth = radius * width * (0.93 + Math.sin(index * 3.7 + rotation) * 0.12);
         const color = index % 3 === 0 ? alternate : primary;
-        builder.triangle(
-          {
-            x: base.x + side.x * halfWidth,
-            y: base.y + side.y * halfWidth,
-          },
-          tip,
-          {
-            x: base.x - side.x * halfWidth,
-            y: base.y - side.y * halfWidth,
-          },
-          color,
-        );
+        const middle = {x:base.x + direction.x * radius * length * 0.45, y:base.y + direction.y * radius * length * 0.45};
+        const left = {x:middle.x + side.x * halfWidth, y:middle.y + side.y * halfWidth};
+        const right = {x:middle.x - side.x * halfWidth, y:middle.y - side.y * halfWidth};
+        builder.triangleColors(base, left, tip, primary, color, alternate);
+        builder.triangleColors(base, tip, right, primary, alternate, primary);
       }
     };
 
-    drawPetalRing(8, 1, 0.22, 0, palette.outerPetal, palette.petalLight);
+    drawPetalRing(9, 1, 0.25, 0, palette.outerPetal, palette.innerPetal);
     drawPetalRing(
-      6,
-      0.66,
-      0.19,
+      7,
+      0.73,
+      0.22,
       Math.PI / 6,
       palette.innerPetal,
       palette.petalLight,
     );
-    builder.circle(center, radius * 0.28, palette.centerDark);
-    builder.circle(center, radius * 0.18, palette.center);
+    drawPetalRing(5, 0.48, 0.16, 0.2, palette.innerPetal, palette.petalLight);
+    builder.circle(center, radius * 0.22, palette.centerDark);
+    builder.circle({x:center.x,y:center.y - radius * 0.03}, radius * 0.16, palette.center);
+    for (let i = 0; i < 5; i++) builder.circle({x:center.x + Math.cos(i * TAU / 5) * radius * 0.1,
+      y:center.y + Math.sin(i * TAU / 5) * radius * 0.1}, radius * 0.023, palette.centerDark);
   }
 }

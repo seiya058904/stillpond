@@ -450,6 +450,7 @@ export class FishRenderer {
   }
 
   public draw(school: School, time: number, showDebug: boolean): void {
+    this.weather.update(time);
     if (this.previousAppearanceTime >= 0) {
       const deltaTime = Math.min(
         0.1,
@@ -512,9 +513,9 @@ export class FishRenderer {
       time,
       previewIndex === null ? null : selectedFishIndex,
     );
-    this.waterSurface.update(school, time);
+    this.waterSurface.update(school, time, this.weather.surface);
     this.duckweed.update(time, school.ripples);
-    this.lotusLeaves.update(time, school.ripples);
+    this.lotusLeaves.update(time, school.ripples, this.weather.surface);
     this.butterflies.update(time);
 
     this.renderer.setRenderTarget(this.underwaterTarget);
@@ -532,7 +533,6 @@ export class FishRenderer {
     this.renderer.render(this.surfaceShadowScene, this.camera);
     this.renderer.render(this.surfaceObjectScene, this.camera);
     this.renderer.autoClear = true;
-    this.weather.update(time);
     this.renderer.setRenderTarget(null);
     this.renderer.clear();
     this.renderer.render(this.weatherScene, this.surfaceCamera);
@@ -555,8 +555,9 @@ export class FishRenderer {
         fish.bodyWidth *
         1.15 *
         waveEnvelope *
-        (0.08 + fish.tailEffort * 0.92);
-      fish.renderSpine[node] = add(fish.spine[node], mul(normal, wave));
+        (0.015 + fish.tailEffort * 0.985);
+      const bend = Math.sin(t * Math.PI * 0.85) * t * fish.bodyWidth * fish.turnBend * 0.9;
+      fish.renderSpine[node] = add(fish.spine[node], mul(normal, wave + bend));
     }
   }
 
@@ -616,10 +617,10 @@ export class FishRenderer {
   private addShadowTriangle(a: Vec2, b: Vec2, c: Vec2): void {
     const shadowOffset = {
       x:
-        FISH.shadow.offset.x +
+        FISH.shadow.offset.x * this.weather.surface.shadowScale * -this.weather.surface.lightDirection.x / 0.58 +
         FISH.shadow.depthOffset.x * this.currentVisualDepth,
       y:
-        FISH.shadow.offset.y +
+        FISH.shadow.offset.y * this.weather.surface.shadowScale * this.weather.surface.lightDirection.y / 0.82 +
         FISH.shadow.depthOffset.y * this.currentVisualDepth,
     };
     const opacity =
@@ -642,10 +643,10 @@ export class FishRenderer {
   private addShadowCircle(center: Vec2, radius: number): void {
     const shadowOffset = {
       x:
-        FISH.shadow.offset.x +
+        FISH.shadow.offset.x * this.weather.surface.shadowScale * -this.weather.surface.lightDirection.x / 0.58 +
         FISH.shadow.depthOffset.x * this.currentVisualDepth,
       y:
-        FISH.shadow.offset.y +
+        FISH.shadow.offset.y * this.weather.surface.shadowScale * this.weather.surface.lightDirection.y / 0.82 +
         FISH.shadow.depthOffset.y * this.currentVisualDepth,
     };
     const opacity =
@@ -713,7 +714,7 @@ export class FishRenderer {
       + gulpPaddle;
     const finPulse =
       0.82 +
-      paddleActivity * 0.25 * Math.sin(fish.swimPhase * 0.64 + fish.phaseOffset);
+        paddleActivity * 0.25 * Math.sin(fish.finPhase);
     const pectoralReach =
       fish.bodyWidth * (0.55 + paddleActivity * 0.25) * finPulse;
     const leftPectoral = add(
