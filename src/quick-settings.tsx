@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { languages, useI18n } from "./i18n";
 import { RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -102,6 +103,7 @@ export function QuickSettings({
   onFamilyChange,
   onPreviewFamilyChange,
 }: QuickSettingsProps) {
+  const { language, setLanguage, t, family } = useI18n();
   const paletteIndex = selectedFamily;
   const palettes = settings.live["koi-palettes"];
   const selectedPalette = palettes[paletteIndex] ?? palettes[0];
@@ -123,14 +125,24 @@ export function QuickSettings({
 
   return (
     <div className="settings-quick">
+      <div className="quick-setting" data-base-ui-swipe-ignore>
+        <div className="quick-setting__copy">
+          <Label htmlFor="language">{t("settings.language")}</Label>
+          <small>{t("settings.languageHint")}</small>
+        </div>
+        <select id="language" className="quick-setting__select" value={language}
+          onChange={(event) => setLanguage(event.target.value)}>
+          {languages.map((option) => <option key={option.id} value={option.id} lang={option.id}>{option.label}</option>)}
+        </select>
+      </div>
       <section className="settings-quick__section" aria-labelledby="quick-koi-heading">
         <div className="settings-quick__heading">
-          <div className="settings-quick__heading-row"><h3 id="quick-koi-heading">Koi</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["koi", "koi-palettes", "koi-patterns"])}><RotateCcw aria-hidden="true" /> Reset</button></div>
-          <p>Choose how many koi swim in the pond and color each koi family.</p>
+          <div className="settings-quick__heading-row"><h3 id="quick-koi-heading">{t("section.koi")}</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["koi", "koi-palettes", "koi-patterns"])}><RotateCcw aria-hidden="true" />{t("action.reset")}</button></div>
+          <p>{t("quick.koiDescription")}</p>
         </div>
         <SettingSlider
-          label="Koi count"
-          description="Add or remove koi without restarting the pond."
+          label={t("controls.koiCount")}
+          description={t("quick.countHint")}
           value={koiCount}
           min={1}
           max={48}
@@ -138,8 +150,8 @@ export function QuickSettings({
         />
         <div className="quick-setting" data-base-ui-swipe-ignore>
           <div className="quick-setting__copy">
-            <Label htmlFor="quick-koi-family">Koi family</Label>
-            <small>The colors below change every koi of this pattern.</small>
+            <Label htmlFor="quick-koi-family">{t("quick.family")}</Label>
+            <small>{t("quick.familyHint")}</small>
           </div>
           <select
             id="quick-koi-family"
@@ -148,7 +160,7 @@ export function QuickSettings({
             onChange={(event) => onFamilyChange(Number(event.target.value))}
           >
             {palettes.map((palette, index) => (
-              <option key={palette.name} value={index}>{palette.name}</option>
+              <option key={palette.name} value={index}>{family(palette.name)}</option>
             ))}
           </select>
         </div>
@@ -159,39 +171,39 @@ export function QuickSettings({
           onClick={() => onPreviewFamilyChange(previewFamily === null ? paletteIndex : null)}
         >
           {previewFamily === null
-            ? `Preview ${selectedPalette.name} family in the pond`
-            : `Showing ${selectedPalette.name} family · Show all fish`}
+            ? t("quick.preview", { family: family(selectedPalette.name) })
+            : t("quick.showAll", { family: family(selectedPalette.name) })}
         </button>
         <div className="quick-colors">
-          <QuickColor id="quick-koi-base" label="Body" value={hexFromInt(base)} onChange={(hex) => setBase(Number.parseInt(hex.slice(1), 16))} />
-          <QuickColor id="quick-koi-accent" label="Accent patches" value={hexFromInt(accent)} onChange={(hex) => setAccent(Number.parseInt(hex.slice(1), 16))} />
-          <QuickColor id="quick-koi-marking" label="Dark markings" value={hexFromInt(marking)} onChange={(hex) => setMarking(Number.parseInt(hex.slice(1), 16))} />
-          <QuickColor id="quick-koi-fin" label="Fins" value={hexFromInt(fin)} onChange={(hex) => setFin(Number.parseInt(hex.slice(1), 16))} />
+          <QuickColor id="quick-koi-base" label={t("quick.body")} value={hexFromInt(base)} onChange={(hex) => setBase(Number.parseInt(hex.slice(1), 16))} />
+          <QuickColor id="quick-koi-accent" label={t("quick.accent")} value={hexFromInt(accent)} onChange={(hex) => setAccent(Number.parseInt(hex.slice(1), 16))} />
+          <QuickColor id="quick-koi-marking" label={t("quick.marking")} value={hexFromInt(marking)} onChange={(hex) => setMarking(Number.parseInt(hex.slice(1), 16))} />
+          <QuickColor id="quick-koi-fin" label={t("quick.fin")} value={hexFromInt(fin)} onChange={(hex) => setFin(Number.parseInt(hex.slice(1), 16))} />
         </div>
       </section>
 
       <section className="settings-quick__section" aria-labelledby="quick-water-heading">
         <div className="settings-quick__heading">
-          <div className="settings-quick__heading-row"><h3 id="quick-water-heading">Water</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["pond-bed", "water", "ripples"])}><RotateCcw aria-hidden="true" /> Reset</button></div>
-          <p>Change the pond colors and how clearly the koi show through the surface.</p>
+          <div className="settings-quick__heading-row"><h3 id="quick-water-heading">{t("section.water")}</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["pond-bed", "water", "ripples"])}><RotateCcw aria-hidden="true" />{t("action.reset")}</button></div>
+          <p>{t("quick.waterDescription")}</p>
         </div>
         <div className="quick-colors">
           <QuickColor
             id="quick-deep-color"
-            label="Deep water"
+            label={t("quick.deep")}
             value={hexFromRgb(deepColor)}
             onChange={(hex) => setDeepColor(new THREE.Color(hex).toArray().map((c) => Number(c.toFixed(4))) as [number, number, number])}
           />
           <QuickColor
             id="quick-shallow-color"
-            label="Shallow water"
+            label={t("quick.shallow")}
             value={hexFromRgb(shallowColor)}
             onChange={(hex) => setShallowColor(new THREE.Color(hex).toArray().map((c) => Number(c.toFixed(4))) as [number, number, number])}
           />
         </div>
         <SettingSlider
-          label="Water clarity"
-          description="Soften surface patterns to make the koi easier to see."
+          label={t("quick.clarity")}
+          description={t("quick.clarityHint")}
           value={clarity}
           min={0}
           max={1}
@@ -202,36 +214,36 @@ export function QuickSettings({
 
       <section className="settings-quick__section" aria-labelledby="quick-plants-heading">
         <div className="settings-quick__heading">
-          <div className="settings-quick__heading-row"><h3 id="quick-plants-heading">Plants &amp; life</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["lotus", "lotus-leaves", "lotus-flowers", "duckweed", "duckweed-patches", "butterflies", "butterfly-spawns"])}><RotateCcw aria-hidden="true" /> Reset</button></div>
-          <p>Fill the edges without changing the koi already swimming.</p>
+          <div className="settings-quick__heading-row"><h3 id="quick-plants-heading">{t("quick.plants")}</h3><button type="button" className="settings-section-reset" onClick={() => onResetSection(["lotus", "lotus-leaves", "lotus-flowers", "duckweed", "duckweed-patches", "butterflies", "butterfly-spawns"])}><RotateCcw aria-hidden="true" />{t("action.reset")}</button></div>
+          <p>{t("quick.plantsDescription")}</p>
         </div>
         <SettingSlider
-          label="Lotus leaves"
-          description="Add floating leaves around the pond."
+          label={t("quick.leaves")}
+          description={t("quick.leavesHint")}
           value={visibleLeafCount}
           min={0}
           max={32}
           onChange={setVisibleLeafCount}
         />
         <SettingSlider
-          label="Lotus flowers"
-          description="Place more flowers on the visible leaves."
+          label={t("section.lotus-flowers")}
+          description={t("quick.flowersHint")}
           value={visibleFlowerCount}
           min={0}
           max={16}
           onChange={setVisibleFlowerCount}
         />
         <SettingSlider
-          label="Duckweed patches"
-          description="Add small clusters of floating greenery."
+          label={t("section.duckweed-patches")}
+          description={t("quick.duckweedHint")}
           value={visiblePatchCount}
           min={0}
           max={16}
           onChange={setVisiblePatchCount}
         />
         <SettingSlider
-          label="Butterflies"
-          description="Change how many butterflies visit the flowers."
+          label={t("section.butterflies")}
+          description={t("quick.butterfliesHint")}
           value={visibleButterflyCount}
           min={0}
           max={12}
@@ -241,13 +253,13 @@ export function QuickSettings({
 
       <section className="settings-quick__section" aria-labelledby="quick-atmosphere-heading">
         <div className="settings-quick__heading">
-          <div className="settings-quick__heading-row"><h3 id="quick-atmosphere-heading">Atmosphere</h3><button type="button" className="settings-section-reset" onClick={onResetAtmosphere}><RotateCcw aria-hidden="true" /> Reset</button></div>
-          <p>Choose the light, ripples, and background river sound.</p>
+          <div className="settings-quick__heading-row"><h3 id="quick-atmosphere-heading">{t("quick.atmosphere")}</h3><button type="button" className="settings-section-reset" onClick={onResetAtmosphere}><RotateCcw aria-hidden="true" />{t("action.reset")}</button></div>
+          <p>{t("quick.atmosphereDescription")}</p>
         </div>
         <div className="quick-setting" data-base-ui-swipe-ignore>
           <div className="quick-setting__copy">
-            <Label htmlFor="quick-weather">Weather</Label>
-            <small>A preset changes its own pond colors and lighting.</small>
+            <Label htmlFor="quick-weather">{t("quick.weather")}</Label>
+            <small>{t("quick.weatherHint")}</small>
           </div>
           <select
             id="quick-weather"
@@ -256,21 +268,21 @@ export function QuickSettings({
             onChange={(event) => onWeatherChange(event.target.value as WeatherPresetId)}
           >
             {WEATHER_PRESETS.map((preset) => (
-              <option key={preset.id} value={preset.id}>{preset.label}</option>
+              <option key={preset.id} value={preset.id}>{t(`weather.${preset.id}`)}</option>
             ))}
           </select>
         </div>
         <div className="quick-setting quick-setting--switch" data-base-ui-swipe-ignore>
           <div className="quick-setting__copy">
-            <Label htmlFor="quick-rain">Rain ripples</Label>
-            <small>Show raindrops spreading across the surface.</small>
+            <Label htmlFor="quick-rain">{t("quick.rain")}</Label>
+            <small>{t("quick.rainHint")}</small>
           </div>
           <Switch id="quick-rain" checked={rainEnabled} onCheckedChange={onRainChange} />
         </div>
         <div className="quick-setting quick-setting--switch" data-base-ui-swipe-ignore>
           <div className="quick-setting__copy">
-            <Label htmlFor="quick-sound">River sound</Label>
-            <small>Play the gentle background recording. Off by default.</small>
+            <Label htmlFor="quick-sound">{t("quick.sound")}</Label>
+            <small>{t("quick.soundHint")}</small>
           </div>
           <Switch id="quick-sound" checked={soundEnabled} onCheckedChange={onSoundChange} />
         </div>

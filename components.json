@@ -21,7 +21,5 @@
   },
   "menuColor": "default",
   "menuAccent": "subtle",
-  "registries": {
-    "@ncdai": "https://chanhdai.com/r/{name}.json"
-  }
+  "registries": {}
 }

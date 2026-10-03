@@ -1,0 +1,13 @@
+This project is derived from Nagomi by Mayank Kadam.
+Upstream: https://github.com/msk1039/nagomi
+Upstream baseline: 01e93a410c0a317ee0a2b81e84a71e54a6db81d0
+
+Required Notice: Copyright 2026 Mayank Kadam (https://github.com/msk1039)
+
+The upstream PolyForm Noncommercial License 1.0.0 is preserved verbatim in
+LICENSE and applies to this derivative project. No commercial permission or
+relicensing is implied by the new project name or repository ownership.
+
+Initialization changes: viewport adaptation, bilingual controls, project
+identity, regression coverage, and GitHub Pages delivery. The upstream
+procedural fish, water, artwork, and core simulation remain the foundation.

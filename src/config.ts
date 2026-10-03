@@ -68,8 +68,8 @@ export let CANVAS_WIDTH: number = CANVAS.width;
 export let CANVAS_HEIGHT: number = CANVAS.height;
 
 export function setCanvasSize(width: number, height: number): void {
-  CANVAS_WIDTH = Math.max(1, Math.round(width));
-  CANVAS_HEIGHT = Math.max(1, Math.round(height));
+  CANVAS_WIDTH = Math.max(1, width);
+  CANVAS_HEIGHT = Math.max(1, height);
 }
 
 export function viewportPoint(x: number, y: number): { x: number; y: number } {

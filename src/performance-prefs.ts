@@ -2,6 +2,8 @@
 // store: it is not undoable, not affected by weather, and not reset by
 // "Reset all".
 
+import project from "../project.config.json";
+
 export type FrameRateCap = "native" | "60" | "30" | "20";
 
 export interface PerformancePrefs {
@@ -13,22 +15,20 @@ export interface PerformancePrefs {
 
 export interface FrameRateOption {
   id: FrameRateCap;
-  label: string;
-  description: string;
   /** null means no cap (match the display refresh rate). */
   fps: number | null;
 }
 
 export const FRAME_RATE_OPTIONS: readonly FrameRateOption[] = [
-  { id: "native", label: "Native", description: "Match the display refresh rate", fps: null },
-  { id: "60", label: "60 fps", description: "Smooth", fps: 60 },
-  { id: "30", label: "30 fps", description: "Balanced · best for ambient/screensaver", fps: 30 },
-  { id: "20", label: "20 fps", description: "Battery saver", fps: 20 },
+  { id: "native", fps: null },
+  { id: "60", fps: 60 },
+  { id: "30", fps: 30 },
+  { id: "20", fps: 20 },
 ];
 
 export const DEFAULT_FRAME_RATE: FrameRateCap = "60";
 export const AMBIENT_FRAME_RATE: FrameRateCap = "30";
-export const PERFORMANCE_STORAGE_KEY = "nagomi:performance:v1";
+export const PERFORMANCE_STORAGE_KEY = `${project.storagePrefix}:performance:v1`;
 
 export function defaultPerformancePrefs(): PerformancePrefs {
   return { version: 1, frameRate: DEFAULT_FRAME_RATE, explicit: false };

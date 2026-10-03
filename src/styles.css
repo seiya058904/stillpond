@@ -135,7 +135,7 @@ html,
 body,
 #root {
   width: 100%;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100%;
   margin: 0;
 }
@@ -163,10 +163,10 @@ input[type="color"] {
 }
 
 .stage {
-  display: grid;
+  position: relative;
   width: 100vw;
+  height: 100vh;
   height: 100dvh;
-  place-items: center;
   overflow: hidden;
   background: #09090b;
 }
@@ -181,22 +181,24 @@ input[type="color"] {
 }
 
 .pond-shell {
-  position: relative;
-  width: min(100vw, calc(100dvh * 16 / 9));
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .display {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   overflow: hidden;
   background: #09090b;
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 10%),
-    0 30px 90px rgb(0 0 0 / 52%);
 }
 
 #pond {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -256,7 +258,7 @@ input[type="color"] {
 
 .brand-float {
   position: absolute;
-  top: clamp(0.6rem, 1.8vw, 1.1rem);
+  top: max(clamp(0.6rem, 1.8vw, 1.1rem), env(safe-area-inset-top));
   left: clamp(0.6rem, 1.8vw, 1.1rem);
   display: flex;
   align-items: center;
@@ -311,7 +313,7 @@ input[type="color"] {
 
 .control-dock {
   position: absolute;
-  bottom: 0.85rem;
+  bottom: max(0.85rem, env(safe-area-inset-bottom));
   left: 50%;
   z-index: 5;
   display: flex;
@@ -350,24 +352,6 @@ input[type="color"] {
 
 .control-dock [data-slot="button"]:hover {
   background: var(--accent);
-}
-
-.github-stars {
-  gap: 0.38rem;
-  padding-inline: 0.48rem;
-}
-
-.wallpaper-link {
-  gap: 0.38rem;
-  padding-inline: 0.55rem;
-  border-radius: 0.62rem;
-}
-
-.github-stars__count {
-  color: var(--muted-foreground);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
 }
 
 .control-shortcut {
@@ -1066,26 +1050,16 @@ input[type="color"] {
 }
 
 @media (max-width: 700px), (pointer: coarse) {
-  .pond-shell {
-    display: flex;
-    width: min(100vw, calc((100dvh - 7.25rem) * 16 / 9));
-    flex-direction: column;
-  }
-
   .pond-ui {
-    position: static;
-    order: -1;
     display: flex;
-    width: 100%;
-    align-items: stretch;
+    align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 0.65rem;
-    padding-inline: 0.5rem;
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) 0 max(0.5rem, env(safe-area-inset-left));
   }
 
   .brand-float {
     position: static;
-    height: auto;
+    height: 3rem;
     padding: 0 0.52rem;
     border-radius: 0.8rem;
   }
@@ -1096,8 +1070,8 @@ input[type="color"] {
 
   .settings-trigger {
     position: static;
-    width: 2rem;
-    height: 2rem;
+    width: 2.75rem;
+    height: 2.75rem;
     padding: 0;
   }
 
@@ -1105,21 +1079,17 @@ input[type="color"] {
     display: none;
   }
 
-  .wallpaper-link {
-    height: 2rem;
-  }
-
   .control-dock {
-    position: static;
     display: grid;
     grid-template-columns: auto auto;
     justify-content: center;
     gap: 0.3rem 0.45rem;
     width: max-content;
     max-width: calc(100vw - 1rem);
-    margin: 0.65rem auto 0;
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    margin: 0;
     overflow: visible;
-    transform: none;
+    transform: translateX(-50%);
   }
 
   .control-group--environment {
@@ -1135,33 +1105,6 @@ input[type="color"] {
 
   .control-dock > .control-divider {
     display: none;
-  }
-
-  .stage--ambient .pond-shell {
-    display: block;
-    width: min(100vw, calc(100dvh * 16 / 9));
-  }
-
-  .stage--ambient .pond-ui {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    width: auto;
-    align-items: flex-start;
-    margin: 0;
-    padding: max(0.6rem, env(safe-area-inset-top)) 0.6rem 0;
-  }
-
-  .stage--ambient .control-dock {
-    position: absolute;
-    bottom: max(0.65rem, env(safe-area-inset-bottom));
-    left: 50%;
-    margin: 0;
-    transform: translateX(-50%);
-  }
-
-  .stage--ambient .control-dock--hidden {
-    transform: translate(-50%, 0.5rem);
   }
 
   .control-dock .control-label {
@@ -1183,14 +1126,9 @@ input[type="color"] {
     display: inline;
   }
 
-  .top-actions .github-stars {
-    width: auto;
-    min-width: 2.9rem;
-  }
-
-  .settings-drawer {
+  .settings-drawer[data-swipe-axis="y"] {
     --drawer-content-width: auto;
-    --drawer-content-height: min(56dvh, 34rem);
+    --drawer-content-height: min(72dvh, 38rem);
     --drawer-content-max-height: calc(100dvh - 0.5rem);
     --drawer-inset: 0.25rem;
     border-radius: 0.5rem 0.5rem 0.16rem 0.16rem;
@@ -1211,64 +1149,27 @@ input[type="color"] {
   .config-property-row {
     grid-template-columns: minmax(6.2rem, 38%) minmax(0, 1fr);
   }
-}
 
-@media (max-width: 700px) and (orientation: portrait) {
-  .pond-shell {
-    width: 100vw;
-    height: 100dvh;
-    min-height: 0;
+  .control-dock [data-slot="button"],
+  .settings-drawer__header > [data-slot="drawer-close"] {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 
-  .display {
-    flex: 1 1 auto;
-    min-height: 0;
-    aspect-ratio: auto;
-  }
+  .settings-drawer__header [data-slot="drawer-title"],
+  .settings-quick__heading h3 { font-size: 0.95rem; }
 
-  .pond-ui {
-    flex: none;
-    margin-bottom: 0.35rem;
-    padding-top: max(0.5rem, env(safe-area-inset-top));
-  }
+  .quick-setting__label, .quick-setting label, .quick-color label,
+  .config-property-row label, .config-cluster__label,
+  .config-subgroup summary, .config-section strong { font-size: 0.8rem; }
 
-  .control-dock {
-    flex: none;
-    margin-top: 0.35rem;
-    margin-bottom: max(0.5rem, env(safe-area-inset-bottom));
-  }
+  .settings-drawer__header [data-slot="drawer-description"],
+  .settings-quick__heading p, .quick-setting small,
+  .config-section small, .config-advanced-section__heading p { font-size: 0.75rem; }
 
-  .stage--ambient .pond-shell {
-    width: 100vw;
-    height: 100dvh;
-  }
-
-  .stage--ambient .display {
-    height: 100%;
-  }
-}
-
-@media (max-width: 350px) {
-  .brand-float {
-    flex-shrink: 0;
-  }
-
-  .github-stars__count {
-    display: none;
-  }
-
-  .top-actions {
-    gap: 0;
-  }
-
-  .github-stars {
-    padding-inline: 0.4rem;
-  }
-
-  .wallpaper-link {
-    gap: 0.3rem;
-    padding-inline: 0.3rem;
-    font-size: 0.8rem;
+  .quick-setting__select, .settings-search input {
+    font-size: 1rem;
+    min-height: 2.5rem;
   }
 }
 

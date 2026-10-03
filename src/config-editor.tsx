@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createTranslator, useI18n, type MessageKey } from "./i18n";
 import { ChevronRight, RotateCcw, Search } from "lucide-react";
 import { memo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { QuickSettings } from "./quick-settings";
 import { SettingsColorInput, SettingsSlider } from "./settings-controls";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
-import { definition, SETTINGS_GROUPS, SECTION_TITLES, SECTION_DESCRIPTIONS, type SectionId } from "./settings/definition";
+import { definition, SETTINGS_GROUPS, type SectionId } from "./settings/definition";
 import type { AnyNode, SettingPath } from "./settings/schema";
 import type { WeatherPresetId } from "./weather";
 
@@ -29,11 +30,8 @@ interface ConfigEditorProps {
   onPreviewFamilyChange: (index: number | null) => void;
 }
 
-const prettify = (value: string): string =>
-  value
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[-_]/g, " ")
-    .replace(/^./, (character) => character.toUpperCase());
+const english = createTranslator("en");
+type Translator = ReturnType<typeof createTranslator>;
 
 const pathText = (path: SettingPath): string => path.map((part) => String(part)).join(" ");
 
@@ -57,34 +55,37 @@ function rgbFromHex(hex: string): [number, number, number] {
 
 /** Static text a node contributes to search: its own label/description/path,
  * plus (for lists) each item's fixed default label — e.g. koi palette names. */
-function searchText(node: AnyNode, path: SettingPath, label: string): string {
-  let text = `${prettify(label)} ${node.description ?? ""} ${pathText(path)}`;
+function searchText(node: AnyNode, path: SettingPath, label: string, i18n: Translator): string {
+  let text = `${i18n.field(label)} ${english.field(label)} ${pathText(path)}`;
+  if (node.description) text += ` ${i18n.t(node.description as MessageKey)} ${english.t(node.description as MessageKey)}`;
   if (node.kind === "group") {
     for (const key of Object.keys(node.children)) {
-      text += ` ${searchText(node.children[key], [...path, key], key)}`;
+      text += ` ${searchText(node.children[key], [...path, key], key, i18n)}`;
     }
   } else if (node.kind === "list" || node.kind === "collection") {
+    text += ` ${searchText(node.item, path, label, i18n)}`;
     for (const item of node.defaults) {
       const name = (item as { name?: unknown }).name;
-      if (typeof name === "string") text += ` ${name}`;
+      if (typeof name === "string") text += ` ${name} ${i18n.family(name)}`;
     }
   }
   return text.toLowerCase();
 }
 
-function matchesQuery(node: AnyNode, path: SettingPath, label: string, query: string): boolean {
-  return !query || searchText(node, path, label).includes(query);
+function matchesQuery(node: AnyNode, path: SettingPath, label: string, query: string, i18n: Translator): boolean {
+  return !query || searchText(node, path, label, i18n).includes(query);
 }
 
-function itemLabel(node: AnyNode, path: SettingPath, index: number): string {
+function itemLabel(node: AnyNode, path: SettingPath, index: number, i18n: Translator): string {
   if (node.kind === "group" && "name" in node.children) {
     const value = settings.get([...path, "name"]);
-    if (typeof value === "string" && value) return value;
+    if (typeof value === "string" && value) return i18n.family(value);
   }
-  return `Item ${index + 1}`;
+  return i18n.t("advanced.item", { number: index + 1 });
 }
 
 function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; label: string }) {
+  const { t, field } = useI18n();
   const id = path.join("-");
 
   // biome-ignore lint/correctness/useHookAtTopLevel: node.kind is stable per mounted component instance
@@ -93,7 +94,7 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const [value, setValue] = useSetting<boolean>(path);
       return (
         <div className="config-property-row config-property-row--switch" data-base-ui-swipe-ignore>
-          <Label htmlFor={id}>{prettify(label)}</Label>
+          <Label htmlFor={id}>{field(label)}</Label>
           <Switch id={id} checked={value} onCheckedChange={(checked) => setValue(checked)} />
         </div>
       );
@@ -103,7 +104,7 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const hex = hexFromInt(value);
       return (
         <div className="config-property-row config-property-row--color" data-base-ui-swipe-ignore>
-          <Label htmlFor={id}>{prettify(label)}</Label>
+          <Label htmlFor={id}>{field(label)}</Label>
           <div className="color-control">
             <SettingsColorInput id={id} value={hex} onChange={(next) => setValue(Number.parseInt(next.slice(1), 16))} />
             <code>{hex.toUpperCase()}</code>
@@ -116,7 +117,7 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const hex = hexFromRgb(value);
       return (
         <div className="config-property-row config-property-row--color" data-base-ui-swipe-ignore>
-          <Label htmlFor={id}>{prettify(label)}</Label>
+          <Label htmlFor={id}>{field(label)}</Label>
           <div className="color-control">
             <SettingsColorInput id={id} value={hex} onChange={(next) => setValue(rgbFromHex(next))} />
             <code>{hex.toUpperCase()}</code>
@@ -128,10 +129,10 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const [value, setValue] = useSetting<number>(path);
       return (
         <div className="config-property-row" data-base-ui-swipe-ignore>
-          <Label>{prettify(label)}</Label>
+          <Label>{field(label)}</Label>
           <SettingsSlider
-            label={prettify(label)}
-            aria-label={`${prettify(label)} value`}
+            label={field(label)}
+            aria-label={t("advanced.value", { label: field(label) })}
             showLabel={false}
             min={node.min}
             max={node.max}
@@ -150,10 +151,10 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const max = Array.isArray(target) ? Math.max(0, target.length - 1) : 0;
       return (
         <div className="config-property-row" data-base-ui-swipe-ignore>
-          <Label>{prettify(label)}</Label>
+          <Label>{field(label)}</Label>
           <SettingsSlider
-            label={prettify(label)}
-            aria-label={`${prettify(label)} value`}
+            label={field(label)}
+            aria-label={t("advanced.value", { label: field(label) })}
             showLabel={false}
             min={0}
             max={max}
@@ -171,20 +172,20 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const key = path.join(".");
       return (
         <div className="config-cluster" data-base-ui-swipe-ignore>
-          <div className="config-cluster__label">{prettify(label)}</div>
+          <div className="config-cluster__label">{field(label)}</div>
           <div className="config-property-row" data-base-ui-swipe-ignore>
-            <Label>Minimum</Label>
+            <Label>{t("advanced.minimum")}</Label>
             <SettingsSlider
-              label="Minimum" aria-label="Minimum value" showLabel={false}
+              label={t("advanced.minimum")} aria-label={t("advanced.value", { label: t("advanced.minimum") })} showLabel={false}
               min={node.min} max={value[1]} step={node.step} value={value[0]}
               onValueChange={(next) => setValue([next, value[1]], key)}
               formatValue={formatNumber} className="drawer-elastic-slider"
             />
           </div>
           <div className="config-property-row" data-base-ui-swipe-ignore>
-            <Label>Maximum</Label>
+            <Label>{t("advanced.maximum")}</Label>
             <SettingsSlider
-              label="Maximum" aria-label="Maximum value" showLabel={false}
+              label={t("advanced.maximum")} aria-label={t("advanced.value", { label: t("advanced.maximum") })} showLabel={false}
               min={value[0]} max={node.max} step={node.step} value={value[1]}
               onValueChange={(next) => setValue([value[0], next], key)}
               formatValue={formatNumber} className="drawer-elastic-slider"
@@ -198,12 +199,12 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const key = path.join(".");
       return (
         <div className="config-cluster" data-base-ui-swipe-ignore>
-          <div className="config-cluster__label">{prettify(label)}</div>
+          <div className="config-cluster__label">{field(label)}</div>
           {(["X", "Y"] as const).map((axisLabel, index) => (
             <div className="config-property-row" key={axisLabel} data-base-ui-swipe-ignore>
-              <Label>{axisLabel}</Label>
+              <Label>{field(axisLabel.toLowerCase())}</Label>
               <SettingsSlider
-                label={axisLabel} aria-label={`${axisLabel} value`} showLabel={false}
+                label={axisLabel} aria-label={t("advanced.value", { label: field(axisLabel.toLowerCase()) })} showLabel={false}
                 min={node.min} max={node.max} step={node.step} value={value[index]}
                 onValueChange={(next) => {
                   const updated: [number, number] = [value[0], value[1]];
@@ -221,7 +222,7 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
       const [value, setValue] = useSetting<string | number>(path);
       return (
         <div className="config-property-row" data-base-ui-swipe-ignore>
-          <Label htmlFor={id}>{prettify(label)}</Label>
+          <Label htmlFor={id}>{field(label)}</Label>
           <select
             id={id}
             className="quick-setting__select"
@@ -232,7 +233,7 @@ function LeafControl({ node, path, label }: { node: AnyNode; path: SettingPath; 
             }}
           >
             {node.options.map((option) => (
-              <option key={String(option.value)} value={String(option.value)}>{option.label}</option>
+              <option key={String(option.value)} value={String(option.value)}>{t(option.label as MessageKey)}</option>
             ))}
           </select>
         </div>
@@ -259,7 +260,9 @@ function SchemaTree({
   flat?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  if (!matchesQuery(node, path, label, query)) return null;
+  const i18n = useI18n();
+  const { field } = i18n;
+  if (!matchesQuery(node, path, label, query, i18n)) return null;
 
   if (node.kind !== "group" && node.kind !== "list" && node.kind !== "collection") {
     return <LeafControl node={node} path={path} label={label} />;
@@ -270,14 +273,14 @@ function SchemaTree({
       ? (Object.entries(node.children) as [string, AnyNode][]).filter(
           ([, child]) => !(child.kind === "text" && child.hidden),
         )
-      : node.defaults.map((_, index) => [String(index), node.item] as [string, AnyNode]);
+      : (settings.get(path) as unknown[]).map((_, index) => [String(index), node.item] as [string, AnyNode]);
 
   const isOpen = flat || expanded || Boolean(query);
   const children = isOpen
     ? entries.map(([key, child]) => {
         const childPath = node.kind === "group" ? [...path, key] : [...path, Number(key)];
         const childLabel =
-          node.kind === "group" ? key : itemLabel(child, childPath, Number(key));
+          node.kind === "group" ? key : itemLabel(child, childPath, Number(key), i18n);
         return (
           <SchemaTree key={key} node={child} path={childPath} label={childLabel} query={query} />
         );
@@ -296,7 +299,7 @@ function SchemaTree({
     >
       <summary>
         <ChevronRight aria-hidden="true" />
-        <span>{prettify(label)}</span>
+        <span>{field(label)}</span>
         <span>{entries.length}</span>
       </summary>
       {isOpen && <div className="config-subgroup__body">{children}</div>}
@@ -316,6 +319,7 @@ function AdvancedGroup({
   onPreviewFamilyChange: ConfigEditorProps["onPreviewFamilyChange"];
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useI18n();
   const isOpen = expanded || Boolean(query);
   return (
     <details
@@ -328,26 +332,26 @@ function AdvancedGroup({
     >
       <summary className="config-section">
         <span>
-          <strong>{group.title}</strong>
-          <small>{group.description}</small>
+          <strong>{t(`section.${group.id}`)}</strong>
+          <small>{t(`group.${group.id}`)}</small>
         </span>
         <ChevronRight aria-hidden="true" />
       </summary>
       {isOpen && (
         <div className="config-advanced-group__body">
           <button type="button" className="settings-section-reset" onClick={() => onResetSection(group.sectionIds)}>
-            <RotateCcw aria-hidden="true" /> Reset {group.title.toLowerCase()}
+            <RotateCcw aria-hidden="true" /> {t("action.resetGroup", { group: t(`section.${group.id}`) })}
           </button>
           {group.sectionIds.map((sectionId) => (
             <section className="config-advanced-section" key={sectionId}>
               <div className="config-advanced-section__heading">
-                <h4>{SECTION_TITLES[sectionId]}</h4>
-                <p>{SECTION_DESCRIPTIONS[sectionId]}</p>
+                <h4>{t(`section.${sectionId}`)}</h4>
+                <p>{t(`section.${sectionId}.description`)}</p>
               </div>
               <SchemaTree
                 node={definition.children[sectionId]}
                 path={[sectionId]}
-                label={SECTION_TITLES[sectionId]}
+                label={t(`section.${sectionId}`)}
                 query={query}
                 flat
               />
@@ -375,6 +379,8 @@ export const ConfigEditor = memo(function ConfigEditor({
   onFamilyChange,
   onPreviewFamilyChange,
 }: ConfigEditorProps) {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
   const showAdvanced = advancedOpen || Boolean(normalizedQuery);
@@ -382,7 +388,7 @@ export const ConfigEditor = memo(function ConfigEditor({
     ? SETTINGS_GROUPS.filter((group) =>
         !normalizedQuery ||
         group.sectionIds.some((sectionId) =>
-          matchesQuery(definition.children[sectionId], [sectionId], SECTION_TITLES[sectionId], normalizedQuery),
+          matchesQuery(definition.children[sectionId], [sectionId], t(`section.${sectionId}`), normalizedQuery, i18n),
         ),
       )
     : [];
@@ -415,8 +421,8 @@ export const ConfigEditor = memo(function ConfigEditor({
         <summary>
           <ChevronRight aria-hidden="true" />
           <span>
-            <strong>Advanced controls</strong>
-            <small>Fine-tune motion, shapes, colors, and individual placements.</small>
+            <strong>{t("advanced.title")}</strong>
+            <small>{t("advanced.hint")}</small>
           </span>
         </summary>
         {showAdvanced && (
@@ -426,14 +432,14 @@ export const ConfigEditor = memo(function ConfigEditor({
               <Input
                 value={query}
                 onChange={(event) => onQueryChange(event.target.value)}
-                placeholder="Search detailed controls…"
-                aria-label="Search detailed controls"
+                placeholder={t("advanced.searchPlaceholder")}
+                aria-label={t("advanced.search")}
               />
             </div>
             {visibleGroups.length === 0 ? (
-              <p className="config-empty">No advanced settings match "{query}".</p>
+              <p className="config-empty">{t("advanced.empty", { query })}</p>
             ) : (
-              <div className="config-sections" aria-label="Advanced settings categories">
+              <div className="config-sections" aria-label={t("advanced.categories")}>
                 {visibleGroups.map((group) => (
                   <AdvancedGroup
                     key={group.id}

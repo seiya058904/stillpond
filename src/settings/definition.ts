@@ -66,8 +66,8 @@ const koiPatch = group({
   color: choice<"accent" | "marking">({
     default: "accent",
     options: [
-      { value: "accent", label: "Accent" },
-      { value: "marking", label: "Marking" },
+      { value: "accent", label: "choice.accent" },
+      { value: "marking", label: "choice.marking" },
     ],
   }),
 });
@@ -85,7 +85,6 @@ const koi = group(
       max: 48,
       step: 1,
       int: true,
-      label: "Koi count",
       effect: "koi:count",
     }),
     regularLength: range({
@@ -166,7 +165,6 @@ const koi = group(
       initialExtraSpeedMultiplier: num({ default: 0.34, min: 0, max: 5, step: 0.01 }),
     }),
   },
-  { label: "Koi" },
 );
 
 const koiPalettes = list(
@@ -179,7 +177,7 @@ const koiPalettes = list(
     { name: "Tancho", base: 0xf2ebdc, accent: 0xda4430, marking: 0x292723, fin: 0xe7dece },
     { name: "Shiro", base: 0xeae5da, accent: 0x252825, marking: 0x4f5c5a, fin: 0xd7d2c7 },
   ],
-  { label: "Koi palettes", effect: "koi:appearance", keepsFamilyPreview: true },
+  { effect: "koi:appearance", keepsFamilyPreview: true },
 );
 
 // The order is Kohaku, Sanke, Showa, Ogon, Tancho, and Shiro.
@@ -211,7 +209,7 @@ const koiPatterns = list(
       { position: 0.79, length: 0.074, width: 0.54, offset: 0.22, color: "accent" },
     ],
   ] as const,
-  { label: "Koi markings", effect: "koi:appearance", keepsFamilyPreview: true },
+  { effect: "koi:appearance", keepsFamilyPreview: true },
 );
 
 // ---- tiny fish -----------------------------------------------------------
@@ -288,7 +286,6 @@ const tinyFish = group(
       { effect: "tiny-fish:render" },
     ),
   },
-  { label: "Tiny fish" },
 );
 
 const tinyFishSchoolItem = group({
@@ -304,8 +301,8 @@ const tinyFishSchoolItem = group({
   swirlDirection: choice<-1 | 1>({
     default: 1,
     options: [
-      { value: -1, label: "Left" },
-      { value: 1, label: "Right" },
+      { value: -1, label: "choice.left" },
+      { value: 1, label: "choice.right" },
     ],
   }),
 });
@@ -316,7 +313,6 @@ const tinyFishSchools = collection(tinyFishSchoolItem, [
   { x: 139, y: 204, count: 34, heading: -0.72, spreadX: 40, spreadY: 18, palette: 2, sizeScale: 0.82, speedScale: 1.12, swirlDirection: 1 },
   { x: 377, y: 69, count: 19, heading: 2.2, spreadX: 28, spreadY: 13, palette: 3, sizeScale: 0.94, speedScale: 1, swirlDirection: -1 },
 ] as const, {
-  label: "Tiny fish schools",
   countFrom: ["tiny-fish", "visibleSchoolCount"],
   max: 32,
   effect: "tiny-fish:respawn",
@@ -351,7 +347,7 @@ const pondBed = group(
     grainScale: num({ default: 0.54, min: 0, max: 2, step: 0.01 }),
     edgeDarkening: num({ default: 0.57, min: 0, max: 1, step: 0.01 }),
   },
-  { label: "Pond bed", effect: "pond-bed" },
+  { effect: "pond-bed" },
 );
 
 // ---- ripples -----------------------------------------------------------
@@ -377,7 +373,7 @@ function rippleType(defaultValue: {
       max: 64,
       step: 1,
       int: true,
-      description: "Kept under MAX_RIPPLES (64) across all three ripple types combined.",
+      description: "help.rippleLimit",
     }),
     ripplesPerEvent: num({ default: defaultValue.ripplesPerEvent, min: 1, max: 20, step: 1, int: true }),
     intervalSeconds: num({ default: defaultValue.intervalSeconds, min: 0.005, max: 0.5, step: 0.001 }),
@@ -419,7 +415,6 @@ const ripples = group(
       edgeMargin: num({ default: 5, min: 0, max: 100, step: 1 }),
     }),
   },
-  { label: "Ripples" },
 );
 
 // ---- water ---------------------------------------------------------------
@@ -462,7 +457,7 @@ const water = group(
       ]),
     }),
   },
-  { label: "Water", effect: "water" },
+  { effect: "water" },
 );
 
 // ---- lotus -----------------------------------------------------------
@@ -523,7 +518,7 @@ const lotus = group(
       { effect: "lotus:rebuild" },
     ),
   },
-  { label: "Lotus", effect: "lotus:rebuild" },
+  { effect: "lotus:rebuild" },
 );
 
 const lotusLeafItem = group({
@@ -557,7 +552,6 @@ const lotusLeaves = collection(lotusLeafItem, [
   { x: 58, y: 202, radius: 15, angle: 5.15, phase: 5.0, palette: 0 },
   { x: 374, y: 31, radius: 19, angle: 2.25, phase: 1.1, palette: 1 },
 ], {
-  label: "Lotus placements",
   countFrom: ["lotus", "visibleLeafCount"],
   max: 32,
   effect: "lotus:rebuild",
@@ -593,7 +587,6 @@ const lotusFlowers = collection(lotusFlowerItem, [
   // Data fix: was leafIndex 15, a hidden reserve leaf, so flower #4 was invisible by default.
   { leafIndex: 9, radius: 4.5, offsetX: -1.0, offsetY: 0.5, rotation: 0.15, palette: 1 },
 ], {
-  label: "Lotus flowers",
   countFrom: ["lotus", "visibleFlowerCount"],
   max: 16,
   effect: "lotus:rebuild",
@@ -634,7 +627,7 @@ const duckweedRippleResponse = group(
   {
     enabled: bool({
       default: true,
-      description: "Leaves drift away from touch, mouth, and rain ripples as the ring passes under them.",
+      description: "help.leafResponse",
     }),
     strength: num({
       default: 0.8,
@@ -642,7 +635,7 @@ const duckweedRippleResponse = group(
       max: 8,
       step: 0.1,
       unit: "px",
-      description: "Peak push of a leaf right next to a full-strength ripple.",
+      description: "help.leafStrength",
     }),
     bandWidth: num({
       default: 7,
@@ -650,7 +643,7 @@ const duckweedRippleResponse = group(
       max: 30,
       step: 0.5,
       unit: "px",
-      description: "Width of the ring front that pushes leaves. Wider rings move more leaves at once.",
+      description: "help.leafBand",
     }),
     falloffDistance: num({
       default: 181,
@@ -658,7 +651,7 @@ const duckweedRippleResponse = group(
       max: 200,
       step: 1,
       unit: "px",
-      description: "Distance from the ripple at which the push has halved.",
+      description: "help.leafFalloff",
     }),
     maxPush: num({
       default: 6,
@@ -666,7 +659,7 @@ const duckweedRippleResponse = group(
       max: 10,
       step: 0.1,
       unit: "px",
-      description: "Hard limit on how far overlapping ripples can move a leaf.",
+      description: "help.leafMax",
     }),
     spin: num({
       default: 0.39,
@@ -674,13 +667,13 @@ const duckweedRippleResponse = group(
       max: 1.5,
       step: 0.01,
       unit: "rad",
-      description: "Slight twist a leaf picks up while a ripple passes it.",
+      description: "help.leafSpin",
     }),
     touchWeight: num({ default: 0.8, min: 0, max: 2, step: 0.05 }),
     mouthWeight: num({ default: 0.4, min: 0, max: 2, step: 0.05 }),
     rainWeight: num({ default: 1.4, min: 0, max: 2, step: 0.05 }),
   },
-  { label: "Ripple response", effect: "duckweed:live" },
+  { effect: "duckweed:live" },
 );
 
 const duckweed = group(
@@ -705,7 +698,7 @@ const duckweed = group(
       { base: 0x83d35b, light: 0xb1ed76, shade: 0x549e43, center: 0xd0f28a },
     ]),
   },
-  { label: "Duckweed", effect: "duckweed:rebuild" },
+  { effect: "duckweed:rebuild" },
 );
 
 const duckweedPatchItem = group({
@@ -728,7 +721,6 @@ const duckweedPatches = collection(duckweedPatchItem, [
   { x: 71, y: 244, radius: 29, count: 40, phase: 3.4, palette: 0 },
   { x: 13, y: 168, radius: 64, count: 200, phase: 4.8, palette: 0 },
 ], {
-  label: "Duckweed patches",
   countFrom: ["duckweed", "visiblePatchCount"],
   max: MAX_DUCKWEED_PATCHES,
   effect: "duckweed:rebuild",
@@ -802,7 +794,7 @@ const butterflies = group(
       { wing: 0xc4df58, wingLight: 0xeaf68a, accent: 0x508c61, body: 0x334239 },
     ]),
   },
-  { label: "Butterflies", effect: "butterflies:keep" },
+  { effect: "butterflies:keep" },
 );
 
 const butterflySpawnItem = group({
@@ -820,7 +812,6 @@ const butterflySpawns = collection(butterflySpawnItem, [
   { x: 244, y: 30, phase: 0.9, palette: 1 },
   { x: 252, y: 242, phase: 4.4, palette: 0 },
 ], {
-  label: "Butterfly spawns",
   countFrom: ["butterflies", "visibleCount"],
   max: 24,
   // Growing follows the count field's own tag (butterflies:keep, preserving
@@ -873,55 +864,12 @@ export type DuckweedPatchSetting = ValueOf<typeof duckweedPatchItem>;
 export type ButterflySpawnSetting = ValueOf<typeof butterflySpawnItem>;
 export type Rgb = readonly [number, number, number];
 
-// Section-group labels used by the advanced-controls UI (was CONFIG_GROUPS).
-export interface SettingsGroup {
-  id: string;
-  title: string;
-  description: string;
-  sectionIds: readonly SectionId[];
-}
-
-export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
-  { id: "koi", title: "Koi", description: "Fish behavior, palettes, and body markings.", sectionIds: ["koi", "koi-palettes", "koi-patterns"] },
-  { id: "tiny-fish", title: "Tiny fish", description: "School behavior, appearance, and placement.", sectionIds: ["tiny-fish", "tiny-fish-schools"] },
-  { id: "water", title: "Water", description: "Pond bed, currents, tint, and ripple behavior.", sectionIds: ["pond-bed", "water", "ripples"] },
-  { id: "lotus", title: "Lotus", description: "Leaves, flowers, palettes, and placement.", sectionIds: ["lotus", "lotus-leaves", "lotus-flowers"] },
-  { id: "duckweed", title: "Duckweed", description: "Leaf appearance and floating patches.", sectionIds: ["duckweed", "duckweed-patches"] },
-  { id: "butterflies", title: "Butterflies", description: "Flight behavior, colors, and spawn points.", sectionIds: ["butterflies", "butterfly-spawns"] },
-];
-
-export const SECTION_TITLES: Record<SectionId, string> = {
-  koi: "Koi",
-  "koi-palettes": "Koi palettes",
-  "koi-patterns": "Koi markings",
-  "tiny-fish": "Tiny fish",
-  "tiny-fish-schools": "Tiny fish schools",
-  "pond-bed": "Pond bed",
-  water: "Water",
-  ripples: "Ripples",
-  lotus: "Lotus",
-  "lotus-leaves": "Lotus placements",
-  "lotus-flowers": "Lotus flowers",
-  duckweed: "Duckweed",
-  "duckweed-patches": "Duckweed patches",
-  butterflies: "Butterflies",
-  "butterfly-spawns": "Butterfly spawns",
-};
-
-export const SECTION_DESCRIPTIONS: Record<SectionId, string> = {
-  koi: "Population, depth, feeding, shadows, and call response.",
-  "koi-palettes": "Body, marking, and fin colors for each koi family.",
-  "koi-patterns": "Placement and shape of the colored body patches.",
-  "tiny-fish": "Schooling, flee behavior, proportions, and colors.",
-  "tiny-fish-schools": "Population, origin, spread, and palette per school.",
-  "pond-bed": "Base water-bed colors, grain, and edge depth.",
-  water: "Current layers, distortion, and tint.",
-  ripples: "Touch, rain, and koi-mouth ripples plus rainfall frequency.",
-  lotus: "Leaf and flower geometry, drift, shadows, and palettes.",
-  "lotus-leaves": "Position, scale, rotation, and palette for every leaf.",
-  "lotus-flowers": "Leaf attachment, position, size, and palette.",
-  duckweed: "Leaf size, drift, shadows, and green palettes.",
-  "duckweed-patches": "Population, spread, and origin of each patch.",
-  butterflies: "Flight, flower visits, proportions, and colors.",
-  "butterfly-spawns": "Initial position, phase, and palette per butterfly.",
-};
+// Structural grouping only; all display copy is in src/i18n.
+export const SETTINGS_GROUPS = [
+  { id: "koi", sectionIds: ["koi", "koi-palettes", "koi-patterns"] },
+  { id: "tiny-fish", sectionIds: ["tiny-fish", "tiny-fish-schools"] },
+  { id: "water", sectionIds: ["pond-bed", "water", "ripples"] },
+  { id: "lotus", sectionIds: ["lotus", "lotus-leaves", "lotus-flowers"] },
+  { id: "duckweed", sectionIds: ["duckweed", "duckweed-patches"] },
+  { id: "butterflies", sectionIds: ["butterflies", "butterfly-spawns"] },
+] as const satisfies readonly { id: SectionId; sectionIds: readonly SectionId[] }[];

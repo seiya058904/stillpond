@@ -258,11 +258,11 @@ export class FishRenderer {
       powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(1);
-    this.renderer.setSize(CANVAS_WIDTH, CANVAS_HEIGHT, false);
+    this.renderer.setSize(Math.round(CANVAS_WIDTH), Math.round(CANVAS_HEIGHT), false);
     this.renderer.setClearColor(0x000000, 1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.underwaterTarget = new THREE.WebGLRenderTarget(CANVAS_WIDTH, CANVAS_HEIGHT, {
+    this.underwaterTarget = new THREE.WebGLRenderTarget(Math.round(CANVAS_WIDTH), Math.round(CANVAS_HEIGHT), {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: false,
@@ -270,7 +270,7 @@ export class FishRenderer {
     });
     this.underwaterTarget.texture.generateMipmaps = false;
 
-    this.compositeTarget = new THREE.WebGLRenderTarget(CANVAS_WIDTH, CANVAS_HEIGHT, {
+    this.compositeTarget = new THREE.WebGLRenderTarget(Math.round(CANVAS_WIDTH), Math.round(CANVAS_HEIGHT), {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: false,
@@ -408,9 +408,9 @@ export class FishRenderer {
   }
 
   public resize(width: number, height: number, oldWidth: number, oldHeight: number): void {
-    this.renderer.setSize(width, height, false);
-    this.underwaterTarget.setSize(width, height);
-    this.compositeTarget.setSize(width, height);
+    this.renderer.setSize(Math.round(width), Math.round(height), false);
+    this.underwaterTarget.setSize(Math.round(width), Math.round(height));
+    this.compositeTarget.setSize(Math.round(width), Math.round(height));
     this.camera.right = width;
     this.camera.bottom = height;
     this.camera.updateProjectionMatrix();

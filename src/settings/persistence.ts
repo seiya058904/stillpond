@@ -6,8 +6,10 @@ import { definition, type SectionId } from "./definition";
 import type { SettingsStore } from "./store";
 import { WEATHER_PRESETS, type WeatherPresetId } from "../weather";
 
-const STORAGE_KEY_V2 = "nagomi:pond-settings:v2";
-const STORAGE_KEY_V1 = "nagomi:pond-settings:v1";
+import project from "../../project.config.json";
+
+const STORAGE_KEY_V2 = `${project.storagePrefix}:pond-settings:v2`;
+const STORAGE_KEY_V1 = `${project.storagePrefix}:pond-settings:v1`;
 
 interface SavedV2 {
   version: 2;

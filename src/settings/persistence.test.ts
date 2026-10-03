@@ -37,7 +37,7 @@ describe("persistence", () => {
 
   it("drops unknown saved paths instead of throwing", () => {
     localStorage.setItem(
-      "nagomi:pond-settings:v2",
+      "stillpond:pond-settings:v2",
       JSON.stringify({
         version: 2,
         overrides: { "koi.depth.shadow.offset.x": 4.4, "koi.initialCount": 10 },
@@ -52,7 +52,7 @@ describe("persistence", () => {
 
   it("fills the duckweed rippleResponse defaults when saved data predates it", () => {
     localStorage.setItem(
-      "nagomi:pond-settings:v2",
+      "stillpond:pond-settings:v2",
       JSON.stringify({
         version: 2,
         overrides: { "duckweed.driftX": 7 },
@@ -82,7 +82,7 @@ describe("persistence", () => {
     // A removed field from the old shape (FISH.depth.shadow.offset) — must be ignored, not throw.
     v1Config.koi.depth = { ...v1Config.koi.depth, shadow: { offset: { x: 4.4, y: 10.4 } } };
     localStorage.setItem(
-      "nagomi:pond-settings:v1",
+      "stillpond:pond-settings:v1",
       JSON.stringify({ version: 1, config: v1Config, weather: "sunset", rain: true }),
     );
 
@@ -91,8 +91,8 @@ describe("persistence", () => {
     expect(store.live.koi.initialCount).toBe(40);
     expect(store.meta().weather).toBe("sunset");
     expect(store.meta().rain).toBe(true);
-    expect(localStorage.getItem("nagomi:pond-settings:v1")).toBeNull();
-    expect(localStorage.getItem("nagomi:pond-settings:v2")).not.toBeNull();
+    expect(localStorage.getItem("stillpond:pond-settings:v1")).toBeNull();
+    expect(localStorage.getItem("stillpond:pond-settings:v2")).not.toBeNull();
   });
 
   it("connectPersistence wires the store to flushPersist on demand", () => {
@@ -100,7 +100,7 @@ describe("persistence", () => {
     connectPersistence(store);
     store.set(["koi", "initialCount"], 7);
     store.flushPersist();
-    const saved = JSON.parse(localStorage.getItem("nagomi:pond-settings:v2")!);
+    const saved = JSON.parse(localStorage.getItem("stillpond:pond-settings:v2")!);
     expect(saved.overrides["koi.initialCount"]).toBe(7);
   });
 

@@ -44,7 +44,6 @@ export interface WeatherConfigValues {
 
 export interface WeatherPreset {
   id: WeatherPresetId;
-  label: string;
   tint: ColorTriplet;
   brightness: number;
   contrast: number;
@@ -65,7 +64,6 @@ export const DEFAULT_WEATHER_PRESET_ID: WeatherPresetId = "sunny";
 export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   {
     id: "sunny",
-    label: "Sunny",
     tint: [1, 1, 1],
     brightness: 1,
     contrast: 1,
@@ -106,7 +104,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   },
   {
     id: "rain",
-    label: "Rain",
     tint: [0.67, 0.86, 0.96],
     brightness: 0.72,
     contrast: 0.94,
@@ -148,7 +145,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
 
   {
     id: "deep-clear",
-    label: "Deep clear",
     tint: [1, 1, 1],
     brightness: 1,
     contrast: 1,
@@ -189,7 +185,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   },
   {
     id: "overcast",
-    label: "Overcast",
     tint: [0.87, 0.96, 1.02],
     brightness: 0.86,
     contrast: 0.9,
@@ -230,7 +225,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   },
   {
     id: "mist",
-    label: "Mist",
     tint: [0.76, 0.9, 0.88],
     brightness: 0.8,
     contrast: 0.86,
@@ -271,7 +265,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   },
   {
     id: "sunset",
-    label: "Sunset",
     tint: [1.08, 0.86, 0.7],
     brightness: 0.93,
     contrast: 1.06,
@@ -312,7 +305,6 @@ export const WEATHER_PRESETS: readonly WeatherPreset[] = [
   },
   {
     id: "moonlight",
-    label: "Moonlight",
     tint: [0.5, 0.7, 1.04],
     brightness: 0.6,
     contrast: 1.08,

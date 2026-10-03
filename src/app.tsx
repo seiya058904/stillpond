@@ -27,8 +27,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Button } from "@/components/ui/button";
-import { GitHubStars } from "@/components/github-stars";
-import { WallpaperAppLink } from "@/components/wallpaper-app-link";
 import {
   Drawer,
   DrawerClose,
@@ -53,17 +51,19 @@ import { Switch } from "@/components/ui/switch";
 import { AUDIO } from "./audio-config";
 import { ConfigEditor } from "./config-editor";
 import {
-  CANVAS,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
-  FISH,
   FIXED_STEP,
   setCanvasSize,
 } from "./config";
 import { FishRenderer } from "./fish-renderer";
 import { createFrameLimiter } from "./frame-limiter";
 import { useIsMobile } from "./hooks/use-mobile";
-import { clamp, vec } from "./math";
+import { clamp } from "./math";
+import project from "../project.config.json";
+import { useI18n } from "./i18n";
+import { pondPoint, pondSize } from "./viewport";
+import { readSoundEnabled, saveSoundEnabled } from "./sound-preference";
 import {
   FRAME_RATE_OPTIONS,
   effectiveFrameRate,
@@ -75,7 +75,7 @@ import {
 } from "./performance-prefs";
 import { connectSettingsEffects } from "./settings/effects";
 import { connectPersistence, loadInto } from "./settings/persistence";
-import { useSettingsMeta } from "./settings/react";
+import { useSetting, useSettingsMeta } from "./settings/react";
 import { settings } from "./settings/store";
 import type { SectionId } from "./settings/definition";
 import { School } from "./school";
@@ -86,45 +86,22 @@ import {
   type WeatherPresetId,
 } from "./weather";
 
-interface SceneStats {
-  koi: number;
-}
-
 interface PondRuntime {
   school: School;
   renderer: FishRenderer;
   showDebug: boolean;
 }
 
-const emptyStats: SceneStats = {
-  koi: FISH.initialCount,
-};
-
 const AMBIENT_IDLE_DELAY_MS = 2400;
-const GITHUB_REPOSITORY = "msk1039/procedural-koi-threejs";
-const WALLPAPER_APP_URL = "https://nagomi.m4yank.com/";
 
 // Restores v2 (or migrates v1) localStorage settings into the store before
 // the first render, and wires up debounced+pagehide saving from then on.
 loadInto(settings);
 connectPersistence(settings);
 
-function pondRenderSize(display: HTMLElement): { width: number; height: number } {
+function pondRenderSize(display: HTMLElement) {
   const { width, height } = display.getBoundingClientRect();
-  const portrait =
-    window.matchMedia("(max-width: 700px) and (orientation: portrait)").matches &&
-    width > 0 &&
-    height > 0;
-  if (!portrait) return { width: CANVAS.width, height: CANVAS.height };
-
-  const renderWidth = Math.min(
-    CANVAS.width,
-    Math.max(CANVAS.height, Math.round(width * 0.7)),
-  );
-  return {
-    width: renderWidth,
-    height: Math.max(CANVAS.height, Math.round((renderWidth * height) / width)),
-  };
+  return pondSize(width, height);
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -132,14 +109,9 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
+    (target instanceof HTMLElement && (target.isContentEditable ||
+      Boolean(target.closest("button, summary, [role=slider], [role=switch], [role=menuitemradio]"))))
   );
-}
-
-function sceneStats(runtime: PondRuntime): SceneStats {
-  return {
-    koi: runtime.school.count,
-  };
 }
 
 function WeatherIcon({ id }: { id: WeatherPresetId }) {
@@ -162,6 +134,15 @@ function WeatherIcon({ id }: { id: WeatherPresetId }) {
 }
 
 export function App() {
+  const { language, t, family } = useI18n();
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title = t("page.title", { name: project.name });
+    document.querySelectorAll('meta[name="description"], meta[property="og:description"]')
+      .forEach((meta) => meta.setAttribute("content", t("page.description")));
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", document.title);
+    document.querySelector('meta[property="og:locale"]')?.setAttribute("content", language === "en" ? "en_US" : "zh_CN");
+  }, [language, t]);
   const isMobile = useIsMobile();
   const stageRef = useRef<HTMLElement>(null);
   const displayRef = useRef<HTMLDivElement>(null);
@@ -172,8 +153,9 @@ export function App() {
   const ambientAudioLoadingRef = useRef<Promise<void> | null>(null);
   const runtimeRef = useRef<PondRuntime | null>(null);
   const ambientModeRef = useRef(false);
-  const soundEnabledRef = useRef<boolean>(AUDIO.defaultEnabled);
-  const [stats, setStats] = useState<SceneStats>(emptyStats);
+  const [initialSound] = useState(readSoundEnabled);
+  const soundEnabledRef = useRef(initialSound);
+  const [koiCount] = useSetting<number>(["koi", "initialCount"]);
   const [showInterface, setShowInterface] = useState(true);
   const [ambientMode, setAmbientMode] = useState(false);
   const [ambientControlsVisible, setAmbientControlsVisible] = useState(true);
@@ -187,7 +169,7 @@ export function App() {
   // runtime effect (which would dispose and recreate the renderer).
   const frameRateCapRef = useRef(frameRateCap);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(
-    AUDIO.defaultEnabled,
+    initialSound,
   );
   const settingsMeta = useSettingsMeta();
   const { weather: weatherPreset, rain: rainEnabled, canUndo } = settingsMeta;
@@ -201,7 +183,7 @@ export function App() {
     const runtime = runtimeRef.current;
     if (!runtime) return;
     runtime.school.scatter();
-    setStats(sceneStats(runtime));
+
   }, []);
 
   const setFamilyPreview = useCallback((index: number | null) => {
@@ -219,20 +201,8 @@ export function App() {
     });
   }, [setFamilyPreview]);
 
-  // Keeps the koi count readout in sync after a koi:count effect runs
-  // (settings/effects.ts calls school.setCount on the next animation frame).
-  useEffect(() => {
-    return settings.subscribe((batch) => {
-      if (!batch.some((change) => change.effect === "koi:count")) return;
-      requestAnimationFrame(() => {
-        const runtime = runtimeRef.current;
-        if (runtime) setStats(sceneStats(runtime));
-      });
-    });
-  }, []);
-
   const changeKoiCount = useCallback((amount: number) => {
-    const current = runtimeRef.current?.school.count ?? settings.live.koi.initialCount;
+    const current = settings.live.koi.initialCount;
     settings.set(["koi", "initialCount"], clamp(current + amount, 1, 48));
   }, []);
 
@@ -320,6 +290,13 @@ export function App() {
     ambientAudioLoadingRef.current = loading;
     try {
       await loading;
+    } catch (error) {
+      if (ambientAudioContextRef.current === context) {
+        ambientAudioContextRef.current = null;
+        ambientAudioGainRef.current = null;
+      }
+      if (context.state !== "closed") void context.close();
+      throw error;
     } finally {
       ambientAudioLoadingRef.current = null;
     }
@@ -328,7 +305,12 @@ export function App() {
   const setAmbientSoundEnabled = useCallback((enabled: boolean) => {
     soundEnabledRef.current = enabled;
     setSoundEnabled(enabled);
-    if (enabled) void startAmbientAudio().catch(() => undefined);
+    saveSoundEnabled(enabled);
+    if (enabled) void startAmbientAudio().catch(() => {
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      saveSoundEnabled(false);
+    });
 
     const context = ambientAudioContextRef.current;
     const gain = ambientAudioGainRef.current;
@@ -525,7 +507,7 @@ export function App() {
     };
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.repeat) return;
+      if (event.repeat || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
       if (isEditableTarget(event.target)) return;
       switch (event.code) {
         case "Space":
@@ -554,11 +536,11 @@ export function App() {
         default:
           return;
       }
-      setStats(sceneStats(runtime));
+
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    setStats(sceneStats(runtime));
+
     animationFrame = requestAnimationFrame(animate);
 
     return () => {
@@ -575,21 +557,11 @@ export function App() {
     const runtime = runtimeRef.current;
     if (!runtime) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    runtime.school.callTo(
-      vec(
-        clamp(
-          ((event.clientX - bounds.left) / bounds.width) * CANVAS_WIDTH,
-          0,
-          CANVAS_WIDTH,
-        ),
-        clamp(
-          ((event.clientY - bounds.top) / bounds.height) * CANVAS_HEIGHT,
-          0,
-          CANVAS_HEIGHT,
-        ),
-      ),
-    );
-    setStats(sceneStats(runtime));
+    if (event.button !== 0 || !event.isPrimary) return;
+    runtime.school.callTo(pondPoint(event.clientX, event.clientY, bounds, {
+      width: CANVAS_WIDTH, height: CANVAS_HEIGHT,
+    }));
+
   };
 
   const revealHiddenInterfaceOnMobile = (
@@ -615,7 +587,8 @@ export function App() {
           ? " stage--ambient-idle"
           : ""
       }`}
-      aria-label="Procedural koi simulation"
+      data-version={project.version}
+      aria-label={t("pond.label")}
       onPointerDownCapture={revealHiddenInterfaceOnMobile}
     >
       <div className="pond-shell">
@@ -623,12 +596,12 @@ export function App() {
           <canvas
             ref={canvasRef}
             id="pond"
-            aria-label="Animated procedural koi"
+            aria-label={t("pond.canvas")}
             onPointerDown={callFish}
           />
           {previewFamily !== null && settingsOpen && (
             <div className="pond-preview-label" aria-live="polite">
-              {settings.live["koi-palettes"][previewFamily]?.name ?? "Koi"} family preview
+              {t("pond.preview", { family: family(settings.live["koi-palettes"][previewFamily]?.name ?? "") })}
             </div>
           )}
         </div>
@@ -642,14 +615,10 @@ export function App() {
             }`}
           >
             <header className="brand-float">
-              <h1 className="brand-wordmark">nagomi</h1>
+              <h1 className="brand-wordmark">{project.name}</h1>
             </header>
 
             <div className="top-actions">
-              <GitHubStars repo={GITHUB_REPOSITORY} stargazersCount={2} />
-              <Separator orientation="vertical" />
-              <WallpaperAppLink href={WALLPAPER_APP_URL} />
-              <Separator orientation="vertical" />
               <Drawer
                 open={settingsOpen}
                 onOpenChange={handleSettingsOpenChange}
@@ -663,24 +632,22 @@ export function App() {
                   <Button
                     className="settings-trigger"
                     variant="ghost"
-                    aria-label="Open pond settings"
+                    aria-label={t("settings.open")}
                   />
                 }
               >
                 <Settings2 aria-hidden="true" />
-                <span>Settings</span>
+                <span>{t("settings.button")}</span>
               </DrawerTrigger>
               <DrawerContent className="settings-drawer">
                 <DrawerHeader className="settings-drawer__header">
                   <div>
-                    <DrawerTitle>Pond settings</DrawerTitle>
-                    <DrawerDescription>
-                      Changes preview in the pond and save on this device.
-                    </DrawerDescription>
+                    <DrawerTitle>{t("settings.title")}</DrawerTitle>
+                    <DrawerDescription>{t("settings.description")}</DrawerDescription>
                   </div>
                   <DrawerClose
                     render={
-                      <Button variant="ghost" size="icon" aria-label="Close settings" />
+                      <Button variant="ghost" size="icon" aria-label={t("settings.close")} />
                     }
                   >
                     <X aria-hidden="true" />
@@ -706,20 +673,18 @@ export function App() {
                 </div>
                 <DrawerFooter className="settings-drawer__footer">
                   {confirmResetAll ? (
-                    <div className="settings-reset-confirm" role="group" aria-label="Confirm reset all settings">
-                      <span>Reset all settings on this device?</span>
-                      <Button variant="ghost" onClick={() => setConfirmResetAll(false)}>Cancel</Button>
-                      <Button variant="destructive" onClick={resetSettings}>Reset all</Button>
+                    <div className="settings-reset-confirm" role="group" aria-label={t("settings.resetConfirmLabel")}>
+                      <span>{t("settings.resetConfirm")}</span>
+                      <Button variant="ghost" onClick={() => setConfirmResetAll(false)}>{t("action.cancel")}</Button>
+                      <Button variant="destructive" onClick={resetSettings}>{t("action.resetAll")}</Button>
                     </div>
                   ) : (
                     <>
                       <Button variant="ghost" onClick={undoLastInteraction} disabled={!canUndo}>
-                        <Undo2 aria-hidden="true" /> Undo
-                      </Button>
+                        <Undo2 aria-hidden="true" />{t("action.undo")}</Button>
                       <Button variant="outline" onClick={() => setConfirmResetAll(true)}>
-                        <RotateCcw aria-hidden="true" /> Reset all
-                      </Button>
-                      <DrawerClose render={<Button />}>Done</DrawerClose>
+                        <RotateCcw aria-hidden="true" />{t("action.resetAll")}</Button>
+                      <DrawerClose render={<Button />}>{t("action.done")}</DrawerClose>
                     </>
                   )}
                 </DrawerFooter>
@@ -736,14 +701,14 @@ export function App() {
                 ? " control-dock--hidden"
                 : ""
             }`}
-            aria-label="Simulation controls"
+            aria-label={t("controls.label")}
           >
             <div className="control-group control-group--view">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => void toggleAmbientMode()}
-                aria-label={ambientMode ? "Exit ambient mode" : "Enter ambient mode"}
+                aria-label={t(ambientMode ? "controls.exitAmbient" : "controls.enterAmbient")}
                 aria-keyshortcuts="F"
                 aria-pressed={ambientMode}
               >
@@ -752,7 +717,7 @@ export function App() {
                 ) : (
                   <Maximize2 aria-hidden="true" />
                 )}
-                <span className="control-label">{ambientMode ? "Exit" : "Ambient"}</span>
+                <span className="control-label">{t(ambientMode ? "controls.exit" : "controls.ambient")}</span>
                 <Kbd className="control-shortcut">F</Kbd>
               </Button>
               <DropdownMenu
@@ -765,12 +730,12 @@ export function App() {
                       className="frame-rate-trigger"
                       variant="ghost"
                       size="sm"
-                      aria-label={`Frame rate: ${selectedFrameRate.label}`}
+                      aria-label={t("controls.frameRateValue", { value: t(`fps.${selectedFrameRate.id}`) })}
                     />
                   }
                 >
                   <Gauge aria-hidden="true" />
-                  <span className="control-label">{selectedFrameRate.label}</span>
+                  <span className="control-label">{t(`fps.${selectedFrameRate.id}`)}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   className="frame-rate-menu"
@@ -782,7 +747,7 @@ export function App() {
                     value={frameRateCap}
                     onValueChange={changeFrameRate}
                   >
-                    <DropdownMenuLabel>Frame rate</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("controls.frameRate")}</DropdownMenuLabel>
                     {FRAME_RATE_OPTIONS.map((option) => (
                       <DropdownMenuRadioItem
                         key={option.id}
@@ -790,8 +755,8 @@ export function App() {
                         closeOnClick
                       >
                         <span className="frame-rate-option">
-                          <span className="frame-rate-option__label">{option.label}</span>
-                          <span className="frame-rate-option__hint">{option.description}</span>
+                          <span className="frame-rate-option__label">{t(`fps.${option.id}`)}</span>
+                          <span className="frame-rate-option__hint">{t(`fps.${option.id}.hint`)}</span>
                         </span>
                       </DropdownMenuRadioItem>
                     ))}
@@ -802,11 +767,11 @@ export function App() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowInterface(false)}
-                aria-label="Hide interface"
+                aria-label={t("controls.hideLabel")}
                 aria-keyshortcuts="H"
               >
                 <EyeOff aria-hidden="true" />
-                <span className="control-label">Hide UI</span>
+                <span className="control-label">{t("controls.hide")}</span>
                 <Kbd className="control-shortcut">H</Kbd>
               </Button>
             </div>
@@ -816,30 +781,31 @@ export function App() {
                 variant="secondary"
                 size="sm"
                 onClick={scatter}
+                aria-label={t("controls.scatter")}
                 aria-keyshortcuts="Space"
               >
                 <Shuffle aria-hidden="true" />
-                <span className="control-label">Scatter</span>
-                <Kbd className="control-shortcut">Space</Kbd>
+                <span className="control-label">{t("controls.scatter")}</span>
+                <Kbd className="control-shortcut">{t("controls.space")}</Kbd>
               </Button>
               <Separator orientation="vertical" />
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => changeKoiCount(-1)}
-                aria-label="Remove one koi"
+                aria-label={t("controls.removeKoi")}
                 aria-keyshortcuts="["
               >
                 <Minus aria-hidden="true" />
               </Button>
-              <output className="koi-count" aria-live="polite">
-                {stats.koi}
+              <output className="koi-count" aria-live="polite" aria-label={t("controls.koiCount")}>
+                {koiCount}
               </output>
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => changeKoiCount(1)}
-                aria-label="Add one koi"
+                aria-label={t("controls.addKoi")}
                 aria-keyshortcuts="]"
               >
                 <Plus aria-hidden="true" />
@@ -857,12 +823,12 @@ export function App() {
                       className="weather-trigger"
                       variant="ghost"
                       size="sm"
-                      aria-label={`Weather: ${selectedWeather.label}`}
+                      aria-label={t("controls.weatherValue", { value: t(`weather.${selectedWeather.id}`) })}
                     />
                   }
                 >
                   <WeatherIcon id={weatherPreset} />
-                  <span className="control-label">{selectedWeather.label}</span>
+                  <span className="control-label">{t(`weather.${selectedWeather.id}`)}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   className="weather-menu"
@@ -876,7 +842,7 @@ export function App() {
                       changeWeather(value as WeatherPresetId)
                     }
                   >
-                    <DropdownMenuLabel>Weather and lighting</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("controls.weatherLighting")}</DropdownMenuLabel>
                     {WEATHER_PRESETS.map((preset) => (
                       <DropdownMenuRadioItem
                         key={preset.id}
@@ -884,7 +850,7 @@ export function App() {
                         closeOnClick
                       >
                         <WeatherIcon id={preset.id} />
-                        {preset.label}
+                        {t(`weather.${preset.id}`)}
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
@@ -892,22 +858,22 @@ export function App() {
               </DropdownMenu>
               <div className="rain-control">
                 <CloudRain aria-hidden="true" />
-                <span className="rain-control__label">Rain</span>
+                <span className="rain-control__label">{t("weather.rain")}</span>
                 <Switch
                   size="sm"
                   checked={rainEnabled}
                   onCheckedChange={handleRainChange}
-                  aria-label="Toggle rain ripples"
+                  aria-label={t("controls.rainLabel")}
                 />
               </div>
               <div className="rain-control">
                 <Volume2 aria-hidden="true" />
-                <span className="rain-control__label">Sound</span>
+                <span className="rain-control__label">{t("controls.sound")}</span>
                 <Switch
                   size="sm"
                   checked={soundEnabled}
                   onCheckedChange={handleSoundChange}
-                  aria-label="Toggle pond ambience"
+                  aria-label={t("controls.soundLabel")}
                 />
               </div>
             </div>
