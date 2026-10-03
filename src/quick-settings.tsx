@@ -26,9 +26,10 @@ export interface QuickSettingsProps {
   onNavigate: (page: PreferencePage) => void;
 }
 
-function Group({title, icon, children}: {title: string; icon: ReactNode; children: ReactNode}) {
+function Group({title, children, note, status, flush}: {title: string; children: ReactNode; note?: string; status?: boolean; flush?: boolean}) {
   return <section className="preference-group" aria-label={title}>
-    <h3>{icon}{title}</h3><div className="preference-card">{children}</div>
+    <div className={"preference-card" + (flush ? " preference-card--flush" : "")}>{children}</div>
+    {note && <p className="preference-note" role={status ? "status" : undefined}>{note}</p>}
   </section>;
 }
 
@@ -53,15 +54,14 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
     </button></div><p className="settings-menu-note">{t("product.advancedHint")}</p>
   </nav>;
   return <div className="preferences">
-    {page === "pond" && <Group title={t("product.pond")} icon={<Fish aria-hidden="true" />}>
+    {page === "pond" && <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
       <input id="pond-density" className="pond-range" type="range" min="1" max="48" step="1" value={count}
         aria-valuetext={t("product.koi", {count})} style={{"--range": ((count-1)/47*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
       <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
       <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => setShoals(on ? 3 : 0)} /></div>
-      <p className="preference-note">{t("product.medakaHint")}</p>
     </Group>}
-    {page === "atmosphere" && <Group title={t("quick.atmosphere")} icon={<Sun aria-hidden="true" />}>
+    {page === "atmosphere" && <Group title={t("quick.atmosphere")}>
       <div className="weather-cards" role="group" aria-label={t("controls.weatherLighting")}>
         {WEATHER_PRESETS.map(preset => {
           const Icon = weatherIcons[preset.id];
@@ -75,17 +75,16 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
       </div>
       <div className="preference-row divided"><label htmlFor="pond-rain">{t("quick.rain")}</label><Switch id="pond-rain" checked={rain} onCheckedChange={onRainChange} /></div>
     </Group>}
-    {page === "sound" && <Group title={t("controls.sound")} icon={<Volume2 aria-hidden="true" />}>
+    {page === "sound" && <Group title={t("controls.sound")} note={t(sound.unavailable ? "audio.unavailable" : "product.soundHint")} status={sound.unavailable}>
       <div className="preference-row"><label htmlFor="pond-sound">{t("quick.sound")}</label><Switch id="pond-sound" checked={sound.enabled} onCheckedChange={sound.change} /></div>
-      <p className="preference-note" role={sound.unavailable ? "status" : undefined}>{t(sound.unavailable ? "audio.unavailable" : "product.soundHint")}</p>
     </Group>}
-    {page === "language" && <Group title={t("settings.language")} icon={<Globe2 aria-hidden="true" />}>
+    {page === "language" && <Group title={t("settings.language")} flush>
       <div className="settings-list" role="group" aria-label={t("settings.language")}>
         {languages.map(option => <button className="selection-row" key={option.id} aria-pressed={language===option.id} lang={option.id} onClick={() => setLanguage(option.id)}>
           <span>{option.label}</span>{language===option.id && <Check aria-hidden="true" />}</button>)}
       </div>
     </Group>}
-    {page === "display" && <Group title={t("product.display")} icon={<Monitor aria-hidden="true" />}>
+    {page === "display" && <Group title={t("product.display")} flush>
       <div className="settings-list" role="group" aria-label={t("product.motion")}>
         {(["60","30","20","native"] as const).map(id => <button className="selection-row" key={id} aria-pressed={frameRate===id} onClick={() => onFrameRateChange(id)}>
           <span><strong>{t(`product.fps.${id}`)}</strong><small>{id === "native" ? t("fps.native.hint") : t(`fps.${id}`)}</small></span>

@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, RotateCcw, Undo2, X } from "lucide-react";
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
+import { ChevronLeft, RotateCcw, Undo2 } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "./hooks/use-mobile";
 import { QuickSettings, preferenceTitles, type PreferencePage, type QuickSettingsProps } from "./quick-settings";
@@ -23,10 +23,31 @@ interface Props extends Pick<QuickSettingsProps, "sound" | "frameRate" | "onFram
   onPreviewChange: (index: number | null) => void;
 }
 
+function SettingsPage({children, page, direction, reduced, onEntered}: {
+  children: ReactNode; page: PreferencePage; direction: number; reduced: boolean; onEntered: () => void;
+}) {
+  const present = useIsPresent();
+  return <motion.div className="settings-page" custom={direction} initial="enter" animate="visible" exit="exit"
+    inert={!present || undefined} style={{zIndex:page === "root" ? 1 : 2}}
+    variants={{enter:(d:number) => ({opacity:reduced ? 1 : 0.6,x:reduced ? 0 : d > 0 ? "100%" : "-22%"}),
+      visible:{opacity:1,x:0}, exit:(d:number) => ({opacity:reduced ? 1 : 0.4,x:reduced ? 0 : d > 0 ? "-22%" : "100%"})}}
+    transition={reduced ? {duration:0} : {type:"spring",stiffness:360,damping:38,mass:0.9}}
+    onAnimationComplete={definition => { if(present && definition === "visible") onEntered(); }}>
+    {children}
+  </motion.div>;
+}
+
 export default function SettingsPanel({open, onOpenChange, preview, onPreviewChange, ...preferences}: Props) {
   const {t} = useI18n();
   const mobile = useIsMobile();
-  const reduced = useReducedMotion();
+  const [reduced, setReduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    // Motion's current hook samples once; OS preference changes must apply live.
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update(); media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const meta = useSettingsMeta();
   const [page, setPage] = useState<PreferencePage>("root");
   const advanced = page === "advanced";
@@ -45,23 +66,22 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     scroll.current?.scrollTo({top:0});
   };
   const resetSection = (ids: readonly SectionId[]) => settings.resetSections(ids);
-  return <MotionConfig reducedMotion="user"><Drawer open={open} onOpenChange={onOpenChange} modal={false}
+  return <MotionConfig reducedMotion={reduced ? "always" : "never"}><Drawer open={open} onOpenChange={onOpenChange} modal={false}
     swipeDirection={mobile ? "down" : "right"} showSwipeHandle={mobile} disablePointerDismissal>
-    <DrawerContent className="settings-drawer" onKeyDown={event => { if(event.key === "Escape") onOpenChange(false); }}>
+    <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape") onOpenChange(false); }}>
       <DrawerHeader className="settings-drawer__header">
-        <div className="settings-heading">
-          {page !== "root" && <button ref={back} className="icon-button" aria-label={t("product.back")} onClick={() => navigate("root")}><ArrowLeft aria-hidden="true" /></button>}
-          <div><DrawerTitle>{t(page === "root" ? "settings.title" : preferenceTitles[page])}</DrawerTitle>
-            <DrawerDescription>{t(advanced ? "advanced.hint" : "product.settingsHint")}</DrawerDescription></div>
+        <div className="settings-navbar">
+          {page !== "root" ? <button ref={back} className="settings-back" aria-label={t("product.back")} onClick={() => navigate("root")}><ChevronLeft aria-hidden="true" /><span>{t("settings.button")}</span></button> : <span />}
+          {page !== "root" && <DrawerTitle>{t(preferenceTitles[page])}</DrawerTitle>}
+          <button className="settings-done" aria-label={t("settings.close")} onClick={() => onOpenChange(false)}>{t("action.done")}</button>
         </div>
-        <button className="icon-button" aria-label={t("settings.close")} onClick={() => onOpenChange(false)}><X aria-hidden="true" /></button>
+        {page === "root" && <DrawerTitle className="settings-large-title">{t("settings.title")}</DrawerTitle>}
+        <DrawerDescription className={page !== "root" && !advanced ? "sr-only" : undefined}>{t(advanced ? "advanced.hint" : "product.settingsHint")}</DrawerDescription>
       </DrawerHeader>
       <div ref={scroll} className="settings-scroll" data-base-ui-swipe-ignore>
-        <AnimatePresence mode="wait" initial={false} custom={direction.current}>
-          <motion.div key={page} custom={direction.current} initial="enter" animate="visible" exit="exit"
-            variants={{enter:(d:number) => ({opacity:0,x:reduced ? 0 : d * 22}), visible:{opacity:1,x:0}, exit:(d:number) => ({opacity:0,x:reduced ? 0 : -d * 12})}}
-            transition={reduced ? {duration:0} : {duration:0.16,ease:[0.22,1,0.36,1]}}
-            onAnimationComplete={() => { if(page !== "root") back.current?.focus({preventScroll:true});
+        <AnimatePresence mode="sync" initial={false} custom={direction.current}>
+          <SettingsPage key={page} page={page} direction={direction.current} reduced={!!reduced}
+            onEntered={() => { if(page !== "root") back.current?.focus({preventScroll:true});
               else scroll.current?.querySelector<HTMLButtonElement>(`[data-preference="${returnTo.current}"]`)?.focus({preventScroll:true}); }}>
             {advanced ? <AdvancedBoundary fallback={<p role="alert" className="preference-note">{t("settings.loadFailed")}</p>}><Suspense fallback={<p role="status" className="preference-note">{t("settings.loading")}</p>}>
               <ConfigEditor query={query} onQueryChange={setQuery} onResetSection={resetSection}
@@ -72,7 +92,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
                 page={page} onNavigate={navigate}
                 onWeatherChange={id => settings.setWeather(id)} onRainChange={on => settings.setRain(on)} />
             </>}
-          </motion.div>
+          </SettingsPage>
         </AnimatePresence>
       </div>
       <footer className="settings-drawer__footer">
@@ -80,9 +100,8 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
           <p>{t("settings.resetConfirm")}</p><div><button className="panel-button" onClick={() => setReset(false)}>{t("action.cancel")}</button>
           <button className="panel-button panel-button--danger" onClick={() => {settings.resetAll(); onPreviewChange(null); setReset(false);}}>{t("action.resetAll")}</button></div>
         </div> : <>
-          <button className="icon-button" onClick={() => settings.undo()} disabled={!meta.canUndo} aria-label={t("action.undo")} title={t("action.undo")}><Undo2 aria-hidden="true" /></button>
-          <button className="panel-button panel-button--quiet" onClick={() => setReset(true)}><RotateCcw aria-hidden="true" />{t("action.resetAll")}</button>
-          <button className="panel-button panel-button--primary" onClick={() => onOpenChange(false)}>{t("action.done")}</button>
+          <button className="panel-button" onClick={() => settings.undo()} disabled={!meta.canUndo}><Undo2 aria-hidden="true" />{t("action.undo")}</button>
+          <button className="panel-button panel-button--reset" onClick={() => setReset(true)}><RotateCcw aria-hidden="true" />{t("action.resetAll")}</button>
         </>}
       </footer>
     </DrawerContent>
