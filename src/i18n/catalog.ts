@@ -4,6 +4,8 @@ export const messages = {
   "product.medaka": ["Medaka shoals", "青鳉鱼群"],
   "product.medakaHint": ["Small ricefish swim together, their tails always moving.", "小小的青鳉持续摆尾，结伴游动。"],
   "product.density": ["Koi in the pond", "池中的锦鲤"],
+  "product.goldfish": ["Wakin goldfish", "池中的和金"],
+  "product.goldfishCount": ["{count} goldfish", "{count} 条"],
   "product.koi": ["{count} koi", "{count} 条"],
   "product.few": ["A little space", "疏朗"],
   "product.many": ["A little company", "热闹"],
@@ -108,6 +110,8 @@ export const messages = {
   "section.koi": ["Koi", "锦鲤"],
   "section.water": ["Water", "水体"],
   "group.koi": ["Composition, size, and family colors.", "锦鲤组成、大小与花色配色。"],
+  "section.goldfish": ["Goldfish", "和金"],
+  "group.goldfish": ["A few smaller fish, with gently fanned double tails.", "少量中型金鱼，轻轻摆动分开的双尾。"],
   "group.water": ["Clarity, flowing water, and ripples.", "清澈度、水流与涟漪。"],
 } as const satisfies Record<string, readonly [string, string]>;
 

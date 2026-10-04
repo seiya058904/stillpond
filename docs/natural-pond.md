@@ -1,4 +1,60 @@
-# V1.2 — Natural Pond Pass
+# Natural Pond & Visual Ecology
+
+## V1.4 — Visual Ecology & Pond Life Pass
+
+The medium fish is Wakin, with a small head, slightly deeper slender body,
+short split caudal fin, and red, red/white and ivory families. Three fish add a
+middle scale without enlarging the existing koi or Medaka populations. Wakin
+have their own body/fin geometry and steering clock, rather than scaled koi.
+Tail amplitude and cadence respond to propulsion; a trailing fin phase softens
+the split tail. Destination and depth changes are staggered. Local cross-species
+avoidance slows and steers approaching fish; a body contact constraint prevents
+Wakin crossing a larger fish during a tight turn. Koi retain their existing states
+and call response. Wakin do not join a tap-induced school.
+
+- [Yamatokoriyama's Wakin description](https://www.city.yamatokoriyama.lg.jp/kanko_bunka_sports/kingyo/kingyonokeitotohinshu/6266.html)
+  describes the long body, small head, short fins, and three/four-lobed or simple
+  tails. This pond uses the split-tail form, without claiming every Wakin has it.
+- [Sumida Aquarium's Wakin](https://www.sumida-aquarium.com/about/animals/wakin/)
+  provides an additional morphology reference.
+- [The effects of caudal fin loss and regeneration on the swimming performance
+  of goldfish](https://doi.org/10.1242/jeb.084244) informs the relationship between
+  tail movement and propulsion. These logical-pixel speeds and frequencies are
+  artistic coefficients, not measured Wakin kinematics.
+
+Butterfly palettes now select wing families as well as colors: a larger
+swallowtail inspired by Papilio xuthus, a smaller white inspired by Pieris rapae,
+and copper/yellow garden forms. Curved forewing and hindwing contours are separate;
+the swallowtail has tails, dark margins and bands, small blue hindwing spots,
+while the white family has an apical patch and sparse forewing marks. A tapered
+abdomen, thorax, head and bent antennae replace the old icon-like body. Template
+geometry is compiled only on configuration changes. Flapping changes projected
+wing area; resting half-folds the wings. Shadow displacement, size and strength
+suggest height without introducing a new 3D flight system. Visits, approach,
+orbit and rest behavior are retained.
+
+- [Museums Victoria's Papilio xuthus specimen](https://collections.museumsvictoria.com.au/specimens/2635094)
+  and [Papilio dorsal-wing morphology](https://pure.rug.nl/ws/portalfiles/portal/14413443/01_c1.pdf)
+  inform separate wing proportions, dark/yellow markings and hindwing accents.
+- [Wing pigmentation patterns in Pieris butterflies](https://pmc.ncbi.nlm.nih.gov/articles/PMC1679869/)
+  informs the pale wings, dark tip and small forewing spots. The pond's simplified
+  families are illustrative, not a species-identification model.
+
+Lotus keeps its existing leaf structure and three petal rings. Subtle age-related
+rim changes, varied primary/secondary vein angles, curved petal shoulders and
+small stamens improve the same artwork. Pond-bed noise is static and limited to
+a 1.8% tonal variation. No rocks, decorations or new scenery are introduced.
+Water and all seven weather presets retain their shaders and shared state;
+Wakin reuse the existing underwater, shadow and disturbance passes.
+
+The [Koi Farm presentation](https://store.steampowered.com/app/1518810/Koi_Farm/)
+and [Riu-F's pond rendering notes](https://github.com/Riu-F/koi-pond) were design
+references for readable silhouettes, depth and layering. No external repository
+code or media is copied. Existing project licensing and attribution remain.
+The ordinary settings add one count slider, while Advanced stays at 42 controls.
+Explicit saved artwork overrides remain authoritative.
+
+## V1.2 — Natural Pond Pass
 
 The aim is a quiet, living pond, using the existing procedural pixel renderer.
 This is an animation informed by biology, not a fluid-dynamics simulation.

@@ -409,15 +409,18 @@ export class LotusLeavesPass {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
 
-    this.leafCenterColor.copy(palette.base).lerp(palette.center, 0.6);
+    const youth = Math.max(0, Math.min(1, (25 - radius) / 15));
+    this.leafCenterColor.copy(palette.base).lerp(palette.center, 0.45).lerp(palette.light, youth * 0.1);
 
     for (let index = 0; index < LOTUS.leafSegments; index += 1) {
       const angleA = start + (index / LOTUS.leafSegments) * span;
       const angleB = start + ((index + 1) / LOTUS.leafSegments) * span;
       this.leafColorAt(this.leafEdgeColorA, palette, angleA, phase);
       this.leafColorAt(this.leafEdgeColorB, palette, angleB, phase);
-      const innerA = this.edgePoint(center, radius * 0.87, angleA, phase);
-      const innerB = this.edgePoint(center, radius * 0.87, angleB, phase);
+      const rimA = 0.87 + Math.sin(angleA * 3 + phase) * (0.018 + youth * 0.025);
+      const rimB = 0.87 + Math.sin(angleB * 3 + phase) * (0.018 + youth * 0.025);
+      const innerA = this.edgePoint(center, radius * rimA, angleA, phase);
+      const innerB = this.edgePoint(center, radius * rimB, angleB, phase);
       const edgeA = this.edgePoint(center, radius, angleA, phase);
       const edgeB = this.edgePoint(center, radius, angleB, phase);
       builder.triangleColors(center, innerA, innerB, this.leafCenterColor, this.leafEdgeColorA, this.leafEdgeColorB);
@@ -454,13 +457,20 @@ export class LotusLeavesPass {
   ): void {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
-    const veinColor = palette.base.clone().lerp(palette.vein, 0.48);
+    const veinColor = palette.base.clone().lerp(palette.vein, 0.34);
+    const minorColor = palette.base.clone().lerp(palette.vein, 0.17);
     for (let index = 0; index < LOTUS.veinCount; index += 1) {
-      const veinAngle = start + (index / LOTUS.veinCount) * span + Math.sin(index * 2.4 + phase) * 0.065;
-      const branch = this.edgePoint(center, radius * 0.52, veinAngle, phase);
-      builder.line(center, branch, veinColor);
-      builder.line(branch, this.edgePoint(center, radius * 0.89, veinAngle + 0.035, phase), veinColor);
-      if (radius > 18) builder.line(branch, this.edgePoint(center, radius * 0.78, veinAngle - 0.16, phase), veinColor);
+      const veinAngle = start + (index / LOTUS.veinCount) * span + Math.sin(index * 2.4 + phase) * 0.11;
+      const branchRadius = 0.43 + Math.sin(index * 1.7 + phase) * 0.09;
+      const branch = this.edgePoint(center, radius * branchRadius, veinAngle, phase);
+      const primary = index % 3 === 0 ? veinColor : minorColor;
+      builder.line(center, branch, primary);
+      builder.line(branch, this.edgePoint(center, radius * (0.82 + Math.sin(index + phase) * 0.07), veinAngle + 0.045, phase), primary);
+      if (radius > 18) {
+        builder.line(branch, this.edgePoint(center, radius * 0.69, veinAngle - 0.18, phase), minorColor);
+        const upperBranch = this.edgePoint(center, radius * 0.64, veinAngle + 0.015, phase);
+        builder.line(upperBranch, this.edgePoint(center, radius * 0.82, veinAngle + 0.13, phase), minorColor);
+      }
     }
   }
 
@@ -480,28 +490,35 @@ export class LotusLeavesPass {
       alternate: THREE.Color,
     ): void => {
       for (let index = 0; index < count; index += 1) {
-        const angle = rotation + angleOffset + (index / count) * TAU;
+        const angle = rotation + angleOffset + (index / count) * TAU + Math.sin(index * 2.7 + rotation) * 0.035;
         const direction = { x: Math.cos(angle), y: Math.sin(angle) };
         const side = { x: -direction.y, y: direction.x };
         const base = {
           x: center.x + direction.x * radius * 0.12,
           y: center.y + direction.y * radius * 0.12,
         };
-        const tip = {
-          x: center.x + direction.x * radius * length,
-          y: center.y + direction.y * radius * length,
-        };
         const halfWidth = radius * width * (0.93 + Math.sin(index * 3.7 + rotation) * 0.12);
         const color = index % 3 === 0 ? alternate : primary;
-        const middle = {x:base.x + direction.x * radius * length * 0.45, y:base.y + direction.y * radius * length * 0.45};
-        const left = {x:middle.x + side.x * halfWidth, y:middle.y + side.y * halfWidth};
-        const right = {x:middle.x - side.x * halfWidth, y:middle.y - side.y * halfWidth};
-        builder.triangleColors(base, left, tip, primary, color, alternate);
-        builder.triangleColors(base, tip, right, primary, alternate, primary);
+        // Five shoulder/tip stations produce a cupped lanceolate petal, rather
+        // than the previous pair of long, flat triangles. Geometry stays static.
+        const petalLength = radius * length * (0.94 + Math.sin(index * 1.9 + rotation) * 0.055);
+        const stations = [0, 0.2, 0.45, 0.7, 0.88, 1];
+        const centers = stations.map(t => ({x:base.x + direction.x * petalLength * t + side.x * Math.sin(t * Math.PI) * radius * 0.035,
+          y:base.y + direction.y * petalLength * t + side.y * Math.sin(t * Math.PI) * radius * 0.035}));
+        const widths = stations.map(t => Math.pow(Math.sin(t * Math.PI), 0.78) * halfWidth);
+        const ridgeColor = color.clone().lerp(palette.petalLight, 0.32);
+        for (let j = 0; j < stations.length - 1; j++) {
+          for (const sign of [-1, 1]) {
+            const edgeA = {x:centers[j].x + side.x * widths[j] * sign,y:centers[j].y + side.y * widths[j] * sign};
+            const edgeB = {x:centers[j+1].x + side.x * widths[j+1] * sign,y:centers[j+1].y + side.y * widths[j+1] * sign};
+            builder.triangleColors(centers[j], edgeA, edgeB, ridgeColor, primary, color);
+            builder.triangleColors(centers[j], edgeB, centers[j+1], ridgeColor, color, alternate);
+          }
+        }
       }
     };
 
-    drawPetalRing(9, 1, 0.25, 0, palette.outerPetal, palette.innerPetal);
+    drawPetalRing(9, 0.93, 0.24, 0, palette.outerPetal, palette.innerPetal);
     drawPetalRing(
       7,
       0.73,
@@ -511,6 +528,10 @@ export class LotusLeavesPass {
       palette.petalLight,
     );
     drawPetalRing(5, 0.48, 0.16, 0.2, palette.innerPetal, palette.petalLight);
+    for (let i = 0; i < 9; i++) {
+      const a = rotation + i * TAU / 9;
+      builder.circle({x:center.x + Math.cos(a) * radius * 0.24,y:center.y + Math.sin(a) * radius * 0.24}, radius * 0.032, palette.center);
+    }
     builder.circle(center, radius * 0.22, palette.centerDark);
     builder.circle({x:center.x,y:center.y - radius * 0.03}, radius * 0.16, palette.center);
     for (let i = 0; i < 5; i++) builder.circle({x:center.x + Math.cos(i * TAU / 5) * radius * 0.1,

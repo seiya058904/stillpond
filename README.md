@@ -3,18 +3,17 @@
 
 A calm digital pond with procedural koi, full-viewport scenery, and English / Simplified Chinese controls.
 
-**V1.3.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
+**V1.4.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
 A quiet, observational pond. Click or tap the water to call the koi; enjoy the
 existing procedural swimming, water, plants, weather, and optional river sound.
-V1.3 — Settings, Configuration & Workspace Cleanup completes koi composition
-and curates the advanced controls while preserving the Natural Pond Pass:
-forward coasting and body-led
-turns, continuously swimming Medaka shoals, peltate lotus leaves, and weather
-that affects surface reflections and plant movement. Everyday settings open
-immediately into a grouped list; the detailed editor remains separate. It adds
-no progression, economy, tasks, or new scenes.
+V1.4 — Visual Ecology & Pond Life Pass adds three independently swimming Wakin
+goldfish, distinct butterfly wing families and folded resting poses, and a
+lighter refinement of lotus veins and layered petals. Koi coasting, body-led
+turns, call response, Medaka shoals, and the existing water/weather system remain.
+Everyday settings open immediately into a grouped list; the detailed editor
+remains separate. It adds no progression, economy, tasks, or new scenes.
 
 ## Run and verify
 
@@ -33,7 +32,8 @@ runs at `/`; a production preview uses the path configured in `siteUrl`.
 
 ## Controls and languages
 
-- Click / tap: call the fish. `Space`: scatter. `[` / `]`: change koi count.
+- Click / tap: call the koi and startle nearby Medaka. `Space`: scatter the koi.
+  `[` / `]`: change koi count. Wakin keep their independent swimming destinations.
 - `F`: ambient / browser fullscreen (when supported). `H`: hide or restore UI.
   On a touch device, tap the pond to restore hidden controls.
 - `D`: procedural spine debug view. `R`: reset the simulation.
@@ -42,8 +42,10 @@ runs at `/`; a production preview uses the path configured in `siteUrl`.
 - Everyday settings group **Pond**, **Atmosphere**, **Sound**, **Language**, and
   **Display**. Weather cards preview the existing seven atmospheres. Display
   offers Smooth (60 fps), Balanced (30), Save energy (20), and Native.
-- **Advanced settings** has five groups: Koi, Medaka, Plants & butterflies,
-  Water, and Pond colors. Its 40 product settings include six family counts,
+- Pond includes one **Wakin goldfish** count slider (0–8; zero hides them).
+  Advanced adds only goldfish count and size; no composition or personality panel.
+- **Advanced settings** has six groups: Koi, Goldfish, Medaka, Plants & butterflies,
+  Water, and Pond colors. Its 42 product settings include six koi family counts,
   fish size, useful colors, greenery, clarity, currents, and ripple strength.
   Search covers these controls in both languages. Internal physics, shader,
   spawn, and pattern geometry values remain in source, outside the editor.
@@ -87,16 +89,25 @@ a localized recovery control remains available. Ordinary settings ship with the 
 network request. Only the advanced editor loads on demand. The larger initial
 bundle is an intentional tradeoff for immediate settings; no dependencies were added.
 
-Fish retain individual reactivity, delayed call response, avoidance, depth, and
+Koi retain individual reactivity, delayed call response, avoidance, depth, and
 group behavior. Coasting preserves forward momentum with quadratic drag and
 relaxing body undulation. Brief rest is rare and retains drift and fin movements;
 routine turns bend and recoil without braking to a halt. Medaka replace the
 previous generic tiny fish using the same population and rendering batches, with
 continuous tail beats and coordinated acceleration, steady swimming, and deceleration.
-Lotus leaves have an entire margin, central petiole, branching radial veins, varied
-tilt and rim shading. Rain, mist, and low sunlight change surface movement,
+Wakin use their own deeper body profile, small head, four-lobed short tail, fin
+geometry, steering and propulsion clock. Cross-species avoidance includes their
+whole body, with contact clearance when another fish turns into them. Butterflies
+have separate curved forewings and hindwings, family-specific patterns, veins,
+curved antennae and height-dependent shadows; their flower visits remain intact.
+Lotus leaves have an entire margin, central petiole, quieter primary and secondary
+veins, varied tilt and rim shading. Petals retain three staggered rings with curved
+shoulders and layered lighting. Rain, mist, and low sunlight change surface movement,
 reflections, and shadows through the same smoothly blended weather state.
-The logical rendering scale and default population remain unchanged.
+The logical rendering scale and original Koi/Medaka populations remain unchanged.
+The three default Wakin add a sparse middle scale. A small static tonal variation
+softens the pond bed. Existing water and weather passes are reused without new
+textures, models, dependencies, or render targets.
 
 Motion and botanical references, including the distinction between measured
 behavior and our artistic coefficients, are in [Natural Pond Pass](docs/natural-pond.md).
@@ -129,6 +140,8 @@ change display branding; it identifies saved preferences.
 - `src/settings/advanced.ts`: the explicit product control list and search scope.
 - `src/settings/composition.ts`: ordered family assignments and resizing rules.
 - `src/fish-renderer.ts`, `src/koi.ts`, `src/school.ts`: existing renderer and simulation.
+- `src/goldfish.ts`, `src/goldfish-renderer.ts`: independent Wakin motion and morphology.
+- `src/butterfly-shape.ts`, `src/butterflies.ts`: cached wing families and visual poses.
 - [How the pond works](docs/how-it-works.md): inherited procedural-animation guide.
 
 ## Deployment

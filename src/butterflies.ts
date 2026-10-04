@@ -14,15 +14,10 @@ import {
   SurfaceGeometryBatch,
   type SurfacePoint,
 } from "./surface-geometry";
+import { buildButterflyModel, type ButterflyModel, type ButterflyPalette } from "./butterfly-shape";
+import type { SurfaceWeather } from "./weather-pass";
 
 type ButterflyState = "wander" | "approach" | "orbit" | "rest";
-
-interface ButterflyPalette {
-  wing: THREE.Color;
-  wingLight: THREE.Color;
-  accent: THREE.Color;
-  body: THREE.Color;
-}
 
 interface Butterfly {
   position: SurfacePoint;
@@ -47,6 +42,9 @@ interface Butterfly {
   phase: number;
   palette: number;
   randomState: number;
+  flapPhase: number;
+  wingSpread: number;
+  lift: number;
 }
 
 const PALETTES: readonly ButterflyPalette[] = BUTTERFLIES.palettes.map(
@@ -80,21 +78,24 @@ export class ButterflyPass {
   private readonly lineGeometry = new THREE.BufferGeometry();
   private readonly shadowBatch = new SurfaceGeometryBatch(
     this.shadowGeometry,
-    4_096,
+    16_384,
+    true,
   );
   private readonly shapeBatch = new SurfaceGeometryBatch(
     this.shapeGeometry,
-    8_192,
+    65_536,
     true,
   );
   private readonly lineBatch = new SurfaceGeometryBatch(
     this.lineGeometry,
-    1_024,
+    8_192,
     true,
   );
-  private readonly shadowMaterial = new THREE.MeshBasicMaterial({
-    color: BUTTERFLIES.shadow.color,
-    opacity: BUTTERFLIES.shadow.opacity,
+  private readonly shadowMaterial = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: SHADOW_COLOR }, uOpacity: { value: BUTTERFLIES.shadow.opacity } },
+    vertexColors: true,
+    vertexShader: "varying float vStrength;void main(){vStrength=color.r;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}",
+    fragmentShader: "uniform vec3 uColor;uniform float uOpacity;varying float vStrength;void main(){gl_FragColor=vec4(uColor,uOpacity*vStrength);}",
     transparent: true,
     side: THREE.DoubleSide,
     depthTest: false,
@@ -103,6 +104,8 @@ export class ButterflyPass {
   });
   private butterflies: Butterfly[] = [];
   private lastTime = -1;
+  private models: ButterflyModel[] = [];
+  private readonly shadowStrength = new THREE.Color();
 
   public constructor() {
     this.butterflies = this.createButterflies();
@@ -140,8 +143,7 @@ export class ButterflyPass {
   }
 
   public refreshConfig(preserveMovement = false): void {
-    this.shadowMaterial.color.setHex(BUTTERFLIES.shadow.color);
-    this.shadowMaterial.opacity = BUTTERFLIES.shadow.opacity;
+    this.shadowMaterial.uniforms.uOpacity.value = BUTTERFLIES.shadow.opacity;
     SHADOW_COLOR.setHex(BUTTERFLIES.shadow.color);
     for (const [index, palette] of BUTTERFLIES.palettes.entries()) {
       const target = PALETTES[index];
@@ -151,6 +153,7 @@ export class ButterflyPass {
       target.accent.setHex(palette.accent);
       target.body.setHex(palette.body);
     }
+    this.models = PALETTES.map((palette, index) => buildButterflyModel(index, palette));
     const previous = this.butterflies;
     this.butterflies = this.createButterflies();
     if (preserveMovement) {
@@ -202,6 +205,9 @@ export class ButterflyPass {
         phase: spawn.phase,
         palette: spawn.palette,
         randomState,
+        flapPhase: spawn.phase,
+        wingSpread: 1,
+        lift: 0.9,
       };
       this.beginWander(butterfly);
       butterfly.stateAge = this.random(butterfly) * butterfly.stateDuration;
@@ -209,7 +215,7 @@ export class ButterflyPass {
     });
   }
 
-  public update(time: number): void {
+  public update(time: number, weather?: Readonly<SurfaceWeather>): void {
     const deltaTime =
       this.lastTime < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastTime));
     this.lastTime = time;
@@ -225,7 +231,15 @@ export class ButterflyPass {
     for (let index = 0; index < visibleCount; index += 1) {
       const butterfly = this.butterflies[index];
       this.moveButterfly(butterfly, time, deltaTime);
-      this.drawButterfly(butterfly, time);
+      // Pose clocks continue through approach and rest; changing a flight
+      // interval must not snap wing phase. Height is a visual cue only.
+      butterfly.flapPhase += butterfly.flapSpeed * deltaTime;
+      const resting = butterfly.state === "rest";
+      const spread = resting ? 0.25 + Math.sin(time * 1.3 + butterfly.phase) * 0.025 : 0.16 + Math.abs(Math.cos(butterfly.flapPhase)) * 0.84;
+      butterfly.wingSpread += (spread - butterfly.wingSpread) * (1 - Math.exp(-(resting ? 7 : 24) * deltaTime));
+      const lift = resting ? 0.07 : butterfly.state === "approach" ? 0.38 : butterfly.state === "orbit" ? 0.52 : 0.92;
+      butterfly.lift += (lift - butterfly.lift) * (1 - Math.exp(-3 * deltaTime));
+      this.drawButterfly(butterfly, weather);
     }
 
     this.shadowBatch.commit();
@@ -491,155 +505,49 @@ export class ButterflyPass {
     };
   }
 
-  private drawButterfly(butterfly: Butterfly, time: number): void {
-    const palette = PALETTES[butterfly.palette % PALETTES.length];
-    const forward = normalize(butterfly.velocity, {
-      x: Math.cos(butterfly.phase),
-      y: Math.sin(butterfly.phase),
-    });
-    const side = { x: -forward.y, y: forward.x };
-    const resting = butterfly.state === "rest";
-    const flap = resting
-      ? 0.2
-      : 0.3 +
-        Math.abs(Math.sin(time * butterfly.flapSpeed + butterfly.phase)) * 0.7;
-    const wingWidth = BUTTERFLIES.wingWidth * (0.28 + flap * 0.72);
-
-    this.drawWings(
-      this.shadowBatch,
-      {
-        x: butterfly.position.x + BUTTERFLIES.shadow.offset.x,
-        y: butterfly.position.y + BUTTERFLIES.shadow.offset.y,
-      },
-      forward,
-      side,
-      BUTTERFLIES.wingLength * BUTTERFLIES.shadow.scale,
-      wingWidth * BUTTERFLIES.shadow.scale,
-      SHADOW_COLOR,
-      SHADOW_COLOR,
-    );
-    this.drawWings(
-      this.shapeBatch,
-      butterfly.position,
-      forward,
-      side,
-      BUTTERFLIES.wingLength,
-      wingWidth,
-      palette.wing,
-      palette.wingLight,
-    );
-
-    const bodyFront = {
-      x: butterfly.position.x + forward.x * BUTTERFLIES.bodyLength * 0.58,
-      y: butterfly.position.y + forward.y * BUTTERFLIES.bodyLength * 0.58,
-    };
-    const bodyBack = {
-      x: butterfly.position.x - forward.x * BUTTERFLIES.bodyLength * 0.58,
-      y: butterfly.position.y - forward.y * BUTTERFLIES.bodyLength * 0.58,
-    };
-    const bodySide = {
-      x: side.x * BUTTERFLIES.bodyWidth,
-      y: side.y * BUTTERFLIES.bodyWidth,
-    };
-    this.shapeBatch.triangle(
-      { x: bodyFront.x + bodySide.x, y: bodyFront.y + bodySide.y },
-      { x: bodyFront.x - bodySide.x, y: bodyFront.y - bodySide.y },
-      { x: bodyBack.x - bodySide.x, y: bodyBack.y - bodySide.y },
-      palette.body,
-    );
-    this.shapeBatch.triangle(
-      { x: bodyFront.x + bodySide.x, y: bodyFront.y + bodySide.y },
-      { x: bodyBack.x - bodySide.x, y: bodyBack.y - bodySide.y },
-      { x: bodyBack.x + bodySide.x, y: bodyBack.y + bodySide.y },
-      palette.body,
-    );
-    this.shapeBatch.circle(bodyFront, BUTTERFLIES.headRadius, palette.body, 6);
-
-    const spotDistance = wingWidth * 0.68;
-    for (const direction of [-1, 1]) {
-      this.shapeBatch.circle(
-        {
-          x:
-            butterfly.position.x +
-            side.x * spotDistance * direction -
-            forward.x * BUTTERFLIES.wingLength * 0.08,
-          y:
-            butterfly.position.y +
-            side.y * spotDistance * direction -
-            forward.y * BUTTERFLIES.wingLength * 0.08,
-        },
-        BUTTERFLIES.wingSpotRadius,
-        palette.accent,
-        5,
-      );
+  private drawButterfly(butterfly: Butterfly, weather?: Readonly<SurfaceWeather>): void {
+    const model = this.models[butterfly.palette % this.models.length];
+    const heading = Math.atan2(butterfly.velocity.y, butterfly.velocity.x);
+    const fx = Math.cos(heading), fy = Math.sin(heading);
+    const lift = butterfly.lift;
+    const shadowScale = BUTTERFLIES.shadow.scale * (0.92 + lift * 0.18);
+    const shadowX = BUTTERFLIES.shadow.offset.x * (0.2 + lift * 1.4)
+      * (-(weather?.lightDirection.x ?? -0.58) / 0.58) * (weather?.shadowScale ?? 1);
+    const shadowY = BUTTERFLIES.shadow.offset.y * (0.2 + lift * 1.4)
+      * ((weather?.lightDirection.y ?? 0.82) / 0.82) * (weather?.shadowScale ?? 1);
+    this.shadowStrength.setRGB(0.94 - lift * 0.53, 0, 0);
+    // The hindwing remains rounder and slightly less folded than the triangular
+    // forewing. Both attach at the thorax, rather than making a single diamond.
+    for (let wingIndex = 0; wingIndex < 2; wingIndex++) {
+      const wing = wingIndex === 0 ? model.hindwing : model.forewing;
+      const spread = butterfly.wingSpread * (wingIndex === 0 ? 0.96 : 1);
+      for (let sign = -1; sign <= 1; sign += 2) {
+        for (const p of wing.silhouette) {
+          const x = p.x * spread * sign * shadowScale, y = p.y * shadowScale;
+          this.shadowBatch.pointXY(butterfly.position.x + fx * y - fy * x + shadowX,
+            butterfly.position.y + fy * y + fx * x + shadowY, this.shadowStrength);
+        }
+        for (const p of wing.shape) {
+          const x = p.x * spread * sign;
+          this.shapeBatch.pointXY(butterfly.position.x + fx * p.y - fy * x,
+            butterfly.position.y + fy * p.y + fx * x, p.color);
+        }
+        for (const p of wing.veins) {
+          const x = p.x * spread * sign;
+          this.lineBatch.pointXY(butterfly.position.x + fx * p.y - fy * x,
+            butterfly.position.y + fy * p.y + fx * x, p.color);
+        }
+      }
     }
-
-    const antennaRoot = {
-      x: bodyFront.x + forward.x * BUTTERFLIES.headRadius * 0.4,
-      y: bodyFront.y + forward.y * BUTTERFLIES.headRadius * 0.4,
-    };
-    for (const direction of [-1, 1]) {
-      this.lineBatch.line(
-        antennaRoot,
-        {
-          x:
-            antennaRoot.x +
-            forward.x * 2.0 +
-            side.x * direction * 0.95,
-          y:
-            antennaRoot.y +
-            forward.y * 2.0 +
-            side.y * direction * 0.95,
-        },
-        palette.body,
-      );
+    for (const p of model.body) {
+      this.shapeBatch.pointXY(butterfly.position.x + fx * p.y - fy * p.x,
+        butterfly.position.y + fy * p.y + fx * p.x, p.color);
+    }
+    for (const p of model.antennae) {
+      this.lineBatch.pointXY(butterfly.position.x + fx * p.y - fy * p.x,
+        butterfly.position.y + fy * p.y + fx * p.x, p.color);
     }
   }
-
-  private drawWings(
-    batch: SurfaceGeometryBatch,
-    center: SurfacePoint,
-    forward: SurfacePoint,
-    side: SurfacePoint,
-    length: number,
-    width: number,
-    primary: THREE.Color,
-    light: THREE.Color,
-  ): void {
-    for (const direction of [-1, 1]) {
-      const shoulder = {
-        x: center.x + forward.x * length * 0.2,
-        y: center.y + forward.y * length * 0.2,
-      };
-      const outerFront = {
-        x:
-          center.x +
-          side.x * width * direction +
-          forward.x * length * 0.42,
-        y:
-          center.y +
-          side.y * width * direction +
-          forward.y * length * 0.42,
-      };
-      const outerBack = {
-        x:
-          center.x +
-          side.x * width * 0.82 * direction -
-          forward.x * length * 0.48,
-        y:
-          center.y +
-          side.y * width * 0.82 * direction -
-          forward.y * length * 0.48,
-      };
-      const tail = {
-        x: center.x - forward.x * length * 0.68,
-        y: center.y - forward.y * length * 0.68,
-      };
-      batch.triangle(shoulder, outerFront, outerBack, light);
-      batch.triangle(shoulder, outerBack, tail, primary);
-    }
-  }
-
   private distance(a: SurfacePoint, b: SurfacePoint): number {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }

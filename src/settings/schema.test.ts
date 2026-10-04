@@ -41,7 +41,7 @@ describe("schema defaults", () => {
     const value = defaults(definition) as Record<string, unknown>;
     expect(Object.keys(value).sort()).toEqual(
       [
-        "koi", "koi-palettes", "koi-patterns", "tiny-fish", "tiny-fish-schools",
+        "koi", "koi-palettes", "koi-patterns", "goldfish", "tiny-fish", "tiny-fish-schools",
         "pond-bed", "water", "ripples", "lotus", "lotus-leaves", "lotus-flowers",
         "duckweed", "duckweed-patches", "butterflies", "butterfly-spawns",
       ].sort(),

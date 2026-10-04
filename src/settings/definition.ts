@@ -340,6 +340,13 @@ const tinyFishSchools = collection(tinyFishSchoolItem, [
   },
 });
 
+// One medium species; zero count is the off switch. Motion and coloration
+// are species artwork, rather than another composition/editor system.
+const goldfish = group({
+  count: num({ default: 3, min: 0, max: 8, step: 1, int: true }),
+  size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
+}, { effect: "goldfish:refresh" });
+
 // ---- pond bed --------------------------------------------------------
 
 const pondBed = group(
@@ -788,10 +795,10 @@ const butterflies = group(
       scale: num({ default: 0.82, min: 0, max: 3, step: 0.01 }),
     }),
     palettes: list(butterflyPalette, [
-      { wing: 0xf3a64c, wingLight: 0xffd36b, accent: 0x75448b, body: 0x3e2d35 },
-      { wing: 0x71bce8, wingLight: 0xb8e4f5, accent: 0x315b9d, body: 0x293747 },
-      { wing: 0xe9789d, wingLight: 0xffb4c5, accent: 0x8f416b, body: 0x49303c },
-      { wing: 0xc4df58, wingLight: 0xeaf68a, accent: 0x508c61, body: 0x334239 },
+      { wing: 0xe7ce7e, wingLight: 0xf5e4a2, accent: 0x7299ac, body: 0x303530 },
+      { wing: 0xe4e9d3, wingLight: 0xf6f2df, accent: 0x8a987c, body: 0x3a4438 },
+      { wing: 0xcc8141, wingLight: 0xe9ad66, accent: 0x765239, body: 0x3d342c },
+      { wing: 0xdfd986, wingLight: 0xf4ecac, accent: 0x97965b, body: 0x3a4235 },
     ]),
   },
   { effect: "butterflies:keep" },
@@ -835,6 +842,7 @@ const butterflySpawns = collection(butterflySpawnItem, [
 
 export const definition = group({
   koi,
+  goldfish,
   "koi-palettes": koiPalettes,
   "koi-patterns": koiPatterns,
   "tiny-fish": tinyFish,

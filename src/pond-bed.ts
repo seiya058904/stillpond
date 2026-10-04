@@ -28,9 +28,21 @@ const fragmentShader = /* glsl */ `
     return fract(point.x * point.y);
   }
 
+  float bedTone(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 blend = fract(point);
+    blend = blend * blend * (3.0 - 2.0 * blend);
+    return mix(mix(hash21(cell), hash21(cell + vec2(1.0, 0.0)), blend.x),
+      mix(hash21(cell + vec2(0.0, 1.0)), hash21(cell + vec2(1.0)), blend.x), blend.y);
+  }
+
   void main() {
     float verticalTone = smoothstep(0.0, 1.0, vUv.y) * uVerticalTone;
     vec3 color = mix(uDeepColor, uShallowColor, verticalTone);
+    // Broad, still tonal pockets suggest uneven silt beneath the currents.
+    // Their small amplitude leaves fish, water and open space in command.
+    float silt = bedTone(vUv * vec2(3.7, 2.9) + vec2(2.1, 4.7));
+    color *= 0.982 + silt * 0.036;
 
     vec2 grainCell = floor(
       vUv * uResolution * uGrainScale

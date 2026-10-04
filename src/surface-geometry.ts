@@ -42,9 +42,13 @@ export class SurfaceGeometryBatch {
   }
 
   public point(point: SurfacePoint, color: THREE.Color = DEFAULT_COLOR): void {
+    this.pointXY(point.x, point.y, color);
+  }
+
+  public pointXY(x: number, y: number, color: THREE.Color = DEFAULT_COLOR): void {
     if (this.cursor + 3 > this.positions.length) return;
-    this.positions[this.cursor] = point.x;
-    this.positions[this.cursor + 1] = point.y;
+    this.positions[this.cursor] = x;
+    this.positions[this.cursor + 1] = y;
     this.positions[this.cursor + 2] = 0;
     if (this.colors) {
       this.colors[this.cursor] = color.r;

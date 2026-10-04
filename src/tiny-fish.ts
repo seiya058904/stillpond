@@ -20,6 +20,7 @@ import {
   type Vec2,
   XorShift32,
 } from "./math";
+import type { GoldfishPopulation } from "./goldfish";
 
 export interface TinyFishAgent {
   position: Vec2;
@@ -169,17 +170,17 @@ export class TinyFishSchools {
     }
   }
 
-  public update(dt: number, time: number): void {
+  public update(dt: number, time: number, goldfish?: GoldfishPopulation): void {
     const visibleSchools = Math.min(
       TINY_FISH.visibleSchoolCount,
       this.ranges.length,
     );
     for (let schoolIndex = 0; schoolIndex < visibleSchools; schoolIndex += 1) {
-      this.updateSchool(this.ranges[schoolIndex], dt, time);
+      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish);
     }
   }
 
-  private updateSchool(range: TinySchoolRange, dt: number, time: number): void {
+  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: GoldfishPopulation): void {
     let center = vec();
     let averageVelocity = vec();
     for (let index = range.start; index < range.start + range.count; index += 1) {
@@ -316,6 +317,9 @@ export class TinyFishSchools {
           * Math.min(1, fish.fleeTime / 0.55);
       }
       steering = add(steering, mul(edgeForce, TINY_FISH.edgeStrength));
+      if (goldfish) steering = add(steering, goldfish.avoidance(
+        fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
+      ));
 
       const desired = normalize(steering, forward);
       const currentHeading = Math.atan2(fish.velocity.y, fish.velocity.x);

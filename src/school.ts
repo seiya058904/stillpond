@@ -7,6 +7,7 @@ import {
 } from "./config";
 import { Koi, SwimState } from "./koi";
 import { TinyFishSchools } from "./tiny-fish";
+import { GoldfishPopulation } from "./goldfish";
 import {
   add,
   clamp,
@@ -28,6 +29,7 @@ export class School {
   public readonly fish: Koi[] = Array.from({ length: MAX_FISH }, () => new Koi());
   public readonly ripples = new RippleSystem();
   public readonly tinyFish = new TinyFishSchools();
+  public readonly goldfish = new GoldfishPopulation();
 
   public count: number = FISH.initialCount;
   public targetActive = false;
@@ -38,6 +40,7 @@ export class School {
 
   public constructor() {
     this.fish.forEach((fish, index) => fish.reset(index, this.random));
+    this.goldfish.reset(this.fish, this.count);
   }
 
   public setCount(count: number): void {
@@ -88,6 +91,7 @@ export class School {
     this.target.x *= scaleX;
     this.target.y *= scaleY;
     this.tinyFish.resize(scaleX, scaleY);
+    this.goldfish.resize(scaleX, scaleY);
     for (const ripple of this.ripples.instances) {
       ripple.center.x *= scaleX;
       ripple.center.y *= scaleY;
@@ -98,6 +102,7 @@ export class School {
     this.random.state = 0x00c0ffee;
     this.fish.forEach((fish, index) => fish.reset(index, this.random));
     this.tinyFish.reset();
+    this.goldfish.reset(this.fish, this.count);
     this.ripples.reset();
     this.targetActive = false;
   }
@@ -182,7 +187,8 @@ export class School {
       const fish = this.fish[index];
       this.integrate(fish, desired[index], desiredSpeed[index], dt);
     }
-    this.tinyFish.update(dt, time);
+    this.goldfish.update(dt, time, this.fish, this.count, this.tinyFish.fish);
+    this.tinyFish.update(dt, time, this.goldfish);
 
     this.ripples.update(dt);
   }
@@ -385,6 +391,14 @@ export class School {
     }
 
     const margin = 32;
+    const goldfishAvoidance = this.goldfish.avoidance(
+      fish.position.x + fish.velocity.x * 0.35, fish.position.y + fish.velocity.y * 0.35, fish.bodyWidth,
+    );
+    // Wakin yield at the shore. Fade the koi's small reciprocal response well
+    // before its existing boundary turn, so a crowded edge keeps its old arc.
+    const shoreDistance = Math.min(fish.position.x, CANVAS_WIDTH - fish.position.x, fish.position.y, CANVAS_HEIGHT - fish.position.y);
+    const reciprocalWeight = clamp((shoreDistance - margin * 2) / margin, 0, 1) * 0.45 / Math.max(1, length(goldfishAvoidance));
+    steering = add(steering, mul(goldfishAvoidance, reciprocalWeight));
     const edgeForce = vec();
     if (fish.position.x < margin) edgeForce.x += (margin - fish.position.x) / margin;
     if (fish.position.x > CANVAS_WIDTH - margin) {

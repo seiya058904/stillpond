@@ -18,6 +18,10 @@ export const ADVANCED_GROUPS = [
     {id: "adult-size", label: "regularLength", path: ["koi", "regularLength"], min: 18, max: 55},
     {id: "young-size", label: "tinyLength", path: ["koi", "tinyLength"], min: 10, max: 32},
   ]},
+  {id: "goldfish", sections: ["goldfish"], controls: [
+    {id: "goldfish-count", label: "goldfishCount", path: ["goldfish", "count"]},
+    {id: "goldfish-size", label: "goldfishSize", path: ["goldfish", "size"], percent: true},
+  ]},
   {id: "medaka", sections: ["tiny-fish", "tiny-fish-schools"], controls: [
     {id: "medaka-shoals", label: "visibleSchoolCount", path: ["tiny-fish", "visibleSchoolCount"], max: 12},
     {id: "medaka-size", label: "bodyLength", path: ["tiny-fish", "bodyLength"], min: 3, max: 12},

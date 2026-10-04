@@ -109,7 +109,7 @@ describe("living pond continuity", () => {
         const f=school.fish[j];
         if(!Number.isFinite(f.position.x+f.position.y+f.speed+f.depth)) throw new Error("Nonfinite simulation");
         if(Math.abs(wrapAngle(f.heading-headings[j]))>2.901/60) throw new Error("Discontinuous heading");
-        if(f.position.x < -f.bodyLength || f.position.x>width+f.bodyLength || f.position.y < -f.bodyLength || f.position.y>height+f.bodyLength) throw new Error("Fish escaped pond");
+        if(f.position.x < -f.bodyLength || f.position.x>width+f.bodyLength || f.position.y < -f.bodyLength || f.position.y>height+f.bodyLength) throw new Error(`Fish ${j} escaped pond at ${i/60}s: ${f.position.x},${f.position.y}; length ${f.bodyLength}, heading ${f.heading}, state ${f.state}`);
       }
     }
   }, 20_000); // Keep every 48-fish frame; allow slower shared CI CPUs.

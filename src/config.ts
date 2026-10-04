@@ -46,6 +46,8 @@ export const FISH: typeof live.koi & { maximumCount: number } = Object.assign(li
   maximumCount: 48,
 });
 export const TINY_FISH = live["tiny-fish"];
+export const GOLDFISH = live.goldfish;
+export const MAX_GOLDFISH = 8;
 export const TINY_FISH_SCHOOLS = live["tiny-fish-schools"];
 export const KOI_PALETTES = live["koi-palettes"];
 export const KOI_PATTERN_PATCHES = live["koi-patterns"];

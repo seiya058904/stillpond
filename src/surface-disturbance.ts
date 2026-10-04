@@ -4,9 +4,12 @@ import {
   CANVAS_WIDTH,
   FISH,
   MAX_FISH,
+  MAX_GOLDFISH,
 } from "./config";
 import { clamp } from "./math";
 import type { School } from "./school";
+
+const DISTURBANCE_CAPACITY = MAX_FISH + MAX_GOLDFISH;
 
 const vertexHeader = /* glsl */ `
   precision highp float;
@@ -153,11 +156,11 @@ export class SurfaceDisturbancePass {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.Camera();
   private readonly depthGeometry = quadGeometry();
-  private readonly depthCenters = new Float32Array(MAX_FISH * 2);
-  private readonly depthDirections = new Float32Array(MAX_FISH * 2);
-  private readonly depthSizes = new Float32Array(MAX_FISH * 2);
-  private readonly depthValues = new Float32Array(MAX_FISH * 2);
-  private readonly motionValues = new Float32Array(MAX_FISH * 2);
+  private readonly depthCenters = new Float32Array(DISTURBANCE_CAPACITY * 2);
+  private readonly depthDirections = new Float32Array(DISTURBANCE_CAPACITY * 2);
+  private readonly depthSizes = new Float32Array(DISTURBANCE_CAPACITY * 2);
+  private readonly depthValues = new Float32Array(DISTURBANCE_CAPACITY * 2);
+  private readonly motionValues = new Float32Array(DISTURBANCE_CAPACITY * 2);
   private readonly depthAttributes: THREE.InstancedBufferAttribute[];
   private readonly depthMaterial: THREE.ShaderMaterial;
   private readonly clearColor = new THREE.Color();
@@ -165,7 +168,7 @@ export class SurfaceDisturbancePass {
   public constructor() {
     this.texture = this.target.texture;
     this.texture.generateMipmaps = false;
-    this.texture.name = "koi surface disturbances";
+    this.texture.name = "fish surface disturbances";
 
     this.depthAttributes = [
       instanceAttribute(this.depthGeometry, "aCenter", this.depthCenters, 2),
@@ -246,6 +249,21 @@ export class SurfaceDisturbancePass {
       this.motionValues[offset] = clamp(fish.speed / Math.max(fish.maximumSpeed, 1), 0, 1.5) * (0.18 + fish.tailEffort * 0.82);
       this.motionValues[offset + 1] = fish.swimPhase;
       count += 1;
+    }
+    if (previewFishIndex === null) for (let index = 0; index < school.goldfish.count; index++) {
+      const fish = school.goldfish.fish[index];
+      const offset = count * 2;
+      this.depthCenters[offset] = fish.position.x;
+      this.depthCenters[offset + 1] = fish.position.y;
+      this.depthDirections[offset] = Math.cos(fish.heading);
+      this.depthDirections[offset + 1] = Math.sin(fish.heading);
+      this.depthSizes[offset] = fish.bodyLength * 1.15;
+      this.depthSizes[offset + 1] = fish.bodyWidth * 2.4;
+      this.depthValues[offset] = fish.depth;
+      this.depthValues[offset + 1] = fish.phase;
+      this.motionValues[offset] = fish.effort * 0.32;
+      this.motionValues[offset + 1] = fish.tailPhase;
+      count++;
     }
     this.depthGeometry.instanceCount = count;
     for (const attribute of this.depthAttributes) attribute.needsUpdate = true;

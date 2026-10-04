@@ -137,8 +137,8 @@ describe("every retained Advanced value", () => {
     expect(store.get(control.path)).toEqual(before);
     store.undo(); expect(store.get(control.path)).toEqual(next);
   });
-  it("exposes only 40 meaningful settings across all six families", () => {
-    expect(controls.length+6).toBe(40);
+  it("keeps Advanced at 42 meaningful settings, including two goldfish controls", () => {
+    expect(controls.length+6).toBe(42);
     expect(controls.some(control => /visualStart|offset|phase|sharpness/i.test(control.path.join('.')))).toBe(false);
   });
 });

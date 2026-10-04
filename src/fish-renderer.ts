@@ -29,6 +29,7 @@ import { PondBedPass } from "./pond-bed";
 import { School } from "./school";
 import { SurfaceDisturbancePass } from "./surface-disturbance";
 import { TinyFishRenderer } from "./tiny-fish-renderer";
+import { GoldfishRenderer } from "./goldfish-renderer";
 import { WaterSurfacePass } from "./water-surface";
 import { WeatherPass } from "./weather-pass";
 import type { WeatherPresetId } from "./weather";
@@ -226,6 +227,7 @@ export class FishRenderer {
   private readonly waterSurface: WaterSurfacePass;
   private readonly weather: WeatherPass;
   private readonly tinyFishRenderer = new TinyFishRenderer();
+  private readonly goldfishRenderer = new GoldfishRenderer();
   private readonly duckweed = new DuckweedPass();
   private readonly lotusLeaves = new LotusLeavesPass();
   private readonly butterflies = new ButterflyPass();
@@ -287,8 +289,10 @@ export class FishRenderer {
     this.shadowScene.add(
       this.lotusLeaves.shadowGroup,
       this.tinyFishRenderer.shadowGroup,
+      this.goldfishRenderer.shadowGroup,
     );
     this.fishScene.add(this.tinyFishRenderer.group);
+    this.fishScene.add(this.goldfishRenderer.group);
     this.surfaceScene.add(this.waterSurface.mesh);
     this.surfaceShadowScene.add(
       this.duckweed.shadowGroup,
@@ -498,6 +502,9 @@ export class FishRenderer {
     this.tinyFishRenderer.group.visible = previewIndex === null;
     this.tinyFishRenderer.shadowGroup.visible = previewIndex === null;
     if (previewIndex === null) this.tinyFishRenderer.update(school.tinyFish);
+    this.goldfishRenderer.group.visible = previewIndex === null;
+    this.goldfishRenderer.shadowGroup.visible = previewIndex === null;
+    if (previewIndex === null) this.goldfishRenderer.update(school.goldfish, this.weather.surface);
     this.pondBed.update(time);
     this.surfaceDisturbance.render(
       this.renderer,
@@ -508,7 +515,7 @@ export class FishRenderer {
     this.waterSurface.update(school, time, this.weather.surface);
     this.duckweed.update(time, school.ripples);
     this.lotusLeaves.update(time, school.ripples, this.weather.surface);
-    this.butterflies.update(time);
+    this.butterflies.update(time, this.weather.surface);
 
     this.renderer.setRenderTarget(this.underwaterTarget);
     this.renderer.clear();

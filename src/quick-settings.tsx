@@ -35,12 +35,16 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
   const {t, language, setLanguage} = useI18n();
   const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
   const [shoals, setShoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
+  const [goldfish, setGoldfish] = useSetting<number>(["goldfish", "count"]);
   return <div className="preferences">
     <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
       <input id="pond-density" className="pond-range" type="range" min="0" max="48" step="1" value={count}
         aria-valuetext={t("product.koi", {count})} style={{"--range": (count/48*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
       <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
+      <div className="preference-row divided"><label htmlFor="pond-goldfish">{t("product.goldfish")}</label><output htmlFor="pond-goldfish">{t("product.goldfishCount", {count: goldfish})}</output></div>
+      <input id="pond-goldfish" className="pond-range" type="range" min="0" max="8" step="1" value={goldfish}
+        aria-valuetext={t("product.goldfishCount", {count: goldfish})} style={{"--range": (goldfish/8*100)+"%"} as CSSProperties} onChange={event => setGoldfish(Number(event.target.value))} />
       <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => setShoals(on ? 3 : 0)} /></div>
     </Group>
     <Group title={t("quick.atmosphere")}>
