@@ -130,14 +130,17 @@ export class GoldfishPopulation {
       let clearanceSpeed = 1;
       const own = this.avoidance(fish.position.x + fish.velocity.x * 0.35, fish.position.y + fish.velocity.y * 0.35, fish.bodyWidth + 3, index);
       sx += own.x; sy += own.y;
+      const forwardX = Math.cos(fish.heading), forwardY = Math.sin(fish.heading);
       for (let k = 0; k < koiCount; k++) {
         const other = koi[k];
         let nearest = Infinity, ox = 0, oy = 0;
         for (let node = 0; node < other.spine.length - 2; node++) {
-          const dx = fish.position.x + fish.velocity.x * 0.45 - other.spine[node].x - other.velocity.x * 0.22;
-          const dy = fish.position.y + fish.velocity.y * 0.45 - other.spine[node].y - other.velocity.y * 0.22;
-          const d = Math.hypot(dx, dy);
-          if (d < nearest) { nearest = d; ox = dx; oy = dy; }
+          for (let sample = 0; sample < 3; sample++) {
+            const dx = fish.position.x - forwardX * fish.bodyLength * sample * 0.4 + fish.velocity.x * 0.45 - other.spine[node].x - other.velocity.x * 0.22;
+            const dy = fish.position.y - forwardY * fish.bodyLength * sample * 0.4 + fish.velocity.y * 0.45 - other.spine[node].y - other.velocity.y * 0.22;
+            const d = Math.hypot(dx, dy);
+            if (d < nearest) { nearest = d; ox = dx; oy = dy; }
+          }
         }
         const reach = other.bodyWidth + fish.bodyWidth + 20;
         if (nearest < reach && nearest > 0.001) {
@@ -145,11 +148,13 @@ export class GoldfishPopulation {
           sx += ox / nearest * strength; sy += oy / nearest * strength;
           // A head-on approach needs a side to turn toward before repulsion
           // alone cancels the forward vector. Brake smoothly in close traffic.
-          const cross = Math.cos(fish.heading) * oy - Math.sin(fish.heading) * ox;
+          const cross = forwardX * oy - forwardY * ox;
           const side = Math.abs(cross) < 0.1 ? (index % 2 === 0 ? 1 : -1) : Math.sign(cross);
-          sx -= Math.sin(fish.heading) * side * strength * 0.8;
-          sy += Math.cos(fish.heading) * side * strength * 0.8;
-          clearanceSpeed = Math.min(clearanceSpeed, clamp((nearest - other.bodyWidth - fish.bodyWidth) / 16, 0.4, 1));
+          sx -= forwardY * side * strength * 0.8;
+          sy += forwardX * side * strength * 0.8;
+          if ((other.position.x - fish.position.x) * forwardX + (other.position.y - fish.position.y) * forwardY > -fish.bodyLength * 0.35) {
+            clearanceSpeed = Math.min(clearanceSpeed, clamp((nearest - other.bodyWidth - fish.bodyWidth) / 16, 0.4, 1));
+          }
         }
       }
       for (const other of medaka) {
@@ -176,7 +181,7 @@ export class GoldfishPopulation {
       fish.velocity.y = Math.sin(fish.heading) * fish.speed;
       fish.position.x = clamp(fish.position.x + fish.velocity.x * dt, 8, CANVAS_WIDTH - 8);
       fish.position.y = clamp(fish.position.y + fish.velocity.y * dt, 8, CANVAS_HEIGHT - 8);
-      this.keepClear(fish, index, koi, koiCount);
+      this.keepClear(fish, index, koi, koiCount, dt);
       fish.effort += (clamp(fish.speed / fish.cruiseSpeed, 0.35, 1.25) - fish.effort) * (1 - Math.exp(-4 * dt));
       // Faster, smaller strokes than koi; the split fin trails the peduncle.
       fish.tailPhase += Math.PI * 2 * (1.25 + fish.speed / fish.bodyLength * 0.85 + Math.sin(time * 0.37 + fish.phase) * 0.08) * dt;
@@ -187,10 +192,11 @@ export class GoldfishPopulation {
     }
   }
 
-  private keepClear(fish: GoldfishAgent, index: number, koi: readonly Koi[], koiCount: number): void {
+  private keepClear(fish: GoldfishAgent, index: number, koi: readonly Koi[], koiCount: number, dt: number): void {
     // A small contact constraint backs up steering when another fish turns
     // into this one. Move only the wakin; the koi spine and states are intact.
     const fx = Math.cos(fish.heading), fy = Math.sin(fish.heading);
+    const maxCorrection = fish.speed * dt * 0.35;
     for (let pass = 0; pass < 2; pass++) {
       let penetration = 0, pushX = 0, pushY = 0;
       for (let sample = 0; sample < 3; sample++) {
@@ -222,8 +228,11 @@ export class GoldfishPopulation {
         }
       }
       if (penetration <= 0) break;
-      fish.position.x = clamp(fish.position.x + pushX * penetration, 8, CANVAS_WIDTH - 8);
-      fish.position.y = clamp(fish.position.y + pushY * penetration, 8, CANVAS_HEIGHT - 8);
+      // Crowded contacts resolve over several frames. An entire body-width
+      // correction would visibly teleport a small fish across the pixel pond.
+      const correction = Math.min(penetration, maxCorrection);
+      fish.position.x = clamp(fish.position.x + pushX * correction, 8, CANVAS_WIDTH - 8);
+      fish.position.y = clamp(fish.position.y + pushY * correction, 8, CANVAS_HEIGHT - 8);
     }
   }
 

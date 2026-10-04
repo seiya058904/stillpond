@@ -79,6 +79,21 @@ describe("independent wakin", () => {
     }
   });
 
+  it("does not jump when a koi turns across its body during six minutes of default swimming", () => {
+    const school = new School();
+    const previous = school.goldfish.fish.slice(0, 3).map(fish => ({ ...fish.position }));
+    let maxStep = 0;
+    for (let frame = 0; frame < 21_600; frame++) {
+      school.update(1 / 60, frame / 60);
+      for (let index = 0; index < 3; index++) {
+        const fish = school.goldfish.fish[index], position = previous[index];
+        maxStep = Math.max(maxStep, Math.hypot(fish.position.x - position.x, fish.position.y - position.y));
+        position.x = fish.position.x; position.y = fish.position.y;
+      }
+    }
+    expect(maxStep).toBeLessThan(1);
+  }, 20_000);
+
   it("reuses bounded geometry through full population, depth, tail motion, and hiding", () => {
     settings.set(["goldfish", "count"], 8);
     const population = new GoldfishPopulation(); population.reset();

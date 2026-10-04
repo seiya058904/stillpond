@@ -8,8 +8,9 @@ middle scale without enlarging the existing koi or Medaka populations. Wakin
 have their own body/fin geometry and steering clock, rather than scaled koi.
 Tail amplitude and cadence respond to propulsion; a trailing fin phase softens
 the split tail. Destination and depth changes are staggered. Local cross-species
-avoidance slows and steers approaching fish; a body contact constraint prevents
-Wakin crossing a larger fish during a tight turn. Koi retain their existing states
+avoidance anticipates the head and torso, slowing and steering approaching fish.
+Small, bounded contact corrections resolve tight turns without jumping an entire
+body width in one frame. Koi retain their existing states
 and call response. Wakin do not join a tap-induced school.
 
 - [Yamatokoriyama's Wakin description](https://www.city.yamatokoriyama.lg.jp/kanko_bunka_sports/kingyo/kingyonokeitotohinshu/6266.html)
