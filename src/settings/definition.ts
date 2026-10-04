@@ -1,4 +1,5 @@
-// The full settings tree. Every value here is transcribed from the previous
+// The runtime configuration tree. Product controls are curated in advanced.ts.
+// Every value here is transcribed from the previous
 // src/config.ts globals; see docs/how-it-works.md for how to add a setting.
 //
 // Section ids match the old RUNTIME_CONFIG_SECTIONS ids exactly, so v1
@@ -19,6 +20,7 @@ import {
   vec2,
   type ValueOf,
 } from "./schema";
+import { DEFAULT_FAMILIES, KOI_FAMILIES, MAX_KOI } from "./composition";
 
 const TAU = Math.PI * 2;
 
@@ -66,8 +68,8 @@ const koiPatch = group({
   color: choice<"accent" | "marking">({
     default: "accent",
     options: [
-      { value: "accent", label: "choice.accent" },
-      { value: "marking", label: "choice.marking" },
+      { value: "accent", label: "Accent" },
+      { value: "marking", label: "Marking" },
     ],
   }),
 });
@@ -81,12 +83,14 @@ const koi = group(
   {
     initialCount: num({
       default: 14,
-      min: 1,
-      max: 48,
+      min: 0,
+      max: MAX_KOI,
       step: 1,
       int: true,
       effect: "koi:count",
     }),
+    families: list(num({ default: 0, min: 0, max: KOI_FAMILIES.length - 1, step: 1, int: true }),
+      DEFAULT_FAMILIES, { effect: "koi:count" }),
     regularLength: range({
       default: [27, 40],
       min: 5,
@@ -301,8 +305,8 @@ const tinyFishSchoolItem = group({
   swirlDirection: choice<-1 | 1>({
     default: 1,
     options: [
-      { value: -1, label: "choice.left" },
-      { value: 1, label: "choice.right" },
+      { value: -1, label: "Left" },
+      { value: 1, label: "Right" },
     ],
   }),
 });
@@ -373,7 +377,6 @@ function rippleType(defaultValue: {
       max: 64,
       step: 1,
       int: true,
-      description: "help.rippleLimit",
     }),
     ripplesPerEvent: num({ default: defaultValue.ripplesPerEvent, min: 1, max: 20, step: 1, int: true }),
     intervalSeconds: num({ default: defaultValue.intervalSeconds, min: 0.005, max: 0.5, step: 0.001 }),
@@ -391,6 +394,7 @@ function rippleType(defaultValue: {
 
 const ripples = group(
   {
+    strength: num({ default: 1, min: 0, max: 1.25, step: 0.05 }),
     types: group({
       touch: rippleType({
         maximumActive: 16, ripplesPerEvent: 5, intervalSeconds: 0.023, initialStrength: 1,
@@ -429,6 +433,7 @@ const currentWave = group({
 const water = group(
   {
     showCurrentEffect: bool({ default: true }),
+    currentStrength: num({ default: 1, min: 0, max: 1.5, step: 0.05 }),
     // 0 preserves the original surface pattern; 1 reveals the koi more clearly.
     clarity: num({ default: 0, min: 0, max: 1, step: 0.01 }),
     colorTint: rgb({ default: [0.96, 1.02, 1.0], min: 0, max: 2, step: 0.001 }),
@@ -628,7 +633,6 @@ const duckweedRippleResponse = group(
   {
     enabled: bool({
       default: true,
-      description: "help.leafResponse",
     }),
     strength: num({
       default: 0.8,
@@ -636,7 +640,6 @@ const duckweedRippleResponse = group(
       max: 8,
       step: 0.1,
       unit: "px",
-      description: "help.leafStrength",
     }),
     bandWidth: num({
       default: 7,
@@ -644,7 +647,6 @@ const duckweedRippleResponse = group(
       max: 30,
       step: 0.5,
       unit: "px",
-      description: "help.leafBand",
     }),
     falloffDistance: num({
       default: 181,
@@ -652,7 +654,6 @@ const duckweedRippleResponse = group(
       max: 200,
       step: 1,
       unit: "px",
-      description: "help.leafFalloff",
     }),
     maxPush: num({
       default: 6,
@@ -660,7 +661,6 @@ const duckweedRippleResponse = group(
       max: 10,
       step: 0.1,
       unit: "px",
-      description: "help.leafMax",
     }),
     spin: num({
       default: 0.39,
@@ -668,7 +668,6 @@ const duckweedRippleResponse = group(
       max: 1.5,
       step: 0.01,
       unit: "rad",
-      description: "help.leafSpin",
     }),
     touchWeight: num({ default: 0.8, min: 0, max: 2, step: 0.05 }),
     mouthWeight: num({ default: 0.4, min: 0, max: 2, step: 0.05 }),
@@ -864,13 +863,3 @@ export type LotusFlowerSetting = ValueOf<typeof lotusFlowerItem>;
 export type DuckweedPatchSetting = ValueOf<typeof duckweedPatchItem>;
 export type ButterflySpawnSetting = ValueOf<typeof butterflySpawnItem>;
 export type Rgb = readonly [number, number, number];
-
-// Structural grouping only; all display copy is in src/i18n.
-export const SETTINGS_GROUPS = [
-  { id: "koi", sectionIds: ["koi", "koi-palettes", "koi-patterns"] },
-  { id: "tiny-fish", sectionIds: ["tiny-fish", "tiny-fish-schools"] },
-  { id: "water", sectionIds: ["pond-bed", "water", "ripples"] },
-  { id: "lotus", sectionIds: ["lotus", "lotus-leaves", "lotus-flowers"] },
-  { id: "duckweed", sectionIds: ["duckweed", "duckweed-patches"] },
-  { id: "butterflies", sectionIds: ["butterflies", "butterfly-spawns"] },
-] as const satisfies readonly { id: SectionId; sectionIds: readonly SectionId[] }[];

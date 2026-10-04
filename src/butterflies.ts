@@ -8,6 +8,7 @@ import {
   LOTUS_FLOWERS,
   LOTUS_LEAVES,
   viewportPoint,
+  flowerLeafIndex,
 } from "./config";
 import {
   SurfaceGeometryBatch,
@@ -469,18 +470,14 @@ export class ButterflyPass {
   }
 
   private visibleFlowerCount(): number {
-    return LOTUS_FLOWERS.slice(0, LOTUS.visibleFlowerCount).filter(
-      (flower) => flower.leafIndex < LOTUS.visibleLeafCount,
-    ).length;
+    return LOTUS.visibleLeafCount === 0 ? 0 : Math.min(LOTUS_FLOWERS.length, LOTUS.visibleFlowerCount);
   }
 
   private flowerPosition(flowerIndex: number, time: number): SurfacePoint {
-    const flowers = LOTUS_FLOWERS.slice(0, LOTUS.visibleFlowerCount).filter(
-      (flower) => flower.leafIndex < LOTUS.visibleLeafCount,
-    );
-    const flower = flowers[Math.min(flowerIndex, flowers.length - 1)];
-    if (!flower) return { x: CANVAS_WIDTH * 0.5, y: CANVAS_HEIGHT * 0.5 };
-    const leaf = LOTUS_LEAVES[flower.leafIndex];
+    const index = Math.min(flowerIndex, this.visibleFlowerCount() - 1);
+    const flower = LOTUS_FLOWERS[index];
+    const leaf = LOTUS_LEAVES[flowerLeafIndex(index)];
+    if (!flower || !leaf) return { x: CANVAS_WIDTH * 0.5, y: CANVAS_HEIGHT * 0.5 };
     const placement = viewportPoint(leaf.x, leaf.y);
     return {
       x:

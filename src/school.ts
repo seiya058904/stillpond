@@ -41,7 +41,7 @@ export class School {
   }
 
   public setCount(count: number): void {
-    this.count = clamp(Math.round(count), 1, MAX_FISH);
+    this.count = clamp(Math.round(count), 0, MAX_FISH);
   }
 
   public updateBodyProportions(previous: {

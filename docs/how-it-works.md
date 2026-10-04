@@ -161,8 +161,10 @@ subsystem should refresh when it changes. A single store
 ([`src/settings/store.ts`](../src/settings/store.ts)) computes each setting's
 effective value as `defaults ⊕ weather ⊕ your edits`, writes it into one
 mutable object (`store.live`), and notifies the affected subsystem. The
-advanced editor ([`src/config-editor.tsx`](../src/config-editor.tsx)) is generated
-from that same schema. The separate everyday controls in
+advanced editor ([`src/config-editor.tsx`](../src/config-editor.tsx)) uses the
+explicit product control list in
+[`src/settings/advanced.ts`](../src/settings/advanced.ts). Runtime settings are
+not automatically exposed to users or search. The everyday controls in
 [`src/quick-settings.tsx`](../src/quick-settings.tsx) deliberately expose only a
 small, curated set. Both views use the same store and preview changes immediately.
 
@@ -175,8 +177,16 @@ a default not get silently overwritten by an old save.
 
 **To add a setting:** add a node in `src/settings/definition.ts` with its
 bounds and, if a subsystem needs to react to it, an `effect` tag. If that tag
-is new, add a handler for it in `src/settings/effects.ts`. Nothing else needs
-to change — the advanced editor picks it up automatically.
+is new, add a handler for it in `src/settings/effects.ts`. Expose a setting only
+when it has clear product value: add an explicit control to `advanced.ts` and
+its English/Chinese label to `src/i18n/fields.ts`.
+
+Koi composition is a saved ordered array of family IDs in `koi.families`.
+The store changes that array and its derived `initialCount` atomically, so
+ordinary count changes, individual family counts, Undo, and Reset cannot drift.
+The renderer looks up each slot's explicit family. A preview reads a separate
+family palette and never changes the array. Older saves receive their original
+alternating assignment once during loading; colors and internal edits survive.
 
 ## Why the pond stays responsive
 

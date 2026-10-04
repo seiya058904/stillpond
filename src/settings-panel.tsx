@@ -86,7 +86,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
               else scroll.current?.querySelector<HTMLButtonElement>('.settings-page:not([inert]) [data-preference="advanced"]')?.focus({preventScroll:true}); }}>
             {advanced ? <AdvancedBoundary fallback={<p role="alert" className="preference-note">{t("settings.loadFailed")}</p>}><Suspense fallback={<p role="status" className="preference-note">{t("settings.loading")}</p>}>
               <ConfigEditor query={query} onQueryChange={setQuery} onResetSection={resetSection}
-                selectedFamily={selectedFamily} previewFamily={preview} onFamilyChange={index => {setSelectedFamily(index); onPreviewChange(index);}}
+                selectedFamily={selectedFamily} previewFamily={preview} onFamilyChange={index => {setSelectedFamily(index); if(preview !== null) onPreviewChange(index);}}
                 onPreviewFamilyChange={onPreviewChange} />
             </Suspense></AdvancedBoundary> : <>
               <QuickSettings {...preferences} weather={meta.weather} rain={meta.rain}

@@ -29,13 +29,16 @@ const RIPPLE_PRIORITY: Record<RippleType, number> = {
 export class RippleSystem {
   public readonly instances: RippleInstance[] = Array.from(
     { length: MAX_RIPPLES },
-    () => ({
-      center: vec(),
-      age: 0,
-      strength: 0,
-      type: "touch",
-      alive: false,
-    }),
+    () => {
+      let baseStrength = 0;
+      return {
+        center: vec(), age: 0,
+        // One live gain applies to water and plants, including existing ripples.
+        get strength() { return baseStrength * RIPPLES.strength; },
+        set strength(value: number) { baseStrength = value; },
+        type: "touch" as RippleType, alive: false,
+      };
+    },
   );
 
   private readonly random = new XorShift32(0x7a11fa11);

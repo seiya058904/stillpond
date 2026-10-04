@@ -373,7 +373,7 @@ function waterAppearanceFromConfig(): RuntimeWaterAppearance {
       ...WATER.largeCurrentCoreColor,
     ),
     largeCellSize: WATER.largeCellSize,
-    largeCurrentOpacity: WATER.largeCurrentOpacity,
+    largeCurrentOpacity: WATER.largeCurrentOpacity * WATER.currentStrength,
     largeCurrentSpeed: WATER.largeCurrentSpeed,
     secondaryLargeCurrentColor: new THREE.Color().setRGB(
       ...WATER.secondaryLargeCurrentColor,
@@ -382,14 +382,14 @@ function waterAppearanceFromConfig(): RuntimeWaterAppearance {
       ...WATER.secondaryLargeCurrentCoreColor,
     ),
     secondaryLargeCellSize: WATER.secondaryLargeCellSize,
-    secondaryLargeCurrentOpacity: WATER.secondaryLargeCurrentOpacity,
+    secondaryLargeCurrentOpacity: WATER.secondaryLargeCurrentOpacity * WATER.currentStrength,
     secondaryLargeCurrentSpeed: WATER.secondaryLargeCurrentSpeed,
     detailCurrentColor: new THREE.Color().setRGB(...WATER.detailCurrentColor),
     detailCurrentCoreColor: new THREE.Color().setRGB(
       ...WATER.detailCurrentCoreColor,
     ),
     detailCellSize: WATER.detailCellSize,
-    detailCurrentOpacity: WATER.detailCurrentOpacity,
+    detailCurrentOpacity: WATER.detailCurrentOpacity * WATER.currentStrength,
     detailCurrentSpeed: WATER.detailCurrentSpeed,
   };
 }

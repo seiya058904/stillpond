@@ -4,7 +4,6 @@ import {
   CANVAS_WIDTH,
   FISH,
   KOI_PALETTES,
-  MAX_FISH,
   SPINE_NODES,
 } from "./config";
 import { ButterflyPass } from "./butterflies";
@@ -236,11 +235,11 @@ export class FishRenderer {
   private readonly bodyTriangles: GeometryBatch;
   private readonly outlineLines: GeometryBatch;
   private readonly appearances = Array.from(
-    { length: MAX_FISH },
+    { length: KOI_PALETTES.length },
     (_, index) => createFishAppearance(index),
   );
   private readonly depthAppearances = Array.from(
-    { length: MAX_FISH },
+    { length: KOI_PALETTES.length },
     (_, index) => createFishAppearance(index),
   );
   private readonly shadowStrengthColor = new THREE.Color();
@@ -355,13 +354,6 @@ export class FishRenderer {
     this.fishScene.add(outerMesh, bodyMesh, lines);
   }
 
-  public refreshConfig(): void {
-    for (const section of [
-      "koi", "koi-palettes", "tiny-fish", "pond-bed", "water",
-      "lotus", "duckweed", "butterflies",
-    ]) this.refreshSection(section);
-  }
-
   public refreshSection(sectionId: string): void {
     switch (sectionId) {
       case "koi":
@@ -473,7 +465,7 @@ export class FishRenderer {
     if (previewIndex !== null) {
       for (let index = 0; index < school.count; index += 1) {
         if (
-          index % KOI_PALETTES.length === previewIndex &&
+          FISH.families[index] === previewIndex &&
           (index + 1) % FISH.tinyEvery !== 0
         ) {
           selectedFishIndex = index;
@@ -488,11 +480,11 @@ export class FishRenderer {
       batch.setPreviewTransform(transformOrigin, previewIndex === null ? 1 : 1.6);
     }
 
-    for (let index = 0; index < school.count; index += 1) {
+    for (let index = 0; index < (previewIndex === null ? school.count : Math.max(1, school.count)); index += 1) {
       if (previewIndex !== null && index !== selectedFishIndex) continue;
       const fish = school.fish[index];
       this.buildRenderSpine(fish);
-      const appearanceIndex = previewIndex ?? index;
+      const appearanceIndex = previewIndex ?? FISH.families[index];
       const appearance = this.depthAppearances[appearanceIndex];
       this.updateDepthAppearance(fish, this.appearances[appearanceIndex], appearance);
       this.drawKoi(fish, appearance);

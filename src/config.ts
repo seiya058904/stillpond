@@ -62,6 +62,15 @@ export const DUCKWEED_PATCHES = live["duckweed-patches"];
 export const BUTTERFLIES = live.butterflies;
 export const BUTTERFLY_SPAWNS = live["butterfly-spawns"];
 
+// Removing a leaf must not make the flower amount stop working. Prefer the
+// authored attachment, then use another visible leaf without editing the save.
+export function flowerLeafIndex(flowerIndex: number): number {
+  const count = Math.min(LOTUS.visibleLeafCount, LOTUS_LEAVES.length);
+  if (count === 0) return -1;
+  const preferred = LOTUS_FLOWERS[flowerIndex]?.leafIndex ?? 0;
+  return preferred < count ? preferred : flowerIndex % count;
+}
+
 // The settings coordinates above remain in the original landscape layout.
 // The simulation and renderer use these live dimensions for the visible pond.
 export let CANVAS_WIDTH: number = CANVAS.width;
@@ -79,10 +88,8 @@ export function viewportPoint(x: number, y: number): { x: number; y: number } {
   };
 }
 export const MAX_FISH = FISH.maximumCount;
-export const INITIAL_FISH = FISH.initialCount;
 export const SPINE_NODES = SIMULATION.spineNodes;
 export const MAX_RIPPLES = RIPPLES.maximumInstances;
 export const MAX_RIPPLE_TYPES = Object.keys(RIPPLES.types).length;
-export const RIPPLE_LIFETIME = RIPPLES.types.touch.lifetime;
 export const FIXED_STEP = 1 / SIMULATION.updatesPerSecond;
 export const TAU = Math.PI * 2;

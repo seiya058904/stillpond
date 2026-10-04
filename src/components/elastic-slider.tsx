@@ -13,7 +13,7 @@ import {
   useTransform,
 } from "motion/react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 import { useControllableState } from "@/hooks/use-controllable-state"
 
 // Drag detection & rubber band

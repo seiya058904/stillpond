@@ -3,12 +3,14 @@
 
 A calm digital pond with procedural koi, full-viewport scenery, and English / Simplified Chinese controls.
 
-**V1.2.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
+**V1.3.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
 A quiet, observational pond. Click or tap the water to call the koi; enjoy the
 existing procedural swimming, water, plants, weather, and optional river sound.
-V1.2 — Natural Pond Pass refines this one pond: forward coasting and body-led
+V1.3 — Settings, Configuration & Workspace Cleanup completes koi composition
+and curates the advanced controls while preserving the Natural Pond Pass:
+forward coasting and body-led
 turns, continuously swimming Medaka shoals, peltate lotus leaves, and weather
 that affects surface reflections and plant movement. Everyday settings open
 immediately into a grouped list; the detailed editor remains separate. It adds
@@ -40,16 +42,28 @@ runs at `/`; a production preview uses the path configured in `siteUrl`.
 - Everyday settings group **Pond**, **Atmosphere**, **Sound**, **Language**, and
   **Display**. Weather cards preview the existing seven atmospheres. Display
   offers Smooth (60 fps), Balanced (30), Save energy (20), and Native.
-- **Advanced settings** retains every detailed color, body, plant, water,
-  movement, and shader control, with search, categories, family preview, and
-  per-group reset. Undo and confirmed Reset all are available in both views.
+- **Advanced settings** has five groups: Koi, Medaka, Plants & butterflies,
+  Water, and Pond colors. Its 40 product settings include six family counts,
+  fish size, useful colors, greenery, clarity, currents, and ripple strength.
+  Search covers these controls in both languages. Internal physics, shader,
+  spawn, and pattern geometry values remain in source, outside the editor.
+- **Koi composition** lets each of the six families have zero or more fish,
+  up to 48 total. The total and everyday count slider always agree. Increasing
+  the total preserves existing assignments and follows the current proportions;
+  reducing it removes the last slots. An empty pond starts a balanced mix when
+  repopulated. Changing one family preserves as many assignments as possible.
+  Family preview temporarily enlarges one koi, including an absent family,
+  without changing or saving the population. Colors apply to the actual family.
+  Undo and confirmed Reset all are available in both settings views.
 - Settings use a side panel on desktop and landscape phones, and a bottom sheet
   on narrow portrait screens. Focus, touch targets, and reduced-motion preferences
   are respected throughout.
 - Pond settings, frame rate, language, and sound preference save on this device.
   Sound starts off on the first visit; browsers require a gesture to resume audio.
   Reset all resets pond settings; language, sound, and frame-rate preferences are
-  independent. Storage being disabled must not prevent the pond from running.
+  independent. Undo history lasts for the current page session. Existing v1/v2
+  saves gain their original alternating family assignment without losing colors
+  or internal customizations. Storage being disabled must not stop the pond.
 
 ## Rendering and responsive layout
 
@@ -110,8 +124,10 @@ change display branding; it identifies saved preferences.
 - `src/settings-panel.tsx`, `src/quick-settings.tsx`: immediate grouped everyday settings.
 - `src/config-editor.tsx`: separately loaded, searchable advanced controls.
 - `src/viewport.ts`: viewport/world and input mapping.
-- `src/i18n/`: all English/Chinese product text and schema labels.
+- `src/i18n/`: all English/Chinese product text and visible control labels.
 - `src/settings/`: typed settings, persistence, undo, rendering effects.
+- `src/settings/advanced.ts`: the explicit product control list and search scope.
+- `src/settings/composition.ts`: ordered family assignments and resizing rules.
 - `src/fish-renderer.ts`, `src/koi.ts`, `src/school.ts`: existing renderer and simulation.
 - [How the pond works](docs/how-it-works.md): inherited procedural-animation guide.
 

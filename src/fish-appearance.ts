@@ -24,8 +24,8 @@ export interface FishAppearance {
   eye: THREE.Color;
 }
 
-export const createFishAppearance = (index: number): FishAppearance => {
-  const pattern = index % KOI_PALETTES.length;
+export const createFishAppearance = (family: number): FishAppearance => {
+  const pattern = Math.min(KOI_PALETTES.length - 1, Math.max(0, Math.round(family)));
   const palette = KOI_PALETTES[pattern];
   return {
     pattern,

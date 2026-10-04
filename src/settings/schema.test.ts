@@ -82,7 +82,7 @@ describe("validate", () => {
   it("clamps and rounds numbers", () => {
     const node = nodeAt(definition, ["koi", "initialCount"])!;
     expect(validate(node, 1000, definition)).toBe(48);
-    expect(validate(node, -5, definition)).toBe(1);
+    expect(validate(node, -5, definition)).toBe(0);
     expect(validate(node, 3.6, definition)).toBe(4);
     expect(validate(node, "nope", definition)).toBeUndefined();
   });

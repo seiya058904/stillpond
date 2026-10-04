@@ -1,4 +1,6 @@
-// v2 load/save, and a v1 -> v2 migration so a returning visitor's saved
+// v2 load/save (now including ordered koi families), and a v1 -> v2 migration.
+// The store upgrades pre-composition saves without changing the namespace.
+// A returning visitor's saved
 // weather/config still applies (see docs/how-it-works.md).
 
 import { defaults as buildDefaults, validate as validateNode, walkLeaves } from "./schema";

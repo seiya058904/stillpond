@@ -96,7 +96,7 @@ export function App() {
       if (!pond) return;
       switch (event.code) {
         case "Space": event.preventDefault(); pond.school.scatter(); break;
-        case "BracketLeft": settings.set(["koi", "initialCount"], Math.max(1, settings.live.koi.initialCount - 1)); break;
+        case "BracketLeft": settings.set(["koi", "initialCount"], Math.max(0, settings.live.koi.initialCount - 1)); break;
         case "BracketRight": settings.set(["koi", "initialCount"], Math.min(48, settings.live.koi.initialCount + 1)); break;
         case "KeyD": pond.showDebug = !pond.showDebug; break;
         case "KeyR": pond.school.reset(); break;

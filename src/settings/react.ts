@@ -45,13 +45,6 @@ export function useSetting<T = unknown>(path: SettingPath): [T, (value: T, inter
   return [value, setValue];
 }
 
-export function useCollectionLength(sectionId: string): number {
-  return useVersionedSnapshot(() => {
-    const value = settings.get([sectionId]);
-    return Array.isArray(value) ? value.length : 0;
-  }, sectionId);
-}
-
 export interface SettingsMeta {
   weather: WeatherPresetId;
   rain: boolean;

@@ -38,8 +38,8 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
   return <div className="preferences">
     <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
-      <input id="pond-density" className="pond-range" type="range" min="1" max="48" step="1" value={count}
-        aria-valuetext={t("product.koi", {count})} style={{"--range": ((count-1)/47*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
+      <input id="pond-density" className="pond-range" type="range" min="0" max="48" step="1" value={count}
+        aria-valuetext={t("product.koi", {count})} style={{"--range": (count/48*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
       <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
       <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => setShoals(on ? 3 : 0)} /></div>
     </Group>

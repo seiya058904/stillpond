@@ -5,6 +5,7 @@ import {
   LOTUS_LEAVES,
   viewportPoint,
   RIPPLES,
+  flowerLeafIndex,
 } from "./config";
 import { duckweedRippleDisplacement } from "./duckweed-geometry";
 import type { RippleSystem } from "./ripple-system";
@@ -272,16 +273,17 @@ export class LotusLeavesPass {
 
     for (const [flowerIndex, mesh] of this.flowers.entries()) {
       const flower = LOTUS_FLOWERS[flowerIndex];
-      const leaf = LOTUS_LEAVES[flower.leafIndex];
+      const leafIndex = flowerLeafIndex(flowerIndex);
+      const leaf = LOTUS_LEAVES[leafIndex];
       const visible =
         flowerIndex < visibleFlowerCount &&
-        flower.leafIndex < visibleLeafCount &&
+        leafIndex >= 0 &&
         leaf !== undefined &&
-        this.leafCenters[flower.leafIndex] !== undefined;
+        this.leafCenters[leafIndex] !== undefined;
       mesh.mesh.visible = visible;
       if (!visible) continue;
 
-      const center = this.leafCenters[flower.leafIndex];
+      const center = this.leafCenters[leafIndex];
       mesh.mesh.position.set(
         center.x + flower.offsetX,
         center.y + flower.offsetY,

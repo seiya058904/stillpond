@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { definition, SETTINGS_GROUPS, SECTION_IDS } from "../settings/definition";
-import type { AnyNode } from "../settings/schema";
+import { definition } from "../settings/definition";
+import { ADVANCED_GROUPS, controlNode, familyColorControls } from "../settings/advanced";
 import { messages } from "./catalog";
 import { fieldLabels } from "./fields";
 import { createTranslator, LANGUAGE_STORAGE_KEY, readLanguage, setLanguage } from ".";
@@ -8,23 +8,19 @@ import { createTranslator, LANGUAGE_STORAGE_KEY, readLanguage, setLanguage } fro
 afterEach(() => vi.unstubAllGlobals());
 
 describe("complete bilingual UI", () => {
-  it("covers every schema field, choice, section, group, and help text", () => {
-    const visit = (node: AnyNode) => {
-      if (node.description) expect(node.description in messages).toBe(true);
-      if (node.kind === "choice") node.options.forEach((option) => expect(option.label in messages).toBe(true));
-      if (node.kind === "group") {
-        Object.entries(node.children).forEach(([key, child]) => {
-          expect(key in fieldLabels, key).toBe(true);
-          visit(child as AnyNode);
-        });
-      } else if (node.kind === "list" || node.kind === "collection") visit(node.item);
-    };
-    Object.values(definition.children).forEach(visit);
-    for (const id of SECTION_IDS) {
-      expect(`section.${id}` in messages).toBe(true);
-      expect(`section.${id}.description` in messages).toBe(true);
+  it("covers every product control and group without exposing runtime tuning labels", () => {
+    const controls = [...ADVANCED_GROUPS.flatMap(group => [...group.controls]),
+      ...definition.children["koi-patterns"].defaults.flatMap((patches,index) => familyColorControls(index,patches))];
+    for (const control of controls) {
+      expect(control.label in fieldLabels, control.id).toBe(true);
+      expect(controlNode(control)).toBeDefined();
     }
-    for (const group of SETTINGS_GROUPS) expect(`group.${group.id}` in messages).toBe(true);
+    for (const group of ADVANCED_GROUPS) {
+      expect(`section.${group.id}` in messages).toBe(true);
+      expect(`group.${group.id}` in messages).toBe(true);
+    }
+    expect("visualStart" in fieldLabels).toBe(false);
+    expect("mouthForwardOffset" in fieldLabels).toBe(false);
     for (const [key, [en, zh]] of Object.entries({ ...messages, ...fieldLabels })) {
       expect(en.length, key).toBeGreaterThan(0);
       expect(zh, key).toMatch(/[\u3400-\u9fff]/);

@@ -12,6 +12,7 @@ import {
 } from "./schema";
 import { definition, type SectionId, type SettingsValues } from "./definition";
 import { getWeatherPreset, type WeatherPresetId } from "../weather";
+import { familyCounts, legacyFamilies, MAX_KOI, reconcileFamilies, resizeFamilies, validFamilies } from "./composition";
 
 export interface Change {
   path: SettingPath;
@@ -148,7 +149,6 @@ export class SettingsStore {
   private weatherId: WeatherPresetId = "sunny";
   private rain = false;
   private readonly listeners = new Set<ChangeListener>();
-  private readonly pathListeners = new Map<string, Set<() => void>>();
   private readonly undoStack: UndoEntry[] = [];
   private readonly redoStack: UndoEntry[] = [];
   private openInteraction: { key: string; at: number } | null = null;
@@ -201,26 +201,10 @@ export class SettingsStore {
     return () => this.listeners.delete(listener);
   }
 
-  public subscribePath(path: SettingPath, callback: () => void): () => void {
-    const key = keyOf(path);
-    let set = this.pathListeners.get(key);
-    if (!set) {
-      set = new Set();
-      this.pathListeners.set(key, set);
-    }
-    set.add(callback);
-    return () => set?.delete(callback);
-  }
-
   private notify(batch: Change[]): void {
     if (batch.length === 0) return;
     this.version += 1;
-    const touchedPaths = new Set(batch.map((change) => keyOf(change.path)));
     for (const listener of this.listeners) listener(batch);
-    for (const key of touchedPaths) {
-      const set = this.pathListeners.get(key);
-      if (set) for (const callback of set) callback();
-    }
   }
 
   // ---- effective-value computation ------------------------------------
@@ -256,12 +240,21 @@ export class SettingsStore {
   // ---- writes ----------------------------------------------------------
 
   public set(path: SettingPath, rawValue: unknown, options: SetOptions = {}): void {
+    if (keyOf(path) === "koi.families") {
+      if (validFamilies(rawValue)) this.setKoiFamilies(rawValue, options);
+      return;
+    }
     const node = nodeAt(definition, path);
     if (!node) return;
     const value = validateNode(node, rawValue, definition, this.live);
     if (value === undefined) return;
+    if (keyOf(path) === "koi.initialCount") {
+      this.setKoiFamilies(resizeFamilies(this.live.koi.families, value as number), options);
+      return;
+    }
 
     const prev = structuredClone(this.get(path));
+    if (JSON.stringify(prev) === JSON.stringify(value)) return;
     this.beginOrContinueInteraction(options.interaction);
     const current = this.get(path);
     if (Array.isArray(current) && Array.isArray(value)) copyInto(current, value);
@@ -290,6 +283,30 @@ export class SettingsStore {
 
     this.redoStack.length = 0;
     this.notify(changes);
+    this.schedulePersist();
+  }
+
+  public setFamilyCount(family: number, rawCount: number): void {
+    if (!Number.isInteger(family) || family < 0 || family >= 6 || !Number.isFinite(rawCount)) return;
+    const counts = familyCounts(this.live.koi.families);
+    const capacity = MAX_KOI - this.live.koi.families.length + counts[family];
+    counts[family] = Math.min(capacity, Math.max(0, Math.round(rawCount)));
+    this.setKoiFamilies(reconcileFamilies(this.live.koi.families, counts), {interaction: `family:${family}`});
+  }
+
+  private setKoiFamilies(families: readonly number[], options: SetOptions): void {
+    const prev = [...this.live.koi.families];
+    if (prev.length === families.length && prev.every((family, slot) => family === families[slot])) return;
+    this.beginOrContinueInteraction(options.interaction);
+    copyInto(this.live.koi.families, families);
+    this.live.koi.initialCount = families.length;
+    this.overrides.set("koi.families", [...families]);
+    this.overrides.set("koi.initialCount", families.length);
+    this.redoStack.length = 0;
+    this.notify([
+      {path: ["koi", "families"], prev, next: [...families], effect: "koi:count"},
+      {path: ["koi", "initialCount"], prev: prev.length, next: families.length, effect: "koi:count"},
+    ]);
     this.schedulePersist();
   }
 
@@ -497,6 +514,16 @@ export class SettingsStore {
       const path = key.split(".").map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
       const node = nodeAt(definition, path);
       if (!node) continue; // Unknown paths (e.g. a removed setting) are dropped.
+      if (key === "koi.families") {
+        if (validFamilies(value)) this.overrides.set(key, [...value]);
+        continue;
+      }
+      if (key === "koi" && value && typeof value === "object" && !Array.isArray(value)) {
+        const group = structuredClone(value) as Record<string, unknown>;
+        if (!validFamilies(group.families)) delete group.families;
+        this.overrides.set(key, group);
+        continue;
+      }
       if (node.kind === "collection") {
         if (!Array.isArray(value)) continue;
         const max = node.max ?? 64;
@@ -512,6 +539,15 @@ export class SettingsStore {
     this.weatherId = weather;
     this.rain = rain;
     this.recomputeAll();
+    // Old v1/v2 saves know only the total. Preserve their original alternating
+    // assignment exactly once; newer saves use their ordered families as truth.
+    const savedGroup = saved.koi as {families?: unknown} | undefined;
+    const savedFamilies = this.overrides.get("koi.families") ?? savedGroup?.families;
+    const families = validFamilies(savedFamilies) ? [...savedFamilies] : legacyFamilies(this.live.koi.initialCount);
+    copyInto(this.live.koi.families, families);
+    this.live.koi.initialCount = families.length;
+    this.overrides.set("koi.families", families);
+    this.overrides.set("koi.initialCount", families.length);
   }
 }
 
