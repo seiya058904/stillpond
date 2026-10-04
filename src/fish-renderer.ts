@@ -30,6 +30,7 @@ import { School } from "./school";
 import { SurfaceDisturbancePass } from "./surface-disturbance";
 import { TinyFishRenderer } from "./tiny-fish-renderer";
 import { GoldfishRenderer } from "./goldfish-renderer";
+import { buildRenderSpine } from "./fish-spine";
 import { WaterSurfacePass } from "./water-surface";
 import { WeatherPass } from "./weather-pass";
 import type { WeatherPresetId } from "./weather";
@@ -487,7 +488,7 @@ export class FishRenderer {
     for (let index = 0; index < (previewIndex === null ? school.count : Math.max(1, school.count)); index += 1) {
       if (previewIndex !== null && index !== selectedFishIndex) continue;
       const fish = school.fish[index];
-      this.buildRenderSpine(fish);
+      buildRenderSpine(fish);
       const appearanceIndex = previewIndex ?? FISH.families[index];
       const appearance = this.depthAppearances[appearanceIndex];
       this.updateDepthAppearance(fish, this.appearances[appearanceIndex], appearance);
@@ -535,29 +536,6 @@ export class FishRenderer {
     this.renderer.setRenderTarget(null);
     this.renderer.clear();
     this.renderer.render(this.weatherScene, this.surfaceCamera);
-  }
-
-  private buildRenderSpine(fish: Koi): void {
-    fish.renderSpine[0] = { ...fish.spine[0] };
-    for (let node = 1; node < SPINE_NODES; node += 1) {
-      const t = node / (SPINE_NODES - 1);
-      const previous = Math.max(0, node - 1);
-      const next = Math.min(SPINE_NODES - 1, node + 1);
-      const tangent = normalize(
-        sub(fish.spine[previous], fish.spine[next]),
-        fromAngle(fish.heading),
-      );
-      const normal = perpendicular(tangent);
-      const waveEnvelope = Math.pow(t, 1.72);
-      const wave =
-        Math.sin(fish.swimPhase - t * 6.1) *
-        fish.bodyWidth *
-        1.15 *
-        waveEnvelope *
-        (0.015 + fish.tailEffort * 0.985);
-      const bend = Math.sin(t * Math.PI * 0.85) * t * fish.bodyWidth * fish.turnBend * 0.9;
-      fish.renderSpine[node] = add(fish.spine[node], mul(normal, wave + bend));
-    }
   }
 
   private widthAt(fish: Koi, node: number): number {

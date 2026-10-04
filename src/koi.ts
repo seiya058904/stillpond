@@ -9,7 +9,15 @@ export enum SwimState {
   Pivot,
 }
 
+export interface FishProfile {
+  readonly length: readonly [number, number];
+  readonly widthRatio: readonly [number, number];
+}
+
+// Koi remains the shared fish agent; profiles change proportions, not behavior.
 export class Koi {
+  public constructor(public readonly profile?: FishProfile) {}
+
   public position = vec();
   public velocity = vec();
   public spine: Vec2[] = Array.from({ length: SPINE_NODES }, () => vec());
@@ -60,8 +68,8 @@ export class Koi {
     this.speed = this.cruiseSpeed * random.range(0.72, 1.05);
     this.turnStrength = random.range(4.4, 6.8);
     const tiny = index % FISH.tinyEvery === FISH.tinyEvery - 1;
-    const lengthRange = tiny ? FISH.tinyLength : FISH.regularLength;
-    const widthRange = tiny ? FISH.tinyWidthRatio : FISH.regularWidthRatio;
+    const lengthRange = this.profile?.length ?? (tiny ? FISH.tinyLength : FISH.regularLength);
+    const widthRange = this.profile?.widthRatio ?? (tiny ? FISH.tinyWidthRatio : FISH.regularWidthRatio);
     this.bodyLength = random.range(lengthRange[0], lengthRange[1]);
     this.bodyWidth = this.bodyLength * random.range(widthRange[0], widthRange[1]);
     this.phaseOffset = random.range(0, TAU);

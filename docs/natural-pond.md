@@ -5,13 +5,13 @@
 The medium fish is Wakin, with a small head, slightly deeper slender body,
 short split caudal fin, and red, red/white and ivory families. Three fish add a
 middle scale without enlarging the existing koi or Medaka populations. Wakin
-have their own body/fin geometry and steering clock, rather than scaled koi.
-Tail amplitude and cadence respond to propulsion; a trailing fin phase softens
-the split tail. Destination and depth changes are staggered. Local cross-species
-avoidance anticipates the head and torso, slowing and steering approaching fish.
-Small, bounded contact corrections resolve tight turns without jumping an entire
-body width in one frame. Koi retain their existing states
-and call response. Wakin do not join a tap-induced school.
+retain their own body/fin geometry and size profile, using the mature koi behavior
+and movement system. Steering, state transitions, angular velocity, trailing spine,
+bend/recoil, cornering speed, propulsion and animation clocks are shared. The Wakin
+renderer follows that spine to draw its short body and split tail. Both species
+use the same soft avoidance and boundary turns, without lateral position corrections.
+Taps attract both koi and Wakin through the existing delayed call response and
+interest decay; scatter also applies to both. Medaka retain their separate system.
 
 - [Yamatokoriyama's Wakin description](https://www.city.yamatokoriyama.lg.jp/kanko_bunka_sports/kingyo/kingyonokeitotohinshu/6266.html)
   describes the long body, small head, short fins, and three/four-lobed or simple

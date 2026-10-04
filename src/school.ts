@@ -43,6 +43,11 @@ export class School {
     this.goldfish.reset(this.fish, this.count);
   }
 
+  // Both populations use the original koi behavior and locomotion below.
+  private activeFish(): Koi[] {
+    return [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count)];
+  }
+
   public setCount(count: number): void {
     this.count = clamp(Math.round(count), 0, MAX_FISH);
   }
@@ -115,8 +120,7 @@ export class School {
     this.target = { ...point };
     this.targetActive = true;
     this.targetAge = 0;
-    for (let index = 0; index < this.count; index += 1) {
-      const fish = this.fish[index];
+    for (const fish of this.activeFish()) {
       const response = FISH.callResponse;
       const distanceToCall = length(sub(fish.position, point));
       const distanceAmount = Math.pow(
@@ -136,8 +140,7 @@ export class School {
   }
 
   public scatter(): void {
-    for (let index = 0; index < this.count; index += 1) {
-      const fish = this.fish[index];
+    for (const fish of this.activeFish()) {
       fish.pivotHeading = wrapAngle(fish.heading + this.random.range(-1.35, 1.35));
       fish.escapeTime = 0.65 + fish.reactivity * 0.55;
       this.enterState(fish, SwimState.Burst);
@@ -154,10 +157,10 @@ export class School {
       this.targetActive = false;
     }
 
+    const agents = this.activeFish();
     const desired: Vec2[] = [];
     const desiredSpeed: number[] = [];
-    for (let index = 0; index < this.count; index += 1) {
-      const fish = this.fish[index];
+    for (const [index, fish] of agents.entries()) {
       fish.escapeTime = Math.max(0, fish.escapeTime - dt);
       fish.callDelay = Math.max(0, fish.callDelay - dt);
       if (this.targetActive && fish.respondedToCall) {
@@ -180,14 +183,12 @@ export class School {
       this.updateNaturalState(fish, dt);
       this.updateDepth(fish, dt);
       this.updateFeeding(fish, dt);
-      desired[index] = this.steeringFor(index, time);
-      desiredSpeed[index] = this.desiredSpeedFor(index);
+      desired[index] = this.steeringFor(fish, agents, time);
+      desiredSpeed[index] = this.desiredSpeedFor(fish);
     }
-    for (let index = 0; index < this.count; index += 1) {
-      const fish = this.fish[index];
+    for (const [index, fish] of agents.entries()) {
       this.integrate(fish, desired[index], desiredSpeed[index], dt);
     }
-    this.goldfish.update(dt, time, this.fish, this.count, this.tinyFish.fish);
     this.tinyFish.update(dt, time, this.goldfish);
 
     this.ripples.update(dt);
@@ -345,8 +346,7 @@ export class School {
     }
   }
 
-  private steeringFor(index: number, time: number): Vec2 {
-    const fish = this.fish[index];
+  private steeringFor(fish: Koi, agents: readonly Koi[], time: number): Vec2 {
     const forward = fromAngle(fish.heading);
     let steering = mul(forward, 0.95);
 
@@ -364,18 +364,18 @@ export class School {
     let cohesion = vec();
     let neighbours = 0;
 
-    for (let other = 0; other < this.count; other += 1) {
-      if (other === index) continue;
+    for (const other of agents) {
+      if (other === fish) continue;
       // A short look ahead softens avoidance before bodies overlap. Keep the
       // small, predictable O(n²) neighbourhood rather than adding an index.
       const offset = sub(add(fish.position, mul(fish.velocity, 0.2)),
-        add(this.fish[other].position, mul(this.fish[other].velocity, 0.2)));
+        add(other.position, mul(other.velocity, 0.2)));
       const distance = length(offset);
       if (distance > 0.001 && distance < 37) {
         neighbours += 1;
-        cohesion = add(cohesion, this.fish[other].position);
-        alignment = add(alignment, normalize(this.fish[other].velocity));
-        const personalSpace = 12 + (fish.bodyWidth + this.fish[other].bodyWidth) * 0.65;
+        cohesion = add(cohesion, other.position);
+        alignment = add(alignment, normalize(other.velocity));
+        const personalSpace = 12 + (fish.bodyWidth + other.bodyWidth) * 0.65;
         if (distance < personalSpace) {
           separation = add(separation, mul(normalize(offset), (personalSpace - distance) / personalSpace));
         }
@@ -391,14 +391,6 @@ export class School {
     }
 
     const margin = 32;
-    const goldfishAvoidance = this.goldfish.avoidance(
-      fish.position.x + fish.velocity.x * 0.35, fish.position.y + fish.velocity.y * 0.35, fish.bodyWidth,
-    );
-    // Wakin yield at the shore. Fade the koi's small reciprocal response well
-    // before its existing boundary turn, so a crowded edge keeps its old arc.
-    const shoreDistance = Math.min(fish.position.x, CANVAS_WIDTH - fish.position.x, fish.position.y, CANVAS_HEIGHT - fish.position.y);
-    const reciprocalWeight = clamp((shoreDistance - margin * 2) / margin, 0, 1) * 0.45 / Math.max(1, length(goldfishAvoidance));
-    steering = add(steering, mul(goldfishAvoidance, reciprocalWeight));
     const edgeForce = vec();
     if (fish.position.x < margin) edgeForce.x += (margin - fish.position.x) / margin;
     if (fish.position.x > CANVAS_WIDTH - margin) {
@@ -425,8 +417,7 @@ export class School {
     return normalize(steering, forward);
   }
 
-  private desiredSpeedFor(index: number): number {
-    const fish = this.fish[index];
+  private desiredSpeedFor(fish: Koi): number {
     const chaseDuration = FISH.callResponse.chaseBoostSeconds;
     const chasing =
       fish.callInfluence > 0.001 &&
