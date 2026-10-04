@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { GoldfishPopulation, type GoldfishAgent } from "./goldfish";
 import { SurfaceGeometryBatch } from "./surface-geometry";
 import type { SurfaceWeather } from "./weather-pass";
+import { buildRenderSpine, sampleSwimSpine } from "./fish-spine";
+import { SwimState } from "./koi";
+import { FISH } from "./config";
 
 type Vertex = readonly [number, number];
 // Coordinates are fractions of body length, measured back from the snout.
@@ -35,8 +38,7 @@ export class GoldfishRenderer {
   private readonly shadowColor = new THREE.Color();
   private readonly eyeColor = new THREE.Color();
   private readonly order: number[] = [];
-  private forwardX = 1;
-  private forwardY = 0;
+  private readonly sample = { x: 0, y: 0, forwardX: 1, forwardY: 0 };
   private shadowX = 0;
   private shadowY = 0;
   private shadowScale = 1;
@@ -75,7 +77,11 @@ export class GoldfishRenderer {
     }
     for (const index of this.order) {
       const fish = population.fish[index];
-      this.forwardX = Math.cos(fish.heading); this.forwardY = Math.sin(fish.heading);
+      buildRenderSpine(fish);
+      const gulpProgress = fish.gulpAnimation / Math.max(FISH.feeding.animationDurationSeconds, 0.001);
+      const paddleActivity = (fish.state === SwimState.Hover ? 1 : fish.state === SwimState.Pivot ? 0.85 : 0.45)
+        + Math.sin(Math.PI * gulpProgress) * 0.85;
+      const finPulse = 0.82 + paddleActivity * 0.25 * Math.sin(fish.finPhase);
       this.shadowScale = 0.98 - fish.depth * 0.12;
       this.shadowX = -(weather?.lightDirection.x ?? -0.58) * (3 + fish.depth * 7) * (weather?.shadowScale ?? 1);
       this.shadowY = (weather?.lightDirection.y ?? 0.82) * (3 + fish.depth * 7) * (weather?.shadowScale ?? 1);
@@ -89,7 +95,7 @@ export class GoldfishRenderer {
           for (const triangle of fin.triangles) {
             for (const vertex of triangle) {
               const [t, width] = fin.contour[vertex];
-              const opening = finIndex === 0 ? 0.88 + Math.sin(fish.tailPhase - 1.1) * 0.1 : 0.88 + Math.sin(fish.finPhase + sign * 0.7) * 0.12;
+              const opening = finIndex === 0 ? 0.88 + Math.sin(fish.swimPhase - 0.8) * 0.08 : finPulse;
               this.vertex(this.shapeBatch, fish, t, width * sign * opening, this.finColor);
               if (finIndex === 0) this.vertex(this.shadowBatch, fish, t, width * sign * opening, this.shadowColor, true);
             }
@@ -101,16 +107,22 @@ export class GoldfishRenderer {
         }
       }
       for (let segment = 0; segment < BODY.length - 1; segment++) {
-        const [a, wa] = BODY[segment], [b, wb] = BODY[segment + 1];
-        for (let sign = -1; sign <= 1; sign += 2) {
-          this.bodyVertex(fish, a, 0, true); this.bodyVertex(fish, a, wa * sign, false); this.bodyVertex(fish, b, wb * sign, false);
-          this.bodyVertex(fish, a, 0, true); this.bodyVertex(fish, b, wb * sign, false); this.bodyVertex(fish, b, 0, true);
-          this.vertex(this.shadowBatch, fish, a, 0, this.shadowColor, true);
-          this.vertex(this.shadowBatch, fish, a, wa * sign, this.shadowColor, true);
-          this.vertex(this.shadowBatch, fish, b, wb * sign, this.shadowColor, true);
-          this.vertex(this.shadowBatch, fish, a, 0, this.shadowColor, true);
-          this.vertex(this.shadowBatch, fish, b, wb * sign, this.shadowColor, true);
-          this.vertex(this.shadowBatch, fish, b, 0, this.shadowColor, true);
+        const [start, startWidth] = BODY[segment], [end, endWidth] = BODY[segment + 1];
+        // Keep the authored silhouette while giving its curved centerline
+        // enough longitudinal vertices to bend visibly at pixel resolution.
+        for (let part = 0; part < 3; part++) {
+          const a = start + (end - start) * part / 3, b = start + (end - start) * (part + 1) / 3;
+          const wa = startWidth + (endWidth - startWidth) * part / 3, wb = startWidth + (endWidth - startWidth) * (part + 1) / 3;
+          for (let sign = -1; sign <= 1; sign += 2) {
+            this.bodyVertex(fish, a, 0, true); this.bodyVertex(fish, a, wa * sign, false); this.bodyVertex(fish, b, wb * sign, false);
+            this.bodyVertex(fish, a, 0, true); this.bodyVertex(fish, b, wb * sign, false); this.bodyVertex(fish, b, 0, true);
+            this.vertex(this.shadowBatch, fish, a, 0, this.shadowColor, true);
+            this.vertex(this.shadowBatch, fish, a, wa * sign, this.shadowColor, true);
+            this.vertex(this.shadowBatch, fish, b, wb * sign, this.shadowColor, true);
+            this.vertex(this.shadowBatch, fish, a, 0, this.shadowColor, true);
+            this.vertex(this.shadowBatch, fish, b, wb * sign, this.shadowColor, true);
+            this.vertex(this.shadowBatch, fish, b, 0, this.shadowColor, true);
+          }
         }
       }
       // A narrow dorsal ridge, small head and close-set eyes differ from koi.
@@ -142,13 +154,13 @@ export class GoldfishRenderer {
   }
 
   private vertex(batch: SurfaceGeometryBatch, fish: GoldfishAgent, t: number, width: number, color: THREE.Color, shadow = false): void {
-    const envelope = Math.pow(Math.min(t, 1), 2.3);
-    const bodyWave = Math.sin(fish.tailPhase - t * 3.2) * 0.055 * fish.effort * envelope;
-    const trailingFin = t > 1 ? Math.sin(fish.tailPhase - t * 4.1) * (t - 1) * 0.065 : 0;
-    const lateral = (width + bodyWave + trailingFin - fish.angularVelocity * envelope * 0.025) * fish.bodyLength;
-    const axial = -t * fish.bodyLength;
+    sampleSwimSpine(fish, t, this.sample);
+    const { forwardX, forwardY } = this.sample;
+    let { x, y } = this.sample;
+    x -= forwardY * width * fish.bodyLength;
+    y += forwardX * width * fish.bodyLength;
     const scale = shadow ? this.shadowScale : 1;
-    batch.pointXY(fish.position.x + (this.forwardX * axial - this.forwardY * lateral) * scale + (shadow ? this.shadowX : 0),
-      fish.position.y + (this.forwardY * axial + this.forwardX * lateral) * scale + (shadow ? this.shadowY : 0), color);
+    batch.pointXY(fish.position.x + (x - fish.position.x) * scale + (shadow ? this.shadowX : 0),
+      fish.position.y + (y - fish.position.y) * scale + (shadow ? this.shadowY : 0), color);
   }
 }

@@ -6,9 +6,9 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 **V1.4.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
-A quiet, observational pond. Click or tap the water to call the koi; enjoy the
+A quiet, observational pond. Click or tap the water to call koi and Wakin; enjoy the
 existing procedural swimming, water, plants, weather, and optional river sound.
-V1.4 — Visual Ecology & Pond Life Pass adds three independently swimming Wakin
+V1.4 — Visual Ecology & Pond Life Pass adds three Wakin
 goldfish, distinct butterfly wing families and folded resting poses, and a
 lighter refinement of lotus veins and layered petals. Koi coasting, body-led
 turns, call response, Medaka shoals, and the existing water/weather system remain.
@@ -32,8 +32,8 @@ runs at `/`; a production preview uses the path configured in `siteUrl`.
 
 ## Controls and languages
 
-- Click / tap: call the koi and startle nearby Medaka. `Space`: scatter the koi.
-  `[` / `]`: change koi count. Wakin keep their independent swimming destinations.
+- Click / tap: call koi and Wakin and startle nearby Medaka. `Space`: scatter both
+  koi and Wakin. `[` / `]`: change koi count.
 - `F`: ambient / browser fullscreen (when supported). `H`: hide or restore UI.
   On a touch device, tap the pond to restore hidden controls.
 - `D`: procedural spine debug view. `R`: reset the simulation.
@@ -95,9 +95,10 @@ relaxing body undulation. Brief rest is rare and retains drift and fin movements
 routine turns bend and recoil without braking to a halt. Medaka replace the
 previous generic tiny fish using the same population and rendering batches, with
 continuous tail beats and coordinated acceleration, steady swimming, and deceleration.
-Wakin use their own deeper body profile, small head, four-lobed short tail, fin
-geometry, steering and propulsion clock. Cross-species avoidance includes their
-whole body, with contact clearance when another fish turns into them. Butterflies
+Wakin retain their deeper body profile, small head, four-lobed short tail and fin
+geometry while sharing the mature koi behavior and movement system. Both species
+use the same steering, trailing spine, bend/recoil, propulsion, soft avoidance,
+boundary turns, call response and scatter; no lateral contact correction is added. Butterflies
 have separate curved forewings and hindwings, family-specific patterns, veins,
 curved antennae and height-dependent shadows; their flower visits remain intact.
 Lotus leaves have an entire margin, central petiole, quieter primary and secondary
@@ -140,7 +141,8 @@ change display branding; it identifies saved preferences.
 - `src/settings/advanced.ts`: the explicit product control list and search scope.
 - `src/settings/composition.ts`: ordered family assignments and resizing rules.
 - `src/fish-renderer.ts`, `src/koi.ts`, `src/school.ts`: existing renderer and simulation.
-- `src/goldfish.ts`, `src/goldfish-renderer.ts`: independent Wakin motion and morphology.
+- `src/goldfish.ts`, `src/goldfish-renderer.ts`: Wakin profile, population and appearance.
+- `src/fish-spine.ts`: shared render-spine wave and sampling for species geometry.
 - `src/butterfly-shape.ts`, `src/butterflies.ts`: cached wing families and visual poses.
 - [How the pond works](docs/how-it-works.md): inherited procedural-animation guide.
 
