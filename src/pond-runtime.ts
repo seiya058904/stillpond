@@ -36,6 +36,13 @@ export class PondRuntime {
     this.school = new School();
     this.school.setCount(settings.live.koi.initialCount);
     this.createRenderer();
+    // CPU configuration belongs to the school, which survives GPU recovery.
+    // Renderer effects resolve the current instance and skip a lost context.
+    const pond = this;
+    this.disconnectEffects = connectSettingsEffects(settings, {
+      school: this.school,
+      get renderer() { return pond.renderer; },
+    });
     // Retire the old renderer while its context is lost, then rebuild once.
     // Disposing stale GL handles after restoration would target the new context.
     canvas.addEventListener("webglcontextlost", this.onLost);
@@ -57,7 +64,6 @@ export class PondRuntime {
   }
 
   private createRenderer = (): void => {
-    this.disconnectEffects();
     this.renderer?.dispose();
     this.renderer = null;
     try {
@@ -69,7 +75,6 @@ export class PondRuntime {
       this.renderer.setPreviewFamily(this.preview);
       this.school.setCount(settings.live.koi.initialCount);
       this.school.setRainIntensity(settings.meta().rain ? 1 : 0);
-      this.disconnectEffects = connectSettingsEffects(settings, { school: this.school, renderer: this.renderer });
       this.status("ready");
     } catch {
       this.status("unavailable");
@@ -104,7 +109,6 @@ export class PondRuntime {
     event.preventDefault();
     this.lost = true;
     this.stop();
-    this.disconnectEffects();
     this.renderer?.dispose();
     this.renderer = null;
     this.status("restoring");
