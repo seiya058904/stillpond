@@ -10,7 +10,7 @@ import type { Change, SettingsStore } from "./store";
 
 export interface SettingsRuntime {
   school: School;
-  renderer: FishRenderer;
+  renderer: FishRenderer | null;
 }
 
 interface EffectHandler {
@@ -46,9 +46,9 @@ const HANDLERS: Record<string, EffectHandler> = {
       });
     },
   },
-  "koi:appearance": { run: (runtime) => runtime.renderer.refreshSection("koi") },
+  "koi:appearance": { run: (runtime) => runtime.renderer?.refreshSection("koi") },
   "goldfish:refresh": { run: (runtime) => runtime.school.goldfish.refreshConfig() },
-  "tiny-fish:render": { run: (runtime) => runtime.renderer.refreshSection("tiny-fish") },
+  "tiny-fish:render": { run: (runtime) => runtime.renderer?.refreshSection("tiny-fish") },
   "tiny-fish:respawn": {
     heavy: true,
     run: (runtime) => runtime.school.tinyFish.refreshConfig(),
@@ -72,15 +72,15 @@ const HANDLERS: Record<string, EffectHandler> = {
       }
     },
   },
-  "pond-bed": { run: (runtime) => runtime.renderer.refreshSection("pond-bed") },
-  water: { run: (runtime) => runtime.renderer.refreshSection("water") },
-  "lotus:rebuild": { run: (runtime) => runtime.renderer.refreshSection("lotus") },
-  "duckweed:rebuild": { heavy: true, run: (runtime) => runtime.renderer.refreshSection("duckweed") },
+  "pond-bed": { run: (runtime) => runtime.renderer?.refreshSection("pond-bed") },
+  water: { run: (runtime) => runtime.renderer?.refreshSection("water") },
+  "lotus:rebuild": { run: (runtime) => runtime.renderer?.refreshSection("lotus") },
+  "duckweed:rebuild": { heavy: true, run: (runtime) => runtime.renderer?.refreshSection("duckweed") },
   // Ripple-response settings are read live every frame; the tag only exists to
   // override the parent group's heavy "duckweed:rebuild".
   "duckweed:live": { run: () => {} },
-  "butterflies:keep": { run: (runtime) => runtime.renderer.refreshSection("butterflies") },
-  "butterflies:respawn": { run: (runtime) => runtime.renderer.refreshSection("butterfly-spawns") },
+  "butterflies:keep": { run: (runtime) => runtime.renderer?.refreshSection("butterflies") },
+  "butterflies:respawn": { run: (runtime) => runtime.renderer?.refreshSection("butterfly-spawns") },
 };
 
 export function connectSettingsEffects(store: SettingsStore, runtime: SettingsRuntime): () => void {
