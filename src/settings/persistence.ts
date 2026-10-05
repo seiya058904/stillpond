@@ -25,9 +25,10 @@ function isValidWeather(id: unknown): id is WeatherPresetId {
 }
 
 function readJson(key: string): unknown {
-  if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(key);
+    const storage = globalThis.localStorage;
+    if (!storage) return null;
+    const raw = storage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -35,18 +36,20 @@ function readJson(key: string): unknown {
 }
 
 function writeJson(key: string, value: unknown): void {
-  if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    storage.setItem(key, JSON.stringify(value));
   } catch {
     // A disabled or full browser storage area must never stop the pond.
   }
 }
 
 function removeKey(key: string): void {
-  if (typeof localStorage === "undefined") return;
   try {
-    localStorage.removeItem(key);
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    storage.removeItem(key);
   } catch {
     // Ignore.
   }

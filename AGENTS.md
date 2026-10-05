@@ -7,6 +7,7 @@
 - The settings-effect subscription in `src/settings/effects.ts` follows the CPU `School` lifetime, including pending light/heavy changes during WebGL loss or renderer creation failure. GPU handlers resolve the current nullable renderer; do not disconnect or capture an obsolete renderer during recovery. `dispose()` ends subscriptions, cancels scheduled effects and frames, and removes listeners.
 - Hidden pages pause simulation and resume without catch-up. Resize world, renderer and pointer mapping together; the logical short edge is 270 pixels and internal DPR is 1. Desktop and touch layouts share the pond; physical iOS / Android acceptance needs actual devices.
 - `src/settings/store.ts` owns live settings, sparse overrides, weather and undo. Extend settings through `src/settings/definition.ts`. Preserve ordered koi-family assignments and v1/v2 compatibility through `src/settings/persistence.ts`; disabled or full storage must not stop the pond. Persistence flushes on `pagehide`.
+- Acquire Web Storage and check its existence inside the same `try` as each read/write/remove: the `localStorage` getter itself can throw `SecurityError` before React mounts. Denied storage must keep defaults and session settings usable.
 - `project.config.json` is the project metadata source. Preserve `storagePrefix` when changing branding so existing preferences remain readable. Ordinary settings load with the app; only the detailed editor is lazy-loaded.
 
 ## Commands and acceptance
