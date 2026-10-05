@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaults } from "./schema";
 import { definition } from "./definition";
 import { SettingsStore } from "./store";
@@ -21,6 +21,52 @@ function makeMemoryStorage(): Storage {
 describe("persistence", () => {
   beforeEach(() => {
     vi.stubGlobal("localStorage", makeMemoryStorage());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each(["missing", "getter", "getItem", "bad JSON", "quota"])("keeps default and in-memory settings when storage fails: %s", (failure) => {
+    if (failure === "missing") vi.stubGlobal("localStorage", undefined);
+    else if (failure === "getter") Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() { throw new DOMException("Storage denied", "SecurityError"); },
+    });
+    else if (failure === "getItem") localStorage.getItem = () => { throw new Error("read denied"); };
+    else if (failure === "bad JSON") localStorage.setItem(__internal.STORAGE_KEY_V2, "{");
+    else localStorage.setItem = () => { throw new DOMException("full", "QuotaExceededError"); };
+    const store = new SettingsStore();
+    const initial = structuredClone(store.live);
+    expect(() => loadInto(store)).not.toThrow();
+    expect(store.live).toEqual(initial);
+    expect(() => save(store)).not.toThrow();
+    const disconnect = connectPersistence(store);
+    expect(() => {
+      store.set(["koi", "initialCount"], 7);
+      store.flushPersist();
+    }).not.toThrow();
+    expect(store.live.koi.initialCount).toBe(7);
+    disconnect();
+  });
+
+  it.each(["removeItem", "getter"])("keeps migrated in-memory settings if removal fails: %s", (failure) => {
+    const storage = localStorage;
+    const config = defaults(definition) as Record<string, any>;
+    config.koi.initialCount = 17;
+    storage.setItem(__internal.STORAGE_KEY_V1, JSON.stringify({ version: 1, config, weather: "mist", rain: true }));
+    if (failure === "removeItem") storage.removeItem = () => { throw new Error("remove denied"); };
+    else {
+      const setItem = storage.setItem;
+      storage.setItem = (key, value) => {
+        setItem(key, value);
+        Object.defineProperty(globalThis, "localStorage", {
+          configurable: true,
+          get() { throw new DOMException("Storage denied", "SecurityError"); },
+        });
+      };
+    }
+    const store = new SettingsStore();
+    expect(() => loadInto(store)).not.toThrow();
+    expect(store.live.koi.initialCount).toBe(17);
+    expect(store.meta()).toMatchObject({ weather: "mist", rain: true });
   });
 
   it("round-trips overrides, weather, and rain through save/load", () => {
