@@ -35,13 +35,15 @@ function readJson(key: string): unknown {
   }
 }
 
-function writeJson(key: string, value: unknown): void {
+function writeJson(key: string, value: unknown): boolean {
   try {
     const storage = globalThis.localStorage;
-    if (!storage) return;
+    if (!storage) return false;
     storage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
     // A disabled or full browser storage area must never stop the pond.
+    return false;
   }
 }
 
@@ -115,12 +117,11 @@ export function loadInto(store: SettingsStore): void {
   if (savedV1 && savedV1.version === 1 && isValidWeather(savedV1.weather) && savedV1.config && typeof savedV1.config === "object") {
     const overrides = migrateV1ToOverrides(savedV1.config as Record<string, unknown>);
     store.importOverrides(overrides, savedV1.weather, savedV1.rain === true);
-    save(store);
-    removeKey(STORAGE_KEY_V1);
+    if (save(store)) removeKey(STORAGE_KEY_V1);
   }
 }
 
-export function save(store: SettingsStore): void {
+export function save(store: SettingsStore): boolean {
   const meta = store.meta();
   const payload: SavedV2 = {
     version: 2,
@@ -128,7 +129,7 @@ export function save(store: SettingsStore): void {
     weather: meta.weather,
     rain: meta.rain,
   };
-  writeJson(STORAGE_KEY_V2, payload);
+  return writeJson(STORAGE_KEY_V2, payload);
 }
 
 export function connectPersistence(store: SettingsStore): () => void {

@@ -69,6 +69,55 @@ describe("persistence", () => {
     expect(store.meta()).toMatchObject({ weather: "mist", rain: true });
   });
 
+  it.each(["quota", "denied", "missing"])("retains v1 across reload when migration cannot persist v2: %s", (failure) => {
+    const storage = localStorage;
+    const config = { koi: { initialCount: 17 } };
+    const original = JSON.stringify({ version: 1, config, weather: "mist", rain: true });
+    storage.setItem(__internal.STORAGE_KEY_V1, original);
+    const setItem = storage.setItem;
+    const getItem = storage.getItem;
+    if (failure === "missing") {
+      storage.getItem = (key) => {
+        const value = getItem(key);
+        if (key === __internal.STORAGE_KEY_V1) vi.stubGlobal("localStorage", undefined);
+        return value;
+      };
+    } else {
+      storage.setItem = () => {
+        throw new DOMException("Storage write failed", failure === "quota" ? "QuotaExceededError" : "SecurityError");
+      };
+    }
+
+    const store = new SettingsStore();
+    expect(() => loadInto(store)).not.toThrow();
+    expect(store.live.koi.initialCount).toBe(17);
+    expect(store.meta()).toMatchObject({ weather: "mist", rain: true });
+    expect(storage.getItem(__internal.STORAGE_KEY_V1)).toBe(original);
+    expect(storage.getItem(__internal.STORAGE_KEY_V2)).toBeNull();
+    const disconnect = connectPersistence(store);
+    expect(() => {
+      store.set(["koi", "initialCount"], 22);
+      store.flushPersist();
+    }).not.toThrow();
+    expect(store.live.koi.initialCount).toBe(22);
+    expect(storage.getItem(__internal.STORAGE_KEY_V1)).toBe(original);
+    disconnect();
+
+    // A later load can still migrate the original preferences after storage recovers.
+    storage.setItem = setItem;
+    storage.getItem = getItem;
+    vi.stubGlobal("localStorage", storage);
+    const restored = new SettingsStore();
+    loadInto(restored);
+    expect(restored.live.koi.initialCount).toBe(17);
+    expect(restored.meta()).toMatchObject({ weather: "mist", rain: true });
+    expect(storage.getItem(__internal.STORAGE_KEY_V1)).toBeNull();
+    expect(storage.getItem(__internal.STORAGE_KEY_V2)).not.toBeNull();
+    const nextLoad = new SettingsStore();
+    loadInto(nextLoad);
+    expect(nextLoad.live.koi.initialCount).toBe(17);
+  });
+
   it("round-trips overrides, weather, and rain through save/load", () => {
     const store = new SettingsStore();
     store.set(["koi", "initialCount"], 22);
