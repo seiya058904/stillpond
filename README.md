@@ -10,15 +10,17 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 **An unhurried place for light, water and small movements.**
 
-[**🌿 Enter the pond ↗**](https://seiya058904.github.io/stillpond/) · [Controls](#controls-and-languages) · [How it works](docs/how-it-works.md) · [Credits & license](#origin-and-license)
-
-![WebGL](https://img.shields.io/badge/renderer-WebGL2-526d82?style=flat-square) ![Languages](https://img.shields.io/badge/language-EN%20%2F%20%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-568d70?style=flat-square)
+**[🌿 Open Stillpond](https://seiya058904.github.io/stillpond/)** · [Controls](#controls-and-languages) · [How it works](docs/how-it-works.md) · [Source and license](#origin-and-license)
 
 </div>
 
-> Nothing to complete, no economy to manage, no progress bar to chase. Stillpond is an observational digital pond: spend a moment, invite a fish closer, change the atmosphere or simply leave it undisturbed.
+> Nothing to complete. No economy to manage. No progress bar to chase.
+>
+> Call a fish, alter the light or leave the water undisturbed. Stillpond is a quiet place to observe rather than a system to optimize.
 
-## 🐟 Life in the pond
+## 🌿 A place to observe
+
+The scene shares one evolving water surface across desktop and touch layouts; fish motion and environmental details continue whether or not you interact.
 
 | In the water | Around it |
 | --- | --- |
@@ -50,7 +52,7 @@ Settings provide **English** (first-visit default) and **简体中文**, with im
 
 The scene responds to window size and input across desktop/touch layouts. Rendering has deliberate logical scaling; selected visual detail and device GPU behavior can vary.
 
-## 🚀 Run it locally
+## Run locally
 
 Requires Node.js **22.12+** and the committed npm lockfile (CI uses Node 24).
 
@@ -63,7 +65,7 @@ npm run preview
 
 `verify` checks synchronized project metadata, tests, TypeScript and the production build. Real-device WebGL recovery, storage denial and touch interactions are distinct acceptance cases; unit tests alone cannot certify every GPU/device combination.
 
-## 🧩 How the pond is built
+## Behind the water
 
 | Location | Responsibility |
 | --- | --- |
@@ -77,7 +79,7 @@ npm run preview
 
 `project.config.json` owns project identity, version, site URL and the stable storage namespace. If project metadata changes intentionally, use `npm run sync:project` and inspect the generated diff; **do not casually change `storagePrefix`**, which identifies existing saved settings. The README header above is maintained as part of that metadata contract.
 
-## 📦 Publishing
+## Deployment
 
 `.github/workflows/pages.yml` validates and deploys the Vite build to GitHub Pages on the repository's established `main` workflow. The deployed build includes `build-info.json`, the original license and attribution notice. Confirm the actual workflow run and build identity rather than assuming that a Git Push guarantees a successful Pages deployment.
 
