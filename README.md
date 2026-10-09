@@ -8,56 +8,132 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 <div align="center">
 
-**An unhurried place for light, water and small movements.**
+<h2>🌿 A Little World That Asks Nothing of You</h2>
 
-**[🌿 Open Stillpond](https://seiya058904.github.io/stillpond/)** · [Controls](#controls-and-languages) · [How it works](docs/how-it-works.md) · [Source and license](#origin-and-license)
+<p><strong>Watch the light move. Follow a fish. Let the water settle.</strong></p>
 
-<img width="3840" height="1866" alt="image" src="https://github.com/user-attachments/assets/e08a399d-e92f-4210-a37b-fe2eb51d8321" />
+<p>A full-screen, procedural pond where koi, Wakin goldfish, and Medaka<br>
+move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
+<p>
+  <a href="https://seiya058904.github.io/stillpond/"><strong>▶ Enter the Pond</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#life-in-the-pond">🐟 Pond Life</a>
+  &nbsp;·&nbsp;
+  <a href="#a-gentle-touch">🫧 Interact</a>
+  &nbsp;·&nbsp;
+  <a href="#make-it-yours">⚙️ Settings</a>
+  &nbsp;·&nbsp;
+  <a href="#behind-the-water">🛠️ How It Works</a>
+</p>
+
+<p><sub>PROCEDURAL FISH &nbsp;·&nbsp; LIVING WATER &nbsp;·&nbsp; DESKTOP + TOUCH &nbsp;·&nbsp; ENGLISH / 简体中文</sub></p>
+
+<img width="860" alt="Stillpond — original full-width screenshot of the digital koi pond" src="https://github.com/user-attachments/assets/e08a399d-e92f-4210-a37b-fe2eb51d8321" />
 
 </div>
 
-> Nothing to complete. No economy to manage. No progress bar to chase.
+---
+
+> **No levels to clear. No score to improve. No reason to hurry.**
 >
-> Call a fish, alter the light or leave the water undisturbed. Stillpond is a quiet place to observe rather than a system to optimize.
+> Stillpond is a quiet, interactive scene. You can call the fish toward you, change the atmosphere, or simply leave everything undisturbed. The pond carries on either way.
 
-## 🌿 A place to observe
+<a id="life-in-the-pond"></a>
+## 🐟 Life in the Pond
 
-The scene shares one evolving water surface across desktop and touch layouts; fish motion and environmental details continue whether or not you interact.
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🎏 Koi — A Body in Motion</h3>
+      <p><sub>GLIDE · COAST · TURN · FOLLOW</sub></p>
+      <p>Procedural koi travel with gentle inertia and a flexible spine. Their heads steer; the rest of each body follows, with fins and tails responding to motion rather than playing a fixed animation.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🐠 Wakin — A Different Silhouette</h3>
+      <p><sub>GOLDFISH · SPLIT TAIL · SHARED SWIMMING RULES</sub></p>
+      <p>Wakin goldfish share the mature movement system while retaining their own smaller body proportions and expressive, split-tail appearance. Three are present by default in V1.4.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🌊 Medaka — Small Movements</h3>
+      <p><sub>SCHOOLING · DISTURBANCE · DEPTH</sub></p>
+      <p>Small fish move in coordinated schools. A tap that draws the larger fish closer may send the tiny ones away, making the same ripple mean different things beneath the surface.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🪷 A Living Environment</h3>
+      <p><sub>LOTUS · BUTTERFLIES · LIGHT · WEATHER</sub></p>
+      <p>Layered lotus flowers, floating leaves, butterflies, water tint, and changing atmospheric conditions give the pond a sense of time and place without creating a task list.</p>
+    </td>
+  </tr>
+</table>
 
-| In the water | Around it |
-| --- | --- |
-| Procedural koi with body-led turns and drifting, coherent swimming | Lotus leaves and layered petals with subtle surface detail |
-| Wakin goldfish with their own silhouette and four-lobed tails | Butterflies with distinct wing families, visits and soft shadows |
-| Small Medaka schools with coordinated motion | Weather, light, reflections and optional water/river audio |
+### ✦ What's New in V1.4
 
-**V1.4 — Visual Ecology & Pond Life Pass** adds three Wakin by default, refines butterfly wing families, lotus material, and the subtle way pond life moves together. The world remains a single scene, not a task system.
+A visual ecology pass brings **three Wakin goldfish**, more distinct butterfly wing families, refined lotus geometry, and a subtler pond surface. The additions strengthen the shared scene without turning it into a collection game.
 
-## Controls and languages
+<a id="a-gentle-touch"></a>
+## 🫧 A Gentle Touch
+
+<p align="center"><code>WATCH &nbsp;→&nbsp; TAP THE WATER &nbsp;→&nbsp; LET THE POND RESPOND</code></p>
 
 | Action | Control |
 | --- | --- |
-| Invite fish | Click or tap water to call nearby koi and Wakin |
-| Scatter fish | `Space` |
-| Change koi count | `[` / `]` |
-| Fullscreen (where supported) | `F` |
-| Hide / restore UI | `H` (touch the pond to restore on touch devices) |
-| Restart simulation | `R` |
-| Debug the procedural spine | `D` |
+| **Invite nearby fish** | Click or tap the water |
+| **Scatter the fish** | `Space` |
+| **Change koi population** | `[` / `]` |
+| **Toggle fullscreen** | `F` (where supported) |
+| **Hide or restore the interface** | `H` (tap the scene to restore on touch devices) |
+| **Restart the simulation** | `R` |
+| **Show procedural-spine diagnostics** | `D` |
 
-Settings provide **English** (first-visit default) and **简体中文**, with immediate language changes to controls and accessibility labels.
+When you click or tap, a ripple appears and individual koi and Wakin respond with different delays. They approach, turn, and circle naturally rather than snapping to a cursor. You can also do nothing; the scene remains alive without input.
 
-- **Pond:** fish and Wakin count, population settings.
-- **Atmosphere:** existing weather presets and light conditions.
-- **Sound:** optional ambience, under user control.
-- **Display:** Smooth (60 fps), Balanced (30), Save energy (20) and Native choices.
-- **Advanced:** more detailed separately loaded options without overwhelming the everyday settings panel.
+<a id="make-it-yours"></a>
+## ⚙️ Make It Yours
 
-The scene responds to window size and input across desktop/touch layouts. Rendering has deliberate logical scaling; selected visual detail and device GPU behavior can vary.
+The everyday settings are deliberately small. More detailed controls live in a separately loaded **Advanced** editor.
 
-## Run locally
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🐟 Pond</h3>
+      <p>Adjust the visible koi and Wakin population and selected composition settings.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🌤️ Atmosphere</h3>
+      <p>Explore weather and lighting presets while keeping the same living pond beneath them.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🔉 Sound</h3>
+      <p>Enable or adjust optional ambient water and river sounds under your control.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🖥️ Display & Language</h3>
+      <p>Choose Smooth (60 fps), Balanced (30), Save energy (20), or Native display modes; switch between English and Simplified Chinese.</p>
+    </td>
+  </tr>
+</table>
 
-Requires Node.js **22.12+** and the committed npm lockfile (CI uses Node 24).
+**English is the first-visit default**, and language changes update the interface and accessibility labels. Preferences are stored locally when browser storage permits; a storage-denied session should still be usable with defaults.
+
+> [!NOTE]
+> **A procedural illustration, not a scientific tank simulator.** Fish steering and water rendering are informed by natural references, but their speeds, proportions, and behavior are tuned for an artistic, low-resolution pond. Physical devices and browsers can differ in WebGL performance and visual detail.
+
+<a id="behind-the-water"></a>
+## 🛠️ Behind the Water
+
+The pond is built with **React, TypeScript, Vite, and Three.js**. Fish movement is simulated independently from rendering: a school decides where fish travel, their spines create a pose, and the renderer composites the pond bed, depth, fish, water, plants, and weather.
+
+<details>
+<summary><strong>⚙️ Expand source map, local development &amp; preservation notes</strong></summary>
+
+### Run locally
+
+Use **Node.js 22.12+** and the committed lockfile. From the repository root:
 
 ```bash
 npm ci
@@ -66,30 +142,40 @@ npm run verify
 npm run preview
 ```
 
-`verify` checks synchronized project metadata, tests, TypeScript and the production build. Real-device WebGL recovery, storage denial and touch interactions are distinct acceptance cases; unit tests alone cannot certify every GPU/device combination.
+`verify` checks generated project metadata, runs Vitest tests, type-checks, and builds the production app. Browser-based checks of real WebGL recovery, visibility changes, pointer alignment, and touch interactions are separate from unit-test coverage.
 
-## Behind the water
+### Source map
 
-| Location | Responsibility |
+| Path | Responsibility |
 | --- | --- |
-| [`src/pond-runtime.ts`](src/pond-runtime.ts) | Simulation lifetime, resize, visibility and renderer recovery |
-| [`src/school.ts`](src/school.ts), [`src/koi.ts`](src/koi.ts) | Fish movement and schooling |
-| [`src/goldfish.ts`](src/goldfish.ts) | Wakin shape and behavior |
-| [`src/fish-renderer.ts`](src/fish-renderer.ts) | Shared water/fish rendering |
-| [`src/settings/`](src/settings/) | Live settings, persistence, undo and effects |
-| [`src/i18n/`](src/i18n/) | English / Chinese interface copy |
-| [`docs/natural-pond.md`](docs/natural-pond.md) | Motion and botanical reference boundaries |
+| [`src/pond-runtime.ts`](src/pond-runtime.ts) | Simulation lifetime, resize, visibility, and WebGL recovery |
+| [`src/school.ts`](src/school.ts) · [`src/koi.ts`](src/koi.ts) | Steering, group behavior, and procedural koi motion |
+| [`src/goldfish.ts`](src/goldfish.ts) | Wakin silhouette and motion integration |
+| [`src/fish-renderer.ts`](src/fish-renderer.ts) | Layered fish and pond rendering |
+| [`src/settings/`](src/settings/) | Settings, persistence, and runtime effects |
+| [`src/i18n/`](src/i18n/) | English and Chinese interface text |
+| [`docs/how-it-works.md`](docs/how-it-works.md) | Accessible explanation of procedural movement and rendering |
+| [`docs/natural-pond.md`](docs/natural-pond.md) | Natural references and visual-ecology design boundaries |
 
-`project.config.json` owns project identity, version, site URL and the stable storage namespace. If project metadata changes intentionally, use `npm run sync:project` and inspect the generated diff; **do not casually change `storagePrefix`**, which identifies existing saved settings. The README header above is maintained as part of that metadata contract.
+### Preserve the project identity
 
-## Deployment
+[`project.config.json`](project.config.json) defines the name, version, homepage, and stable storage namespace. The **machine-managed block at the top of this README** is synchronized with that file. After an intentional metadata change, run `npm run sync:project`, review the diff, and keep the `storagePrefix` stable for existing preferences.
 
-`.github/workflows/pages.yml` validates and deploys the Vite build to GitHub Pages on the repository's established `main` workflow. The deployed build includes `build-info.json`, the original license and attribution notice. Confirm the actual workflow run and build identity rather than assuming that a Git Push guarantees a successful Pages deployment.
+The [Pages workflow](.github/workflows/pages.yml) verifies the app and deploys `dist/` from `main`; a successful source push alone does not prove that a particular browser received the new build. Preserve the original upstream attribution and distributed notices.
 
-## Origin and license
+</details>
 
-Stillpond is a derivative of **[Nagomi by Mayank Kadam](https://github.com/msk1039/nagomi)**, starting from upstream commit `01e93a410c0a317ee0a2b81e84a71e54a6db81d0`. Original procedural fish, water, artwork and atmosphere form its inherited foundation; this project extends that base while retaining upstream history and notices.
+## 📜 Origin, Attribution & License
 
-The **[PolyForm Noncommercial License 1.0.0](LICENSE)** remains in force. This is **not an MIT-licensed or unrestricted commercial project**. Redistribution must include the required license and [NOTICE](NOTICE).
+Stillpond is a derivative of **[Nagomi by Mayank Kadam](https://github.com/msk1039/nagomi)**, based on upstream commit `01e93a410c0a317ee0a2b81e84a71e54a6db81d0`. Its procedural fish, water, artwork, and core scene are inherited foundations, extended here with new interaction, presentation, accessibility, and ecology work.
 
-Required Notice: Copyright 2026 Mayank Kadam (https://github.com/msk1039)
+The project retains the **[PolyForm Noncommercial License 1.0.0](LICENSE)** and its [required NOTICE](NOTICE). **This is not an MIT-licensed project and does not grant general commercial reuse permission.** Review the license terms and keep the required notice with distributed copies.
+
+> Required Notice: Copyright 2026 Mayank Kadam (https://github.com/msk1039)
+
+---
+
+<p align="center">
+  <sub>NOTHING TO WIN. NOTHING TO RUSH. JUST A POND THAT KEEPS MOVING.</sub><br>
+  <sub>Stillpond · A little place to stay.</sub>
+</p>
