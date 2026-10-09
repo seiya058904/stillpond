@@ -12,6 +12,9 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 **[🌿 Open Stillpond](https://seiya058904.github.io/stillpond/)** · [Controls](#controls-and-languages) · [How it works](docs/how-it-works.md) · [Source and license](#origin-and-license)
 
+<img width="3840" height="1866" alt="image" src="https://github.com/user-attachments/assets/e08a399d-e92f-4210-a37b-fe2eb51d8321" />
+
+
 </div>
 
 > Nothing to complete. No economy to manage. No progress bar to chase.
