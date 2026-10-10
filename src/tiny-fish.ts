@@ -43,6 +43,7 @@ interface TinySchoolRange {
   count: number;
   phase: number;
   setting: TinyFishSchoolSetting;
+  placement: Vec2;
 }
 
 export class TinyFishSchools {
@@ -104,11 +105,14 @@ export class TinyFishSchools {
         count: setting.count,
         phase: this.random.range(0, Math.PI * 2),
         setting,
+        placement: { ...placement },
       });
     }
   }
 
   public refreshConfig(): void {
+    // Bulk undo/reset can change placement without a drag notification.
+    for (let index = 0; index < this.ranges.length; index++) this.syncSchoolPosition(index);
     const previous = new Map<string, TinyFishAgent>();
     for (const [schoolIndex, range] of this.ranges.entries()) {
       for (let index = 0; index < range.count; index += 1) {
@@ -137,16 +141,27 @@ export class TinyFishSchools {
       fish.position.x *= scaleX;
       fish.position.y *= scaleY;
     }
+    for (const range of this.ranges) {
+      range.placement.x *= scaleX;
+      range.placement.y *= scaleY;
+    }
     this.callPoint.x *= scaleX;
     this.callPoint.y *= scaleY;
   }
 
-  public shiftSchool(schoolIndex: number, shiftX: number, shiftY: number): void {
-    for (const fish of this.fish) {
-      if (fish.schoolIndex !== schoolIndex) continue;
-      fish.position.x += shiftX;
-      fish.position.y += shiftY;
+  public syncSchoolPosition(schoolIndex: number): void {
+    const range = this.ranges[schoolIndex], setting = TINY_FISH_SCHOOLS[schoolIndex];
+    if (!range || !setting) return;
+    // Synchronize the authored origin, preserving each fish's natural drift.
+    // Repeated or stale light callbacks after a heavy refresh are then no-ops.
+    const placement = viewportPoint(setting.x, setting.y);
+    const shiftX = placement.x - range.placement.x, shiftY = placement.y - range.placement.y;
+    if (shiftX === 0 && shiftY === 0) return;
+    for (let index = range.start; index < range.start + range.count; index++) {
+      this.fish[index].position.x += shiftX;
+      this.fish[index].position.y += shiftY;
     }
+    range.placement = placement;
   }
 
   public fleeFrom(point: Vec2): void {
@@ -276,19 +291,21 @@ export class TinyFishSchools {
 
       const edgeForce = vec();
       const margin = TINY_FISH.edgeMargin;
+      // Zero disables the anticipatory margin, not finite boundary steering.
+      const edgeScale = margin > 0 ? margin : 1;
       if (fish.position.x < margin) {
-        edgeForce.x += (margin - fish.position.x) / margin;
+        edgeForce.x += (margin - fish.position.x) / edgeScale;
       }
       if (fish.position.x > CANVAS_WIDTH - margin) {
         edgeForce.x -=
-          (fish.position.x - (CANVAS_WIDTH - margin)) / margin;
+          (fish.position.x - (CANVAS_WIDTH - margin)) / edgeScale;
       }
       if (fish.position.y < margin) {
-        edgeForce.y += (margin - fish.position.y) / margin;
+        edgeForce.y += (margin - fish.position.y) / edgeScale;
       }
       if (fish.position.y > CANVAS_HEIGHT - margin) {
         edgeForce.y -=
-          (fish.position.y - (CANVAS_HEIGHT - margin)) / margin;
+          (fish.position.y - (CANVAS_HEIGHT - margin)) / edgeScale;
       }
       let targetSpeed = fish.cruiseSpeed * (fish.swimState === "accelerate"
         ? 1 + TINY_FISH.speedVariation * 0.6

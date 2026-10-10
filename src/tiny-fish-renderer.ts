@@ -95,6 +95,11 @@ export class TinyFishRenderer {
   }
 
   public update(schools: TinyFishSchools): void {
+    // Each body uses 24 shadow, 30 silhouette and 36 detail vertices. Reserve
+    // for the existing population before filling; the default buffers stay small.
+    this.shadowBatch.reserve(schools.fish.length * 72);
+    this.shapeBatch.reserve(schools.fish.length * 90);
+    this.detailBatch.reserve(schools.fish.length * 108);
     this.shadowBatch.reset();
     this.shapeBatch.reset();
     this.detailBatch.reset();

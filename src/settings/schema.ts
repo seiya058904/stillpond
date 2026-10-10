@@ -236,9 +236,11 @@ export function nodeAt(root: AnyNode, path: SettingPath): AnyNode | undefined {
   for (const segment of path) {
     if (!node) return undefined;
     if (node.kind === "group") {
-      node = typeof segment === "string" ? node.children[segment] : undefined;
+      node = typeof segment === "string" && Object.hasOwn(node.children, segment)
+        ? node.children[segment] : undefined;
     } else if (node.kind === "list" || node.kind === "collection") {
-      node = typeof segment === "number" ? node.item : undefined;
+      node = typeof segment === "number" && Number.isSafeInteger(segment) && segment >= 0
+        ? node.item : undefined;
     } else {
       return undefined;
     }
@@ -324,7 +326,8 @@ export function validate(
     case "range": {
       if (!Array.isArray(value) || value.length !== 2) return undefined;
       const [rawA, rawB] = value;
-      if (typeof rawA !== "number" || typeof rawB !== "number") return undefined;
+      if (typeof rawA !== "number" || !Number.isFinite(rawA) ||
+        typeof rawB !== "number" || !Number.isFinite(rawB)) return undefined;
       const a = Math.min(node.max, Math.max(node.min, rawA));
       const b = Math.min(node.max, Math.max(node.min, rawB));
       return a <= b ? [a, b] : [b, a];

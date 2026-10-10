@@ -9,10 +9,10 @@ export interface SurfacePoint {
 const DEFAULT_COLOR = new THREE.Color(0xffffff);
 
 export class SurfaceGeometryBatch {
-  private readonly positions: Float32Array;
-  private readonly positionAttribute: THREE.BufferAttribute;
-  private readonly colors?: Float32Array;
-  private readonly colorAttribute?: THREE.BufferAttribute;
+  private positions: Float32Array;
+  private positionAttribute: THREE.BufferAttribute;
+  private colors?: Float32Array;
+  private colorAttribute?: THREE.BufferAttribute;
   private cursor = 0;
 
   public constructor(
@@ -39,6 +39,29 @@ export class SurfaceGeometryBatch {
 
   public reset(): void {
     this.cursor = 0;
+  }
+
+  /** Reserve before filling a larger population; retain capacity when it shrinks. */
+  public reserve(capacity: number): void {
+    if (capacity <= this.positions.length) return;
+    const size = Math.ceil(Math.max(capacity, this.positions.length * 2) / 9) * 9;
+    // Three tracks uploaded buffers by attribute identity. Retire the old
+    // attributes/VAOs before replacing them, while retaining the mesh geometry.
+    this.geometry.dispose();
+    const positions = new Float32Array(size);
+    positions.set(this.positions);
+    this.positions = positions;
+    this.positionAttribute = new THREE.BufferAttribute(positions, 3);
+    this.positionAttribute.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute("position", this.positionAttribute);
+    if (this.colors) {
+      const colors = new Float32Array(size);
+      colors.set(this.colors);
+      this.colors = colors;
+      this.colorAttribute = new THREE.BufferAttribute(colors, 3);
+      this.colorAttribute.setUsage(THREE.DynamicDrawUsage);
+      this.geometry.setAttribute("color", this.colorAttribute);
+    }
   }
 
   public point(point: SurfacePoint, color: THREE.Color = DEFAULT_COLOR): void {

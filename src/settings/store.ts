@@ -94,6 +94,39 @@ function copyInto(target: unknown, source: unknown): void {
   }
 }
 
+/** Validate saved container items before any of them reach the mutable live tree. */
+function sanitizeSavedValue(node: AnyNode, value: unknown, fallback: unknown, live: unknown, deferIndexes: boolean): unknown {
+  if (node.kind === "group") {
+    if (!isContainer(value) || Array.isArray(value)) return undefined;
+    const result = structuredClone(fallback ?? buildDefaults(node)) as Record<string, unknown>;
+    for (const key of Object.keys(node.children)) {
+      if (!Object.hasOwn(value, key)) continue;
+      const next = sanitizeSavedValue(node.children[key], value[key], result[key], live, deferIndexes);
+      if (next !== undefined) result[key] = next;
+    }
+    return result;
+  }
+  if (node.kind === "list" || node.kind === "collection") {
+    if (!Array.isArray(value)) return undefined;
+    const authored = Array.isArray(fallback) ? fallback : node.defaults;
+    // Fixed lists retain the slots the renderer indexes. The inner koi patch
+    // lists have empty schema defaults and intentionally variable lengths.
+    const count = node.kind === "collection" ? Math.min(value.length, node.max ?? 64)
+      : node.defaults.length || value.length;
+    return Array.from({length: count}, (_, index) => {
+      const itemDefault = authored[index] ?? buildDefaults(node.item);
+      return sanitizeSavedValue(node.item, value[index], itemDefault, live, deferIndexes)
+        ?? structuredClone(itemDefault);
+    });
+  }
+  // Referenced collections may appear later in the save (e.g. flower -> leaf
+  // 25). Clamp indices only after every sanitized array has its final length.
+  if (node.kind === "index" && deferIndexes) {
+    return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.round(value)) : undefined;
+  }
+  return validateNode(node, value, definition, live);
+}
+
 /** Nearest ancestor (including the leaf itself) that declares `key`, walking up from the leaf. */
 function inheritedMeta<K extends "effect" | "keepsFamilyPreview">(
   root: AnyNode,
@@ -510,39 +543,55 @@ export class SettingsStore {
 
   public importOverrides(saved: Record<string, unknown>, weather: WeatherPresetId, rain: boolean): void {
     this.overrides.clear();
-    for (const [key, value] of Object.entries(saved)) {
+    const input = isContainer(saved) && !Array.isArray(saved) ? saved : {};
+    const draft = buildDefaults(definition);
+    const importNode = (node: AnyNode, path: SettingPath, value: unknown): void => {
+      if (node.kind === "group") {
+        if (!isContainer(value) || Array.isArray(value)) return;
+        // Flatten sparse groups, keeping only schema-owned properties. Raw
+        // objects (including __proto__) must never be copied into live state.
+        for (const key of Object.keys(node.children)) {
+          if (Object.hasOwn(value, key)) importNode(node.children[key], [...path, key], value[key]);
+        }
+        return;
+      }
+      const key = keyOf(path);
+      const next = key === "koi.families" ? (validFamilies(value) ? [...value] : undefined)
+        : sanitizeSavedValue(node, value, readAt(draft, path), draft, true);
+      if (next === undefined) return;
+      writeAt(draft, path, structuredClone(next));
+      const collectionRoot = collectionRootOf(definition, path);
+      this.overrides.set(keyOf(collectionRoot ?? path), structuredClone(readAt(draft, collectionRoot ?? path)));
+    };
+    // Parent snapshots apply first; explicit leaf edits then win regardless
+    // of JSON property ordering, as they do for live edits after a migration.
+    const entries = Object.entries(input).sort(([a], [b]) => a.split(".").length - b.split(".").length);
+    for (const [key, value] of entries) {
       const path = key.split(".").map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
+      if (path.some(segment => segment === "__proto__" || segment === "constructor" || segment === "prototype")) continue;
       const node = nodeAt(definition, path);
-      if (!node) continue; // Unknown paths (e.g. a removed setting) are dropped.
-      if (key === "koi.families") {
-        if (validFamilies(value)) this.overrides.set(key, [...value]);
-        continue;
-      }
-      if (key === "koi" && value && typeof value === "object" && !Array.isArray(value)) {
-        const group = structuredClone(value) as Record<string, unknown>;
-        if (!validFamilies(group.families)) delete group.families;
-        this.overrides.set(key, group);
-        continue;
-      }
-      if (node.kind === "collection") {
-        if (!Array.isArray(value)) continue;
-        const max = node.max ?? 64;
-        const validated = value.slice(0, max).map((item) => item); // items validated on read
-        this.overrides.set(key, validated);
-      } else if (node.kind === "group" || node.kind === "list") {
-        this.overrides.set(key, value);
-      } else {
-        const validated = validateNode(node, value, definition, this.live);
-        if (validated !== undefined) this.overrides.set(key, validated);
-      }
+      if (!node) continue;
+      // A schema list describes every item, but it does not authorize sparse,
+      // out-of-bounds array writes from a corrupt dotted path.
+      if (path.some((segment, index) => {
+        if (typeof segment !== "number") return false;
+        const parent = readAt(draft, path.slice(0, index));
+        return !Array.isArray(parent) || !Object.hasOwn(parent, segment);
+      })) continue;
+      importNode(node, path, value);
+    }
+    for (const [key, value] of this.overrides) {
+      if (key === "koi.families") continue;
+      const path = key.split(".").map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
+      const node = nodeAt(definition, path)!;
+      this.overrides.set(key, sanitizeSavedValue(node, value, readAt(draft, path), draft, false));
     }
     this.weatherId = weather;
     this.rain = rain;
     this.recomputeAll();
     // Old v1/v2 saves know only the total. Preserve their original alternating
     // assignment exactly once; newer saves use their ordered families as truth.
-    const savedGroup = saved.koi as {families?: unknown} | undefined;
-    const savedFamilies = this.overrides.get("koi.families") ?? savedGroup?.families;
+    const savedFamilies = this.overrides.get("koi.families");
     const families = validFamilies(savedFamilies) ? [...savedFamilies] : legacyFamilies(this.live.koi.initialCount);
     copyInto(this.live.koi.families, families);
     this.live.koi.initialCount = families.length;

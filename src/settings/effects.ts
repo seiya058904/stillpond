@@ -3,7 +3,6 @@
 // Light effects run on the next animation frame; heavy ones are throttled to
 // a trailing 100ms (replacing the old CONFIG_UPDATE_DELAY_MS).
 
-import { CANVAS, CANVAS_HEIGHT, CANVAS_WIDTH } from "../config";
 import type { FishRenderer } from "../fish-renderer";
 import type { School } from "../school";
 import type { Change, SettingsStore } from "./store";
@@ -28,14 +27,17 @@ const HANDLERS: Record<string, EffectHandler> = {
       // A bulk change (reset/undo/weather) reports one Change with
       // path == ["koi"] and `prev` holding the whole previous koi section;
       // a single-field edit reports path == ["koi", fieldName].
-      const bulk = changes.find((c) => c.path.length === 1 && c.path[0] === "koi");
-      const bulkPrev = bulk?.prev as Partial<typeof koi> | undefined;
       const prevOf = <K extends "regularLength" | "tinyLength" | "regularWidthRatio" | "tinyWidthRatio" | "tinyEvery">(
         key: K,
       ): (typeof koi)[K] => {
-        if (bulkPrev) return bulkPrev[key] ?? koi[key];
-        const change = changes.find((c) => c.path[0] === "koi" && c.path[1] === key);
-        return change ? (change.prev as (typeof koi)[K]) : koi[key];
+        // The school still has the value from before the first queued change.
+        // A later undo/reset must not replace an earlier leaf edit's baseline.
+        const change = changes.find((c) => c.path[0] === "koi" &&
+          (c.path.length === 1 || c.path[1] === key));
+        if (!change) return koi[key];
+        return change.path.length === 1
+          ? (change.prev as Partial<typeof koi>)[key] ?? koi[key]
+          : change.prev as (typeof koi)[K];
       };
       runtime.school.updateBodyProportions({
         regularLength: prevOf("regularLength"),
@@ -58,17 +60,7 @@ const HANDLERS: Record<string, EffectHandler> = {
       for (const change of changes) {
         if (change.effect !== "tiny-fish:shift") continue;
         const index = change.path[1];
-        const axis = change.path[2];
-        if (typeof index !== "number" || (axis !== "x" && axis !== "y")) continue;
-        if (typeof change.prev !== "number" || typeof change.next !== "number") continue;
-        const delta = change.next - change.prev;
-        const scaleX = CANVAS_WIDTH / CANVAS.width;
-        const scaleY = CANVAS_HEIGHT / CANVAS.height;
-        runtime.school.tinyFish.shiftSchool(
-          index,
-          axis === "x" ? delta * scaleX : 0,
-          axis === "y" ? delta * scaleY : 0,
-        );
+        if (typeof index === "number") runtime.school.tinyFish.syncSchoolPosition(index);
       }
     },
   },
