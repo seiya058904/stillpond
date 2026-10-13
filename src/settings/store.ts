@@ -312,11 +312,22 @@ export class SettingsStore {
       },
     ];
 
+    if (keyOf(path) === "tiny-fish.visibleSchoolCount" && (value as number) > 0) {
+      const prevCount = this.live["tiny-fish"].lastEnabledSchoolCount;
+      this.live["tiny-fish"].lastEnabledSchoolCount = value as number;
+      this.overrides.set("tiny-fish.lastEnabledSchoolCount", value);
+      changes.push({ path: ["tiny-fish", "lastEnabledSchoolCount"], prev: prevCount, next: value });
+    }
     changes.push(...this.growCollectionsFor(path, value));
 
     this.redoStack.length = 0;
     this.notify(changes);
     this.schedulePersist();
+  }
+
+  public setMedakaEnabled(enabled: boolean): void {
+    // A toggle is a discrete action, not part of the previous slider drag.
+    this.set(["tiny-fish", "visibleSchoolCount"], enabled ? this.live["tiny-fish"].lastEnabledSchoolCount : 0);
   }
 
   public setFamilyCount(family: number, rawCount: number): void {
@@ -556,6 +567,8 @@ export class SettingsStore {
         return;
       }
       const key = keyOf(path);
+      if (key === "tiny-fish.lastEnabledSchoolCount" &&
+        (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 32)) return;
       const next = key === "koi.families" ? (validFamilies(value) ? [...value] : undefined)
         : sanitizeSavedValue(node, value, readAt(draft, path), draft, true);
       if (next === undefined) return;
@@ -589,6 +602,11 @@ export class SettingsStore {
     this.weatherId = weather;
     this.rain = rain;
     this.recomputeAll();
+    const medaka = this.live["tiny-fish"];
+    if (medaka.visibleSchoolCount > 0) {
+      medaka.lastEnabledSchoolCount = medaka.visibleSchoolCount;
+      this.overrides.set("tiny-fish.lastEnabledSchoolCount", medaka.visibleSchoolCount);
+    }
     // Old v1/v2 saves know only the total. Preserve their original alternating
     // assignment exactly once; newer saves use their ordered families as truth.
     const savedFamilies = this.overrides.get("koi.families");

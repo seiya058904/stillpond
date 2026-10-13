@@ -4,6 +4,8 @@ export const fieldLabels = {
   tinyLength: ["Young koi size", "幼年锦鲤大小"],
   goldfishCount: ["Wakin goldfish", "和金数量"],
   goldfishSize: ["Goldfish size", "和金大小"],
+  butterflyKoiCount: ["Platinum butterfly koi", "白金蝴蝶鲤数量"],
+  butterflyKoiSize: ["Butterfly koi size", "白金蝴蝶鲤大小"],
   visibleSchoolCount: ["Medaka shoals", "青鳉鱼群数量"],
   bodyLength: ["Medaka size", "青鳉大小"],
   visibleLeafCount: ["Lotus leaves", "荷叶数量"],

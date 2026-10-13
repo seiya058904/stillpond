@@ -11,7 +11,7 @@ type Vertex = readonly [number, number];
 // Each side of the split caudal fin has its own two tips and rounded shoulder.
 const TAIL: readonly Vertex[] = [
   [0.94, 0.025], [1.08, 0.09], [1.24, 0.255], [1.39, 0.29],
-  [1.36, 0.235], [1.25, 0.15], [1.46, 0.095], [1.4, 0.04], [1.13, 0.018],
+  [1.4, 0.23], [1.34, 0.17], [1.46, 0.095], [1.4, 0.055], [1.13, 0.018],
 ];
 const PECTORAL: readonly Vertex[] = [[0.19, 0.075], [0.24, 0.15], [0.34, 0.25], [0.43, 0.235], [0.44, 0.175], [0.35, 0.09]];
 const PELVIC: readonly Vertex[] = [[0.57, 0.105], [0.69, 0.165], [0.77, 0.13], [0.7, 0.055]];
@@ -87,7 +87,7 @@ export class GoldfishRenderer {
       this.shadowY = (weather?.lightDirection.y ?? 0.82) * (3 + fish.depth * 7) * (weather?.shadowScale ?? 1);
       this.shadowColor.setRGB(0.85 - fish.depth * 0.65, 0, 0);
       this.tint(this.finColor.copy(fish.palette === 0 ? RED : WHITE).lerp(WHITE, 0.25), fish.depth);
-      this.rayColor.copy(this.finColor).multiplyScalar(0.76);
+      this.rayColor.copy(this.finColor).multiplyScalar(0.9);
       this.tint(this.eyeColor.copy(EYE), fish.depth);
       for (let sign = -1; sign <= 1; sign += 2) {
         for (let finIndex = 0; finIndex < FINS.length; finIndex++) {

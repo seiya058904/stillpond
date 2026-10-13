@@ -63,6 +63,11 @@ school does not move as one synchronized group.
 The random choices use repeatable number generators. They add variation, but
 they do not replace the movement rules or randomly teleport fish around.
 
+Wakin goldfish and platinum butterfly koi inherit this same movement system.
+Their independent populations change body proportions and procedural artwork,
+not the swimming rules. Medaka keep their separate schooling system and avoid
+the bodies of both additional populations.
+
 ## 2. Simple intentions create natural movement
 
 A fish does not select its final path in advance. It combines several small
@@ -188,9 +193,14 @@ The renderer looks up each slot's explicit family. A preview reads a separate
 family palette and never changes the array. Older saves receive their original
 alternating assignment once during loading; colors and internal edits survive.
 
+Platinum butterfly koi have their own `butterfly-koi` settings, separate from
+both koi color families and flying butterflies. The store also remembers the
+last positive Medaka shoal count. Count and memory are one saved, undoable
+operation; turning the schools off does not erase their previous count.
+
 ## Why the pond stays responsive
 
-The logical pond is only `480 × 270` pixels and is scaled to the screen. The
+The logical pond has a 270-pixel short edge (`480 × 270` at 16:9) and is scaled to the screen. The
 simulation uses a fixed 60 updates per second, which keeps movement stable even
 when the display frame rate changes.
 

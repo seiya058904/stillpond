@@ -26,6 +26,7 @@ beforeEach(() => {
   settings.resetAll();
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   delete (Object.prototype as Record<string, unknown>).stillpondAuditPolluted;
   settings.resetAll();
   vi.unstubAllGlobals();
@@ -137,6 +138,18 @@ describe("saved settings validation boundary", () => {
     expect(next.live["tiny-fish-schools"][11].x).toBe(245);
     expect(next.live).toEqual(store.live);
     save(next);
+    const reloaded = new SettingsStore(); loadInto(reloaded);
+    expect(reloaded.live).toEqual(store.live);
+  });
+
+  it("round-trips generated values that round to zero without changing their sign", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.49999);
+    const store = new SettingsStore();
+    store.set(["lotus", "visibleFlowerCount"], 16);
+    store.set(["tiny-fish", "visibleSchoolCount"], 32);
+    expect(Object.is(store.live["lotus-flowers"][15].offsetX, -0)).toBe(false);
+    expect(Object.is(store.live["tiny-fish-schools"][31].heading, -0)).toBe(false);
+    expect(save(store)).toBe(true);
     const reloaded = new SettingsStore(); loadInto(reloaded);
     expect(reloaded.live).toEqual(store.live);
   });

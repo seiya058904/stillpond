@@ -1,6 +1,8 @@
 import { CANVAS_HEIGHT, CANVAS_WIDTH, GOLDFISH, MAX_FISH, MAX_GOLDFISH, SPINE_NODES } from "./config";
 import { Koi, type FishProfile } from "./koi";
-import { clamp, XorShift32, type Vec2 } from "./math";
+import { XorShift32, type Vec2 } from "./math";
+
+import { fishBodyAvoidance } from "./large-fish-avoidance";
 
 export const WAKIN_PROFILE: FishProfile = { length: [16, 20], widthRatio: [0.17, 0.17] };
 
@@ -82,23 +84,7 @@ export class GoldfishPopulation {
   // Reused scratch result. Callers consume it before the next query. The
   // capsule spans the body, not just its head; the look-ahead softens contact.
   public avoidance(x: number, y: number, radius: number): Vec2 {
-    const result = this.avoidanceVector;
-    result.x = 0; result.y = 0;
-    for (let index = 0; index < this.count; index++) {
-      const fish = this.fish[index];
-      const fx = Math.cos(fish.heading), fy = Math.sin(fish.heading);
-      const dx = x - fish.position.x - fish.velocity.x * 0.22;
-      const dy = y - fish.position.y - fish.velocity.y * 0.22;
-      const along = clamp(dx * fx + dy * fy, -fish.bodyLength * 0.85, 0);
-      const ox = dx - fx * along, oy = dy - fy * along;
-      const distance = Math.hypot(ox, oy);
-      const reach = radius + fish.bodyWidth + 7;
-      if (distance >= reach) continue;
-      const strength = Math.pow(1 - distance / reach, 2) * 3.8;
-      if (distance > 0.001) { result.x += ox / distance * strength; result.y += oy / distance * strength; }
-      else { result.x -= fy * strength; result.y += fx * strength; }
-    }
-    return result;
+    return fishBodyAvoidance(this.fish, this.count, x, y, radius, this.avoidanceVector);
   }
 
 }

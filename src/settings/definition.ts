@@ -228,6 +228,8 @@ const tinyFishPalette = group({
 
 const tinyFish = group(
   {
+    // Internal preference: part of overrides/undo, never a separate UI state.
+    lastEnabledSchoolCount: num({ default: 3, min: 1, max: 32, step: 1, int: true }),
     visibleSchoolCount: num({
       default: 3,
       min: 0,
@@ -324,7 +326,7 @@ const tinyFishSchools = collection(tinyFishSchoolItem, [
     const l = live as { "tiny-fish": ValueOf<typeof tinyFish> };
     const random = (min: number, max: number): number => min + Math.random() * (max - min);
     const randomInt = (min: number, maxExclusive: number): number => Math.floor(random(min, maxExclusive));
-    const rounded = (min: number, max: number): number => Number(random(min, max).toFixed(2));
+    const rounded = (min: number, max: number): number => Number(random(min, max).toFixed(2)) || 0;
     return {
       x: randomInt(48, LAYOUT.width - 47),
       y: randomInt(38, LAYOUT.height - 37),
@@ -346,6 +348,11 @@ const goldfish = group({
   count: num({ default: 3, min: 0, max: 8, step: 1, int: true }),
   size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
 }, { effect: "goldfish:refresh" });
+
+const butterflyKoi = group({
+  count: num({ default: 2, min: 0, max: 6, step: 1, int: true }),
+  size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
+}, { effect: "butterfly-koi:refresh" });
 
 // ---- pond bed --------------------------------------------------------
 
@@ -571,7 +578,7 @@ const lotusLeaves = collection(lotusLeafItem, [
   create: () => {
     const randomInt = (min: number, maxExclusive: number): number =>
       Math.floor(min + Math.random() * (maxExclusive - min));
-    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2));
+    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2)) || 0;
     return {
       ...randomEdgePosition(),
       radius: randomInt(12, 27),
@@ -607,7 +614,7 @@ const lotusFlowers = collection(lotusFlowerItem, [
     const l = live as { lotus: ValueOf<typeof lotus>; ["lotus-leaves"]: ValueOf<typeof lotusLeaves> };
     const randomInt = (min: number, maxExclusive: number): number =>
       Math.floor(min + Math.random() * (maxExclusive - min));
-    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2));
+    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2)) || 0;
     const availableLeaves = l["lotus-leaves"].length;
     const visibleLeaves = Math.max(1, Math.min(availableLeaves, Math.round(l.lotus.visibleLeafCount)));
     return {
@@ -735,7 +742,7 @@ const duckweedPatches = collection(duckweedPatchItem, [
     const l = live as { duckweed: ValueOf<typeof duckweed> };
     const randomInt = (min: number, maxExclusive: number): number =>
       Math.floor(min + Math.random() * (maxExclusive - min));
-    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2));
+    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2)) || 0;
     return {
       ...randomEdgePosition(),
       radius: randomInt(18, 43),
@@ -828,7 +835,7 @@ const butterflySpawns = collection(butterflySpawnItem, [
     const l = live as { butterflies: ValueOf<typeof butterflies> };
     const randomInt = (min: number, maxExclusive: number): number =>
       Math.floor(min + Math.random() * (maxExclusive - min));
-    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2));
+    const rounded = (min: number, max: number): number => Number((min + Math.random() * (max - min)).toFixed(2)) || 0;
     return {
       x: randomInt(24, LAYOUT.width - 23),
       y: randomInt(24, LAYOUT.height - 23),
@@ -843,6 +850,7 @@ const butterflySpawns = collection(butterflySpawnItem, [
 export const definition = group({
   koi,
   goldfish,
+  "butterfly-koi": butterflyKoi,
   "koi-palettes": koiPalettes,
   "koi-patterns": koiPatterns,
   "tiny-fish": tinyFish,

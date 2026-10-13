@@ -137,8 +137,10 @@ describe("every retained Advanced value", () => {
     expect(store.get(control.path)).toEqual(before);
     store.undo(); expect(store.get(control.path)).toEqual(next);
   });
-  it("keeps Advanced at 42 meaningful settings, including two goldfish controls", () => {
-    expect(controls.length+6).toBe(42);
+  it("keeps Advanced at 44 meaningful settings, including two longfin controls but no internal history", () => {
+    expect(controls.length+6).toBe(44);
+    expect(controls.filter(control => control.path[0] === "butterfly-koi")).toHaveLength(2);
+    expect(controls.some(control => control.path.join(".").includes("lastEnabledSchoolCount"))).toBe(false);
     expect(controls.some(control => /visualStart|offset|phase|sharpness/i.test(control.path.join('.')))).toBe(false);
   });
 });

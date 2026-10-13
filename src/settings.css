@@ -164,7 +164,7 @@
 @media(hover:hover) { .composition-stepper button:hover:not(:disabled), .family-preview-toggle:hover { background:var(--pressed); } }
 @media(max-width:359px) { .composition-row { gap:7px; } .family-swatch { width:30px; } .composition-stepper output { min-width:20px; } .composition-family { font-size:13px; } }
 @media(min-width:768px) { .settings-drawer { bottom:auto; --drawer-content-height:min(840px,calc(100dvh - 40px)); } }
-@media(min-width:3000px) { .settings-drawer { --drawer-content-width:500px; --drawer-inset:32px; --drawer-content-height:1000px; } }
+@media(min-width:3000px) { .settings-drawer { --drawer-content-width:500px; --drawer-inset:32px; --drawer-content-height:min(1000px,calc(100dvh - 64px)); } }
 @media(max-width:767px) { .settings-drawer { --drawer-inset:8px; --drawer-content-width:auto; --drawer-content-height:min(86dvh,800px); --drawer-content-max-height:calc(100dvh - 48px); border-radius:28px; } .settings-drawer [data-slot=drawer-swipe-handle] { height:18px; } .settings-drawer [data-slot=drawer-swipe-handle]::after { width:36px; height:5px; background:rgb(211 239 219 / 30%); } .settings-drawer__header { padding-inline:16px; } .settings-page { padding-inline:16px; } .settings-menu-row { padding-inline:14px; font-size:16px; } .weather-cards { gap:16px 9px; } .weather-card__scene { height:56px; } .settings-back, .settings-done { font-size:15px; } }
 @media(max-height:500px) and (min-width:768px) { .settings-drawer { --drawer-inset:10px; --drawer-content-width:400px; --drawer-content-height:calc(100dvh - 20px); } .settings-drawer__header { height:104px; padding-top:0; padding-bottom:8px; } }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) { .settings-drawer { background:#20372b; } }

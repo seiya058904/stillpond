@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Switch } from "@/components/ui/switch";
 import { languages, useI18n } from "./i18n";
 import { useSetting } from "./settings/react";
+import { settings } from "./settings/store";
 import { WEATHER_PRESETS, type WeatherPresetId } from "./weather";
 import type { FrameRateCap } from "./performance-prefs";
 
@@ -34,8 +35,9 @@ function Group({title, children, note, status, flush}: {title: string; children:
 export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onAdvanced}: QuickSettingsProps) {
   const {t, language, setLanguage} = useI18n();
   const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
-  const [shoals, setShoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
+  const [shoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
   const [goldfish, setGoldfish] = useSetting<number>(["goldfish", "count"]);
+  const [longfins, setLongfins] = useSetting<number>(["butterfly-koi", "count"]);
   return <div className="preferences">
     <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
@@ -45,7 +47,10 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
       <div className="preference-row divided"><label htmlFor="pond-goldfish">{t("product.goldfish")}</label><output htmlFor="pond-goldfish">{t("product.goldfishCount", {count: goldfish})}</output></div>
       <input id="pond-goldfish" className="pond-range" type="range" min="0" max="8" step="1" value={goldfish}
         aria-valuetext={t("product.goldfishCount", {count: goldfish})} style={{"--range": (goldfish/8*100)+"%"} as CSSProperties} onChange={event => setGoldfish(Number(event.target.value))} />
-      <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => setShoals(on ? 3 : 0)} /></div>
+      <div className="preference-row divided"><label htmlFor="pond-butterfly-koi">{t("product.butterflyKoi")}</label><output htmlFor="pond-butterfly-koi">{t("product.butterflyKoiCount", {count: longfins})}</output></div>
+      <input id="pond-butterfly-koi" className="pond-range" type="range" min="0" max="6" step="1" value={longfins}
+        aria-valuetext={t("product.butterflyKoiCount", {count: longfins})} style={{"--range": (longfins/6*100)+"%"} as CSSProperties} onChange={event => setLongfins(Number(event.target.value))} />
+      <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => settings.setMedakaEnabled(on)} /></div>
     </Group>
     <Group title={t("quick.atmosphere")}>
       <div className="weather-cards" role="group" aria-label={t("controls.weatherLighting")}>

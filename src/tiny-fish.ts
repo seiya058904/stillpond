@@ -20,7 +20,7 @@ import {
   type Vec2,
   XorShift32,
 } from "./math";
-import type { GoldfishPopulation } from "./goldfish";
+interface FishAvoidance { avoidance(x: number, y: number, radius: number): Vec2 }
 
 export interface TinyFishAgent {
   position: Vec2;
@@ -185,17 +185,17 @@ export class TinyFishSchools {
     }
   }
 
-  public update(dt: number, time: number, goldfish?: GoldfishPopulation): void {
+  public update(dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance): void {
     const visibleSchools = Math.min(
       TINY_FISH.visibleSchoolCount,
       this.ranges.length,
     );
     for (let schoolIndex = 0; schoolIndex < visibleSchools; schoolIndex += 1) {
-      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish);
+      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish, butterflyKoi);
     }
   }
 
-  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: GoldfishPopulation): void {
+  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance): void {
     let center = vec();
     let averageVelocity = vec();
     for (let index = range.start; index < range.start + range.count; index += 1) {
@@ -335,6 +335,9 @@ export class TinyFishSchools {
       }
       steering = add(steering, mul(edgeForce, TINY_FISH.edgeStrength));
       if (goldfish) steering = add(steering, goldfish.avoidance(
+        fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
+      ));
+      if (butterflyKoi) steering = add(steering, butterflyKoi.avoidance(
         fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
       ));
 

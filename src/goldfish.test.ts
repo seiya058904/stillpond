@@ -86,6 +86,7 @@ describe("wakin on the shared koi system", () => {
   });
 
   it("uses identical motion for an identical agent in either population", () => {
+    settings.set(["butterfly-koi", "count"], 0);
     const koiSchool = new School(), wakinSchool = new School();
     koiSchool.setCount(1); wakinSchool.setCount(0);
     const koi = koiSchool.fish[0], wakin = wakinSchool.goldfish.fish[0];

@@ -22,6 +22,10 @@ export const ADVANCED_GROUPS = [
     {id: "goldfish-count", label: "goldfishCount", path: ["goldfish", "count"]},
     {id: "goldfish-size", label: "goldfishSize", path: ["goldfish", "size"], percent: true},
   ]},
+  {id: "butterfly-koi", sections: ["butterfly-koi"], controls: [
+    {id: "butterfly-koi-count", label: "butterflyKoiCount", path: ["butterfly-koi", "count"]},
+    {id: "butterfly-koi-size", label: "butterflyKoiSize", path: ["butterfly-koi", "size"], percent: true},
+  ]},
   {id: "medaka", sections: ["tiny-fish", "tiny-fish-schools"], controls: [
     {id: "medaka-shoals", label: "visibleSchoolCount", path: ["tiny-fish", "visibleSchoolCount"], max: 12},
     {id: "medaka-size", label: "bodyLength", path: ["tiny-fish", "bodyLength"], min: 3, max: 12},

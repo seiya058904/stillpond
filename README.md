@@ -12,7 +12,7 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 <p><strong>Watch the light move. Follow a fish. Let the water settle.</strong></p>
 
-<p>A full-screen, procedural pond where koi, Wakin goldfish, and Medaka<br>
+<p>A full-screen, procedural pond where koi, platinum butterfly koi, Wakin goldfish, and Medaka<br>
 move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 <p>
@@ -73,6 +73,12 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 A visual ecology pass brings **three Wakin goldfish**, more distinct butterfly wing families, refined lotus geometry, and a subtler pond surface. The additions strengthen the shared scene without turning it into a collection game.
 
+The next local iteration adds **two platinum butterfly koi**: a real silver-white,
+long-finned koi variety with broad pectoral fins and a flowing forked tail. Their
+population (0–6) and size (70–130%) are independent of the six koi color families;
+swimming, depth, calls and scattering use the same behavior system. Wakin keep
+their shorter double tails with fuller membranes and quieter fin rays.
+
 <a id="a-gentle-touch"></a>
 ## 🫧 A Gentle Touch
 
@@ -99,7 +105,7 @@ The everyday settings are deliberately small. More detailed controls live in a s
   <tr>
     <td width="50%" valign="top">
       <h3>🐟 Pond</h3>
-      <p>Adjust the visible koi and Wakin population and selected composition settings.</p>
+      <p>Adjust koi, platinum butterfly koi and Wakin populations and selected composition settings. Switching Medaka off remembers their previous shoal count.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🌤️ Atmosphere</h3>
@@ -119,6 +125,10 @@ The everyday settings are deliberately small. More detailed controls live in a s
 </table>
 
 **English is the first-visit default**, and language changes update the interface and accessibility labels. Preferences are stored locally when browser storage permits; a storage-denied session should still be usable with defaults.
+
+**Reset pond** restores fish, plants, water and weather. Language, sound and
+display preferences stay as you chose them. Advanced Undo/Redo includes fish
+counts and the remembered Medaka count, including older saves with 13–32 shoals.
 
 > [!NOTE]
 > **A procedural illustration, not a scientific tank simulator.** Fish steering and water rendering are informed by natural references, but their speeds, proportions, and behavior are tuned for an artistic, low-resolution pond. Physical devices and browsers can differ in WebGL performance and visual detail.
@@ -151,6 +161,7 @@ npm run preview
 | [`src/pond-runtime.ts`](src/pond-runtime.ts) | Simulation lifetime, resize, visibility, and WebGL recovery |
 | [`src/school.ts`](src/school.ts) · [`src/koi.ts`](src/koi.ts) | Steering, group behavior, and procedural koi motion |
 | [`src/goldfish.ts`](src/goldfish.ts) | Wakin silhouette and motion integration |
+| [`src/butterfly-koi.ts`](src/butterfly-koi.ts) · [`src/butterfly-koi-renderer.ts`](src/butterfly-koi-renderer.ts) | Platinum longfin population and procedural membranes |
 | [`src/fish-renderer.ts`](src/fish-renderer.ts) | Layered fish and pond rendering |
 | [`src/settings/`](src/settings/) | Settings, persistence, and runtime effects |
 | [`src/i18n/`](src/i18n/) | English and Chinese interface text |

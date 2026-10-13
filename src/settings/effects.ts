@@ -50,6 +50,7 @@ const HANDLERS: Record<string, EffectHandler> = {
   },
   "koi:appearance": { run: (runtime) => runtime.renderer?.refreshSection("koi") },
   "goldfish:refresh": { run: (runtime) => runtime.school.goldfish.refreshConfig() },
+  "butterfly-koi:refresh": { run: (runtime) => runtime.school.butterflyKoi.refreshConfig() },
   "tiny-fish:render": { run: (runtime) => runtime.renderer?.refreshSection("tiny-fish") },
   "tiny-fish:respawn": {
     heavy: true,

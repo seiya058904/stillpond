@@ -89,6 +89,8 @@ function migrateV1ToOverrides(draft: Record<string, unknown>): Record<string, un
         savedSection,
       );
       if (savedValue === undefined) return;
+      if (path.join(".") === "tiny-fish.lastEnabledSchoolCount" &&
+        (typeof savedValue !== "number" || !Number.isInteger(savedValue) || savedValue < 1 || savedValue > 32)) return;
       const defaultValue = relativePath.reduce<unknown>(
         (value, segment) => (value && typeof value === "object" ? (value as Record<string | number, unknown>)[segment] : undefined),
         defaultsTree[id],

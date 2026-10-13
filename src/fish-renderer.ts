@@ -30,6 +30,7 @@ import { School } from "./school";
 import { SurfaceDisturbancePass } from "./surface-disturbance";
 import { TinyFishRenderer } from "./tiny-fish-renderer";
 import { GoldfishRenderer } from "./goldfish-renderer";
+import { ButterflyKoiRenderer } from "./butterfly-koi-renderer";
 import { buildRenderSpine } from "./fish-spine";
 import { WaterSurfacePass } from "./water-surface";
 import { WeatherPass } from "./weather-pass";
@@ -229,6 +230,7 @@ export class FishRenderer {
   private readonly weather: WeatherPass;
   private readonly tinyFishRenderer = new TinyFishRenderer();
   private readonly goldfishRenderer = new GoldfishRenderer();
+  private readonly butterflyKoiRenderer = new ButterflyKoiRenderer();
   private readonly duckweed = new DuckweedPass();
   private readonly lotusLeaves = new LotusLeavesPass();
   private readonly butterflies = new ButterflyPass();
@@ -291,9 +293,11 @@ export class FishRenderer {
       this.lotusLeaves.shadowGroup,
       this.tinyFishRenderer.shadowGroup,
       this.goldfishRenderer.shadowGroup,
+      this.butterflyKoiRenderer.shadowGroup,
     );
     this.fishScene.add(this.tinyFishRenderer.group);
     this.fishScene.add(this.goldfishRenderer.group);
+    this.fishScene.add(this.butterflyKoiRenderer.group);
     this.surfaceScene.add(this.waterSurface.mesh);
     this.surfaceShadowScene.add(
       this.duckweed.shadowGroup,
@@ -506,6 +510,9 @@ export class FishRenderer {
     this.goldfishRenderer.group.visible = previewIndex === null;
     this.goldfishRenderer.shadowGroup.visible = previewIndex === null;
     if (previewIndex === null) this.goldfishRenderer.update(school.goldfish, this.weather.surface);
+    this.butterflyKoiRenderer.group.visible = previewIndex === null;
+    this.butterflyKoiRenderer.shadowGroup.visible = previewIndex === null;
+    if (previewIndex === null) this.butterflyKoiRenderer.update(school.butterflyKoi, this.weather.surface);
     this.pondBed.update(time);
     this.surfaceDisturbance.render(
       this.renderer,

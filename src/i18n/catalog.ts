@@ -1,5 +1,9 @@
 // English and Simplified Chinese share one key set. All product copy lives here.
 export const messages = {
+  "product.butterflyKoi": ["Platinum butterfly koi", "白金蝴蝶鲤"],
+  "product.butterflyKoiCount": ["{count} longfins", "{count} 条"],
+  "section.butterfly-koi": ["Platinum butterfly koi", "白金蝴蝶鲤"],
+  "group.butterfly-koi": ["Silvery longfin koi with flowing fins and a forked tail.", "银白色长鳍锦鲤，舒展胸鳍与飘逸分叉尾。"],
   "product.pond": ["Pond", "池塘"],
   "product.medaka": ["Medaka shoals", "青鳉鱼群"],
   "product.medakaHint": ["Small ricefish swim together, their tails always moving.", "小小的青鳉持续摆尾，结伴游动。"],
@@ -39,10 +43,10 @@ export const messages = {
   "settings.title": ["Pond settings", "池塘设置"],
   "settings.close": ["Close settings", "关闭设置"],
   "settings.language": ["Language", "语言 / Language"],
-  "settings.resetConfirmLabel": ["Confirm reset all settings", "确认重置所有设置"],
-  "settings.resetConfirm": ["Reset all pond settings on this device?", "重置当前设备上的所有池塘设置？"],
+  "settings.resetConfirmLabel": ["Confirm pond reset", "确认重置池塘"],
+  "settings.resetConfirm": ["Reset fish, plants, water and weather? Language, sound and display preferences stay as they are.", "重置鱼群、植物、水体和天气？语言、声音与显示偏好将保留。"],
   "action.cancel": ["Cancel", "取消"],
-  "action.resetAll": ["Reset all", "全部重置"],
+  "action.resetAll": ["Reset pond", "重置池塘"],
   "action.resetGroup": ["Reset {group}", "重置{group}"],
   "action.undo": ["Undo", "撤销"],
   "action.done": ["Done", "完成"],
