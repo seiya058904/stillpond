@@ -27,7 +27,7 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
   <a href="#behind-the-water">🛠️ How It Works</a>
 </p>
 
-<p><sub>PROCEDURAL FISH &nbsp;·&nbsp; LIVING WATER &nbsp;·&nbsp; DESKTOP + TOUCH &nbsp;·&nbsp; ENGLISH / 简体中文</sub></p>
+<p><sub>PROCEDURAL FISH &nbsp;·&nbsp; LIVING WATER &nbsp;·&nbsp; DESKTOP + TOUCH &nbsp;·&nbsp; ENGLISH / SIMPLIFIED CHINESE</sub></p>
 
 <img width="860" alt="Stillpond — original full-width screenshot of the digital koi pond" src="https://github.com/user-attachments/assets/e08a399d-e92f-4210-a37b-fe2eb51d8321" />
 
