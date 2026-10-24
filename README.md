@@ -73,7 +73,7 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 A visual ecology pass brings **three Wakin goldfish**, more distinct butterfly wing families, refined lotus geometry, and a subtler pond surface. The additions strengthen the shared scene without turning it into a collection game.
 
-The next local iteration adds **two platinum butterfly koi**: a real silver-white,
+The pond also includes **two platinum butterfly koi** by default: a real silver-white,
 long-finned koi variety with broad pectoral fins and a flowing forked tail. Their
 population (0–6) and size (70–130%) are independent of the six koi color families;
 swimming, depth, calls and scattering use the same behavior system. Wakin keep
