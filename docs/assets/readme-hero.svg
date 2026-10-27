@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">Fish and lotus leaves in a pond</title>
+  <desc id="desc">Original illustration of two koi and lotus leaves surrounded by ripples.</desc>
+  <rect width="1200" height="320" fill="#123d39"/>
+  <g fill="none" stroke="#70c4aa" stroke-width="2" opacity=".55"><ellipse cx="340" cy="163" rx="158" ry="68"/><ellipse cx="340" cy="163" rx="190" ry="91"/><ellipse cx="818" cy="153" rx="154" ry="66"/><ellipse cx="818" cy="153" rx="188" ry="90"/></g>
+  <g transform="translate(260 100) rotate(20 90 50)"><path d="M27 50c33-32 104-42 150 0-46 42-117 32-150 0z" fill="#f4e9d1"/><path d="M29 50L0 20v60z" fill="#e9d8b9"/><path d="M77 24c13-3 27-3 41 1l9 19-19 13-31-8z" fill="#d47762"/><circle cx="151" cy="45" r="4" fill="#123d39"/></g>
+  <g transform="translate(742 99) rotate(-22 90 50)"><path d="M27 50c33-32 104-42 150 0-46 42-117 32-150 0z" fill="#f4e9d1"/><path d="M29 50L0 20v60z" fill="#e9d8b9"/><path d="M83 25c16-3 32 0 46 5l-4 18-25 10-22-13z" fill="#d47762"/><circle cx="151" cy="45" r="4" fill="#123d39"/></g>
+  <g fill="#397661"><circle cx="115" cy="71" r="57"/><circle cx="1103" cy="246" r="61"/><circle cx="1004" cy="50" r="35"/></g>
+  <g fill="none" stroke="#70c4aa" stroke-width="2" opacity=".65"><path d="M115 71l-34-35m34 35 44-15m-44 15 4 44"/><path d="M1103 246l-33-39m33 39 42-13m-42 13 6 47"/></g>
+  <g transform="translate(1026 82)" fill="#e9a4a0"><ellipse rx="8" ry="24"/><ellipse rx="8" ry="24" transform="rotate(60)"/><ellipse rx="8" ry="24" transform="rotate(120)"/><circle r="6" fill="#e8bf70"/></g>
+</svg>
