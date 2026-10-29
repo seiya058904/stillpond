@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="cover-title cover-desc">
+  <title id="cover-title">stillpond — illustrated project cover</title>
+  <desc id="cover-desc">Watch the light. Follow a fish. Stay a while. A decorative vector illustration accompanies the project title.</desc>
+  <rect width="1200" height="360" rx="24" fill="#ECF2E6"/>
+  <path d="M56 70h38" stroke="#527864" stroke-width="4" stroke-linecap="round"/>
+  <text x="110" y="76" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#527864" letter-spacing="2">A LITTLE PLACE TO STAY</text>
+  <text x="56" y="174" font-family="Arial, Helvetica, sans-serif" font-size="61" font-weight="700" fill="#2D584B" letter-spacing="0">STILLPOND</text>
+  
+  <text x="58" y="220" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#2D584B" letter-spacing="0">Watch the light. Follow a fish. Stay a while.</text>
+  <text x="58" y="315" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#527864" letter-spacing="2">LIVING WATER · PROCEDURAL MOTION</text>
+  <g transform="translate(748 22)">
+  <ellipse cx="192" cy="161" rx="168" ry="124" fill="#D4E4DA"/>
+  <ellipse cx="192" cy="161" rx="136" ry="91" fill="none" stroke="#B1CEC1"/>
+  <ellipse cx="192" cy="161" rx="106" ry="65" fill="none" stroke="#B1CEC1"/>
+  <path d="M293 69c-29-20-54 4-39 27 15 20 53 8 39-27Z" fill="#6E9E80"/>
+  <path d="M276 80l23 14" stroke="#D4E4DA" stroke-width="3"/>
+  <path d="M93 211c-29-20-54 4-39 27 15 20 53 8 39-27Z" fill="#88AA84"/>
+  <g transform="translate(156 140) rotate(-28)"><path d="M-50 0C-28-31 31-29 55 0 31 29-28 31-50 0Z" fill="#FCF3DD"/><path d="M-46 0l-28-22 5 22-5 22Z" fill="#DDA98A"/><path d="M-19-20c13-6 32-3 35 8S2 4-6 4Z" fill="#D57358"/><path d="M18 9c12-8 23-6 28-1l-18 13Z" fill="#D57358"/><circle cx="43" cy="-4" r="2.5" fill="#294A40"/></g>
+  <g transform="translate(242 206) rotate(150)"><path d="M-33 0C-14-23 26-19 41 0 26 19-14 23-33 0Z" fill="#EAEDDD"/><path d="M-31 0l-25-17 4 17-4 17Z" fill="#B3C6B9"/><circle cx="32" cy="-3" r="2" fill="#294A40"/></g>
+  <path d="M309 225q13-13 26 0M313 232q9-9 18 0" fill="none" stroke="#87AB9A" stroke-width="2"/>
+  </g>
+</svg>

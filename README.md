@@ -6,6 +6,10 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 **V1.4.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
+<p align="center">
+  <img src="docs/readme-cover.svg" width="100%" alt="STILLPOND — illustrated project cover" />
+</p>
+
 <div align="center">
 
 <h2>🌿 A Little World That Asks Nothing of You</h2>
@@ -148,11 +152,16 @@ Use **Node.js 22.12+** and the committed lockfile. From the repository root:
 ```bash
 npm ci
 npm run dev
+```
+
+Open the address Vite prints (normally **http://localhost:5173/**). The development server keeps running; stop it with `Ctrl+C` before the following checks, or use another terminal.
+
+```bash
 npm run verify
 npm run preview
 ```
 
-`verify` checks generated project metadata, runs Vitest tests, type-checks, and builds the production app. Browser-based checks of real WebGL recovery, visibility changes, pointer alignment, and touch interactions are separate from unit-test coverage.
+`verify` checks generated project metadata, runs Vitest tests, type-checks, and builds the production app. The production preview uses the project's **`/stillpond/`** path (normally **http://localhost:4173/stillpond/**). Browser-based checks of real WebGL recovery, visibility changes, pointer alignment, and touch interactions are separate from unit-test coverage.
 
 ### Source map
 
