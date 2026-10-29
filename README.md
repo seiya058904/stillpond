@@ -7,7 +7,9 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 <!-- project:end -->
 
 <p align="center">
-  <img src="docs/readme-cover.svg" width="100%" alt="STILLPOND — illustrated project cover" />
+  <a href="https://seiya058904.github.io/stillpond/">
+    <img src="docs/readme-cover.svg" width="100%" alt="STILLPOND — illustrated project cover" />
+  </a>
 </p>
 
 <div align="center">
