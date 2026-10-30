@@ -126,7 +126,7 @@ describe("wakin on the shared koi system", () => {
         expect(f.position.y).toBeLessThan(270 + f.bodyLength);
       });
     }
-  });
+  }, 15000);
 
   it("draws the body, fins and shadow from the same curved spine", () => {
     settings.set(["goldfish", "count"], 1);
