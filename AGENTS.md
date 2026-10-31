@@ -28,3 +28,8 @@ For runtime/settings changes, use an isolated browser profile and real WebGL2: c
 ## Delivery
 
 `.github/workflows/pages.yml` runs `verify` for pull requests and deploys `dist/` on `main`. Check the exact final CI/Pages commit, deployed `build-info.json` and asset bytes. This is a fork: derive GitHub CLI `--repo` from `origin`; automatic selection can choose `upstream` instead. Preserve upstream history, attribution and unique evidence; remove only verified disposable outputs.
+
+## Browser tool selection
+
+- Prefer Ego Browser for exploratory navigation, visual review and interactive checks when available. Use Playwright for repeatable regression, CI, isolation, request interception or other automation requiring its APIs; combine tools when useful. If Ego is unavailable, use a suitable existing browser tool.
+- Keep this repository's required browser commands, versions, profiles and safety boundaries; an exploratory check does not replace required automated tests. Do not alter real user data or production state for testing. Report the tools, coverage and any untested paths.
