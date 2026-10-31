@@ -90,6 +90,11 @@ their shorter double tails with fuller membranes and quieter fin rays.
 
 <p align="center"><code>WATCH &nbsp;→&nbsp; TAP THE WATER &nbsp;→&nbsp; LET THE POND RESPOND</code></p>
 
+<p align="center">
+  <a href="docs/promo/stillpond-loop.mp4"><img src="docs/promo/stillpond-loop.gif" alt="A 10-second loop of Stillpond: two taps on the water and the koi swim to each ripple, then the view drifts to a lotus leaf" width="100%" /></a><br />
+  <sub>Real pond frames captured with a fixed simulation clock. The fingertip marker and labels are overlays. <a href="docs/promo/stillpond-loop.mp4">MP4</a></sub>
+</p>
+
 | Action | Control |
 | --- | --- |
 | **Invite nearby fish** | Click or tap the water |
