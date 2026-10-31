@@ -35,7 +35,9 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 <p><sub>PROCEDURAL FISH &nbsp;·&nbsp; LIVING WATER &nbsp;·&nbsp; DESKTOP + TOUCH &nbsp;·&nbsp; ENGLISH / SIMPLIFIED CHINESE</sub></p>
 
-<img width="860" alt="Stillpond — original full-width screenshot of the digital koi pond" src="https://github.com/user-attachments/assets/e08a399d-e92f-4210-a37b-fe2eb51d8321" />
+<a href="docs/promo/stillpond-loop.mp4"><img src="docs/promo/stillpond-loop.gif" width="860" alt="A 10-second loop of Stillpond: two taps on the water and the koi swim to each ripple, then the view drifts to a lotus leaf" /></a>
+
+<p><sub>Real pond frames captured with a fixed simulation clock. The fingertip marker and labels are overlays. <a href="docs/promo/stillpond-loop.mp4">MP4</a></sub></p>
 
 </div>
 
@@ -89,11 +91,6 @@ their shorter double tails with fuller membranes and quieter fin rays.
 ## 🫧 A Gentle Touch
 
 <p align="center"><code>WATCH &nbsp;→&nbsp; TAP THE WATER &nbsp;→&nbsp; LET THE POND RESPOND</code></p>
-
-<p align="center">
-  <a href="docs/promo/stillpond-loop.mp4"><img src="docs/promo/stillpond-loop.gif" alt="A 10-second loop of Stillpond: two taps on the water and the koi swim to each ripple, then the view drifts to a lotus leaf" width="100%" /></a><br />
-  <sub>Real pond frames captured with a fixed simulation clock. The fingertip marker and labels are overlays. <a href="docs/promo/stillpond-loop.mp4">MP4</a></sub>
-</p>
 
 | Action | Control |
 | --- | --- |
