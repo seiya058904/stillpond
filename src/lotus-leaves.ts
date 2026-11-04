@@ -33,6 +33,16 @@ interface FlowerPalette {
 }
 
 const TAU = Math.PI * 2;
+const WHITE = new THREE.Color(0xffffff);
+// Radial stations from the navel to the edge; the last two make the rim.
+const LEAF_RINGS = [0.14, 0.38, 0.62, 0.86, 0.955, 1] as const;
+// Matches the default surface light that casts shadows down and to the right.
+const LEAF_LIGHT_ANGLE = Math.atan2(-0.82, -0.58);
+
+function smoothstep(value: number, low: number, high: number): number {
+  const t = Math.max(0, Math.min(1, (value - low) / (high - low)));
+  return t * t * (3 - 2 * t);
+}
 
 const PALETTES: readonly LeafPalette[] = LOTUS.leafPalettes.map((palette) => ({
   base: new THREE.Color(palette.base),
@@ -139,15 +149,18 @@ interface LotusLeafMesh {
 interface LotusFlowerMesh {
   mesh: THREE.Mesh;
   geometry: THREE.BufferGeometry;
+  shadow: THREE.Mesh;
+  shadowGeometry: THREE.BufferGeometry;
 }
 
 export class LotusLeavesPass {
   public readonly shadowGroup = new THREE.Group();
   public readonly group = new THREE.Group();
 
-  private readonly leafCenterColor = new THREE.Color();
-  private readonly leafEdgeColorA = new THREE.Color();
-  private readonly leafEdgeColorB = new THREE.Color();
+  private readonly leafColorA = new THREE.Color();
+  private readonly leafColorB = new THREE.Color();
+  private readonly leafColorC = new THREE.Color();
+  private readonly leafColorD = new THREE.Color();
   private readonly shadowMaterial = new THREE.MeshBasicMaterial({
     color: LOTUS.shadow.color,
     opacity: LOTUS.shadow.opacity,
@@ -170,8 +183,21 @@ export class LotusLeavesPass {
     depthWrite: false,
     toneMapped: false,
   });
+  // Fully opaque, but in the transparent queue: Three always draws that queue
+  // last, and the bloom must land on top of its own translucent shadow.
   private readonly flowerMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
     vertexColors: true,
+    side: THREE.DoubleSide,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  // A soft pool of shade pressing the bloom onto its leaf.
+  private readonly bloomShadowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x0c2f22,
+    opacity: 0.3,
+    transparent: true,
     side: THREE.DoubleSide,
     depthTest: false,
     depthWrite: false,
@@ -281,6 +307,7 @@ export class LotusLeavesPass {
         leaf !== undefined &&
         this.leafCenters[leafIndex] !== undefined;
       mesh.mesh.visible = visible;
+      mesh.shadow.visible = visible;
       if (!visible) continue;
 
       const center = this.leafCenters[leafIndex];
@@ -290,6 +317,9 @@ export class LotusLeavesPass {
         0,
       );
       mesh.mesh.rotation.z = Math.sin(time * 0.12 + leaf.phase) * 0.04;
+      // The bloom breathes very slightly, never in step with its neighbors.
+      mesh.mesh.scale.setScalar(1 + Math.sin(time * 0.6 + leaf.phase * 2 + flowerIndex) * 0.022);
+      mesh.shadow.position.set(center.x + flower.offsetX + 1.3, center.y + flower.offsetY + 1.9, 0);
     }
   }
 
@@ -309,6 +339,7 @@ export class LotusLeavesPass {
       const leafBuilder = new LotusGeometryBuilder();
       this.drawLeaf(leafBuilder, origin, radius, leaf.angle, leaf.phase, palette);
       const leafTriangleVertices = leafBuilder.vertexCount;
+      this.drawSurfaceDetails(leafBuilder, origin, radius, leaf.phase, palette);
       leafBuilder.circle(origin, Math.max(0.5, radius * 0.035), palette.center);
       leafBuilder.circle({x:-radius * 0.015,y:-radius * 0.025}, Math.max(0.3, radius * 0.019), palette.vein);
       const leafGeometry = leafBuilder.toGeometry(`lotus leaf ${leafIndex}`);
@@ -347,10 +378,18 @@ export class LotusLeavesPass {
     const flowers: LotusFlowerMesh[] = [];
     for (const [flowerIndex, flower] of LOTUS_FLOWERS.entries()) {
       const builder = new LotusGeometryBuilder();
+      const bloomRadius = flower.radius * LOTUS.flowerRadiusScale;
+      const shadowBuilder = new LotusGeometryBuilder();
+      shadowBuilder.circle({ x: 0, y: 0 }, bloomRadius * 0.74, WHITE);
+      const shadowGeometry = shadowBuilder.toGeometry(`lotus bloom shadow ${flowerIndex}`);
+      const shadow = new THREE.Mesh(shadowGeometry, this.bloomShadowMaterial);
+      shadow.frustumCulled = false;
+      shadow.renderOrder = 2.5;
+      this.group.add(shadow);
       this.drawFlower(
         builder,
         { x: 0, y: 0 },
-        flower.radius * LOTUS.flowerRadiusScale,
+        bloomRadius,
         flower.rotation,
         FLOWER_PALETTES[
           ((flower.palette % FLOWER_PALETTES.length) +
@@ -363,7 +402,7 @@ export class LotusLeavesPass {
       mesh.frustumCulled = false;
       mesh.renderOrder = 3;
       this.group.add(mesh);
-      flowers.push({ mesh, geometry });
+      flowers.push({ mesh, geometry, shadow, shadowGeometry });
     }
     this.flowers = flowers;
   }
@@ -375,8 +414,9 @@ export class LotusLeavesPass {
       for (const geometry of leaf.geometries) geometry.dispose();
     }
     for (const flower of this.flowers) {
-      this.group.remove(flower.mesh);
+      this.group.remove(flower.mesh, flower.shadow);
       flower.geometry.dispose();
+      flower.shadowGeometry.dispose();
     }
     this.leaves = [];
     this.flowers = [];
@@ -408,43 +448,85 @@ export class LotusLeavesPass {
   ): void {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
-
     const youth = Math.max(0, Math.min(1, (25 - radius) / 15));
-    this.leafCenterColor.copy(palette.base).lerp(palette.center, 0.45).lerp(palette.light, youth * 0.1);
-
+    const colorA = this.leafColorA, colorB = this.leafColorB, colorC = this.leafColorC, colorD = this.leafColorD;
     for (let index = 0; index < LOTUS.leafSegments; index += 1) {
       const angleA = start + (index / LOTUS.leafSegments) * span;
       const angleB = start + ((index + 1) / LOTUS.leafSegments) * span;
-      this.leafColorAt(this.leafEdgeColorA, palette, angleA, phase);
-      this.leafColorAt(this.leafEdgeColorB, palette, angleB, phase);
-      const rimA = 0.87 + Math.sin(angleA * 3 + phase) * (0.018 + youth * 0.025);
-      const rimB = 0.87 + Math.sin(angleB * 3 + phase) * (0.018 + youth * 0.025);
-      const innerA = this.edgePoint(center, radius * rimA, angleA, phase);
-      const innerB = this.edgePoint(center, radius * rimB, angleB, phase);
-      const edgeA = this.edgePoint(center, radius, angleA, phase);
-      const edgeB = this.edgePoint(center, radius, angleB, phase);
-      builder.triangleColors(center, innerA, innerB, this.leafCenterColor, this.leafEdgeColorA, this.leafEdgeColorB);
-      const curlA = this.leafEdgeColorA.clone().lerp(palette.light, 0.16 + Math.sin(angleA * 3 + phase) * 0.14);
-      const curlB = this.leafEdgeColorB.clone().lerp(palette.shade, 0.12 + Math.cos(angleB * 4 - phase) * 0.1);
-      builder.triangleColors(innerA, edgeA, edgeB, this.leafEdgeColorA, curlA, curlB);
-      builder.triangleColors(innerA, edgeB, innerB, this.leafEdgeColorA, curlB, this.leafEdgeColorB);
+      for (let ring = 0; ring < LEAF_RINGS.length; ring += 1) {
+        const inner = ring === 0 ? 0 : LEAF_RINGS[ring - 1], outer = LEAF_RINGS[ring];
+        const innerA = inner === 0 ? center : this.edgePoint(center, radius * inner, angleA, phase);
+        const innerB = inner === 0 ? center : this.edgePoint(center, radius * inner, angleB, phase);
+        const outerA = this.edgePoint(center, radius * outer, angleA, phase);
+        const outerB = this.edgePoint(center, radius * outer, angleB, phase);
+        this.leafColorAt(colorA, palette, inner, angleA, phase, youth);
+        this.leafColorAt(colorB, palette, inner, angleB, phase, youth);
+        this.leafColorAt(colorC, palette, outer, angleA, phase, youth);
+        this.leafColorAt(colorD, palette, outer, angleB, phase, youth);
+        builder.triangleColors(innerA, outerA, outerB, colorA, colorC, colorD);
+        if (inner !== 0) builder.triangleColors(innerA, outerB, innerB, colorA, colorD, colorB);
+      }
     }
   }
 
+  // A shallow saucer lit from the same side as the pond's shadows: a pale navel,
+  // a waxy crescent on the lit side, then a rim that catches light or falls away.
   private leafColorAt(
     target: THREE.Color,
     palette: LeafPalette,
+    rho: number,
     angle: number,
     phase: number,
+    youth: number,
   ): void {
-    const directionalLight = 0.5 + Math.cos(angle + 2.2) * 0.42;
-    const organicVariation = Math.sin(angle * 3 + phase * 0.7) * 0.045 + Math.sin(phase * 2.3) * 0.09;
-    const tone = Math.max(0, Math.min(1, directionalLight + organicVariation));
-    if (tone < 0.5) {
-      target.copy(palette.shade).lerp(palette.base, tone * 2);
-      return;
+    const light = Math.cos(angle - LEAF_LIGHT_ANGLE);
+    const organic = Math.sin(angle * 3 + phase * 0.7) * 0.035 + Math.sin(phase * 2.3) * 0.08;
+    const navel = 1 - smoothstep(rho, 0, 0.17);
+    const sheen = smoothstep(rho, 0.36, 0.62) * (1 - smoothstep(rho, 0.78, 0.94)) * Math.pow(Math.max(0, light), 2);
+    const tone = Math.max(0, Math.min(1, 0.44 + organic + light * rho * 0.17 + sheen * 0.42 + navel * 0.2));
+    if (tone < 0.5) target.copy(palette.shade).lerp(palette.base, tone * 2);
+    else target.copy(palette.base).lerp(palette.light, (tone - 0.5) * 2);
+    target.lerp(palette.light, youth * 0.12);
+    const rim = smoothstep(rho, 0.93, 1);
+    if (rim > 0) {
+      if (light > 0) target.lerp(palette.vein, rim * light * 0.78);
+      else target.lerp(palette.shade, rim * -light * 0.82);
+      // About a third of the leaves have one lifted edge showing a paler underside.
+      const curlCenter = phase * 4.1;
+      const curling = Math.sin(phase * 3.1) > 0.45;
+      if (curling) {
+        const offset = Math.atan2(Math.sin(angle - curlCenter), Math.cos(angle - curlCenter));
+        target.lerp(palette.vein, rim * (1 - smoothstep(Math.abs(offset), 0.25, 0.6)) * 0.85);
+      }
     }
-    target.copy(palette.base).lerp(palette.light, (tone - 0.5) * 2);
+  }
+
+  // Beads of water and a few aged spots. These sit after the leaf triangles,
+  // so the shadow's draw range never includes them.
+  private drawSurfaceDetails(
+    builder: LotusGeometryBuilder,
+    center: Point,
+    radius: number,
+    phase: number,
+    palette: LeafPalette,
+  ): void {
+    const fraction = (value: number): number => value - Math.floor(value);
+    if (radius > 20) {
+      const spot = palette.shade.clone().lerp(palette.base, 0.25);
+      for (let i = 0, count = 2 + Math.floor(fraction(phase * 5.3) * 3); i < count; i += 1) {
+        const at = this.edgePoint(center, radius * (0.45 + fraction(phase * (i + 3) * 1.7) * 0.42), phase * 1.3 + i * 2.1, phase);
+        builder.circle(at, 0.55, spot);
+      }
+    }
+    if (radius <= 15) return;
+    const bead = palette.vein.clone().lerp(WHITE, 0.55), beadShade = palette.shade.clone().multiplyScalar(0.8);
+    for (let i = 0, count = 1 + Math.floor(fraction(phase * 3.7) * 3); i < count; i += 1) {
+      const at = this.edgePoint(center, radius * (0.34 + fraction(phase * (i + 2) * 1.3) * 0.42), phase * 2.1 + i * 2.4, phase);
+      const size = Math.max(0.75, radius * (0.03 + fraction(phase * (i + 5)) * 0.018));
+      builder.circle({ x: at.x + size * 0.42, y: at.y + size * 0.55 }, size, beadShade);
+      builder.circle(at, size, bead);
+      builder.circle({ x: at.x - size * 0.3, y: at.y - size * 0.34 }, Math.max(0.3, size * 0.42), WHITE);
+    }
   }
 
   private drawVeins(
@@ -457,8 +539,8 @@ export class LotusLeavesPass {
   ): void {
     const start = angle + LOTUS.notchHalfAngle;
     const span = TAU - LOTUS.notchHalfAngle * 2;
-    const veinColor = palette.base.clone().lerp(palette.vein, 0.34);
-    const minorColor = palette.base.clone().lerp(palette.vein, 0.17);
+    const veinColor = palette.base.clone().lerp(palette.vein, 0.4);
+    const minorColor = palette.base.clone().lerp(palette.vein, 0.2);
     for (let index = 0; index < LOTUS.veinCount; index += 1) {
       const veinAngle = start + (index / LOTUS.veinCount) * span + Math.sin(index * 2.4 + phase) * 0.11;
       const branchRadius = 0.43 + Math.sin(index * 1.7 + phase) * 0.09;
@@ -506,13 +588,15 @@ export class LotusLeavesPass {
         const centers = stations.map(t => ({x:base.x + direction.x * petalLength * t + side.x * Math.sin(t * Math.PI) * radius * 0.035,
           y:base.y + direction.y * petalLength * t + side.y * Math.sin(t * Math.PI) * radius * 0.035}));
         const widths = stations.map(t => Math.pow(Math.sin(t * Math.PI), 0.78) * halfWidth);
-        const ridgeColor = color.clone().lerp(palette.petalLight, 0.32);
+        // Pale where the petal leaves the flower, deepening toward the tip.
+        const shades = stations.map(t => palette.petalLight.clone().lerp(color, Math.min(1, 0.25 + t * 1.05)));
+        const ridges = shades.map(shade => shade.clone().lerp(palette.petalLight, 0.42));
         for (let j = 0; j < stations.length - 1; j++) {
           for (const sign of [-1, 1]) {
             const edgeA = {x:centers[j].x + side.x * widths[j] * sign,y:centers[j].y + side.y * widths[j] * sign};
             const edgeB = {x:centers[j+1].x + side.x * widths[j+1] * sign,y:centers[j+1].y + side.y * widths[j+1] * sign};
-            builder.triangleColors(centers[j], edgeA, edgeB, ridgeColor, primary, color);
-            builder.triangleColors(centers[j], edgeB, centers[j+1], ridgeColor, color, alternate);
+            builder.triangleColors(centers[j], edgeA, edgeB, ridges[j], shades[j], shades[j+1]);
+            builder.triangleColors(centers[j], edgeB, centers[j+1], ridges[j], shades[j+1], ridges[j+1]);
           }
         }
       }

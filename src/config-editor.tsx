@@ -1,18 +1,23 @@
 import * as THREE from "three";
-import { ChevronRight, Minus, Plus, RotateCcw, Search } from "lucide-react";
-import { memo, useState } from "react";
+import { ChevronRight, Droplets, Fish, Flower2, Palette, Search } from "lucide-react";
+import { memo, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createTranslator, useI18n } from "./i18n";
-import { SettingsColorInput, SettingsSelect, SettingsSlider } from "./settings-controls";
+import { TILE } from "./quick-settings";
+import { SettingsColorInput, SettingsSelect } from "./settings-controls";
+import { IconTile, RangeInput, Stepper } from "./settings-ui";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
 import type { SectionId } from "./settings/definition";
+import type { AdvancedGroupId } from "./settings/navigation";
 import { ADVANCED_GROUPS, controlNode, familyColorControls, type AdvancedControl } from "./settings/advanced";
 import { familyCounts, KOI_FAMILIES, MAX_KOI } from "./settings/composition";
 
 interface ConfigEditorProps {
+  groupId: AdvancedGroupId | null;
+  onOpenGroup: (id: AdvancedGroupId) => void;
   query: string;
   onQueryChange: (query: string) => void;
   onResetSection: (sectionIds: readonly SectionId[]) => void;
@@ -21,6 +26,17 @@ interface ConfigEditorProps {
   onFamilyChange: (index: number) => void;
   onPreviewFamilyChange: (index: number | null) => void;
 }
+
+const GROUP_ICONS: Record<AdvancedGroupId, {color: string; icon: ReactNode}> = {
+  koi: {color: TILE.red, icon: <Fish />},
+  goldfish: {color: TILE.orange, icon: <Fish />},
+  "butterfly-koi": {color: TILE.gray, icon: <Fish />},
+  shubunkin: {color: TILE.indigo, icon: <Fish />},
+  medaka: {color: TILE.teal, icon: <Fish />},
+  plants: {color: TILE.pink, icon: <Flower2 />},
+  water: {color: TILE.blue, icon: <Droplets />},
+  appearance: {color: TILE.purple, icon: <Palette />},
+};
 
 const en = createTranslator("en"), zh = createTranslator("zh-CN");
 const includes = (query: string, ...labels: string[]) => !query || labels.join(" ").toLowerCase().includes(query);
@@ -39,7 +55,7 @@ function ProductControl({control}: {control: AdvancedControl}) {
   if (control.id === "lotus-flowers" && leafCount === 0) return <div className="config-property-row" data-setting={control.id}>
     <Label>{label}</Label><span className="advanced-note">{t("advanced.addLeaves")}</span>
   </div>;
-  if (node.kind === "bool") return <div className="config-property-row config-property-row--switch" data-setting={control.id}>
+  if (node.kind === "bool") return <div className="config-property-row" data-setting={control.id}>
     <Label htmlFor={control.id}>{label}</Label><Switch id={control.id} checked={value as boolean} onCheckedChange={next => setValue(next)} />
   </div>;
   if (node.kind === "color" || node.kind === "rgb") {
@@ -57,21 +73,20 @@ function ProductControl({control}: {control: AdvancedControl}) {
   const values = node.kind === "range" ? value as number[] : [value as number];
   const min = Math.min(control.min ?? node.min, ...values);
   const max = Math.max(control.max ?? node.max, ...values);
-  const slider = (current: number, index?: number) => <SettingsSlider
-    aria-label={index === undefined ? label : `${label} · ${t(index === 0 ? "advanced.minimum" : "advanced.maximum")}`}
-    label={label} showLabel={false} min={min} max={max} step={node.step} value={current}
-    onValueChange={next => {
-      if (index === undefined) setValue(next);
-      else { const range = [...values]; range[index] = index === 0 ? Math.min(next,range[1]) : Math.max(next,range[0]); setValue(range); }
-    }} formatValue={control.percent ? next => `${Math.round(next*100)}%` : formatNumber} className="drawer-elastic-slider" />;
-  return node.kind === "num" ? <div className="config-property-row" data-setting={control.id} data-base-ui-swipe-ignore>
-    <Label>{label}</Label>{slider(value as number)}
-  </div> : <div className="config-cluster" data-setting={control.id} data-base-ui-swipe-ignore>
-    <div className="config-cluster__label">{label}</div>
-    {values.map((current,index) => <div className="config-property-row" key={index}>
-      <Label>{t(index === 0 ? "advanced.minimum" : "advanced.maximum")}</Label>{slider(current,index)}
-    </div>)}
+  const format = (current: number) => control.percent ? `${Math.round(current*100)}%` : formatNumber(current);
+  const slider = (current: number, name: string, index?: number) => <div className="config-slider" key={name}>
+    <div className="config-slider__heading"><span>{name}</span><output>{format(current)}</output></div>
+    <RangeInput ariaLabel={index === undefined ? label : `${label} · ${name}`} min={min} max={max} step={node.step} value={current} valueText={format(current)}
+      onChange={next => {
+        if (index === undefined) setValue(next);
+        else { const range = [...values]; range[index] = index === 0 ? Math.min(next,range[1]) : Math.max(next,range[0]); setValue(range); }
+      }} />
   </div>;
+  return node.kind === "num" ? <div className="config-cell" data-setting={control.id} data-base-ui-swipe-ignore>{slider(value as number, label)}</div>
+    : <div className="config-cell" data-setting={control.id} data-base-ui-swipe-ignore>
+      <div className="config-cluster__label">{label}</div>
+      {values.map((current,index) => slider(current, t(index === 0 ? "advanced.minimum" : "advanced.maximum"), index))}
+    </div>;
 }
 
 function FamilySwatch({family}: {family: number}) {
@@ -92,21 +107,19 @@ function Composition({query}: {query: string}) {
   const [families] = useSetting<readonly number[]>(["koi","families"]);
   const counts = familyCounts(families);
   const all = includes(query,en.t("composition.title"),zh.t("composition.title"));
-  return <section className="koi-composition" aria-label={t("composition.title")}>
-    <div className="composition-heading"><h4>{t("composition.title")}</h4><output data-koi-total aria-live="polite">{t("composition.total",{count:families.length})}</output></div>
-    <p className="advanced-note">{t("composition.hint")}</p>
-    {KOI_FAMILIES.map((name,index) => (all || includes(query,en.family(name),zh.family(name))) &&
-      <div className="composition-row" key={name} data-family={name}>
-        <FamilySwatch family={index} /><span className="composition-family">{family(name)}</span>
-        <div className="composition-stepper" data-base-ui-swipe-ignore>
-          <button type="button" aria-label={t("composition.remove",{family:family(name)})} disabled={counts[index]===0}
-            onClick={() => settings.setFamilyCount(index,counts[index]-1)}><Minus aria-hidden="true" /></button>
-          <output aria-label={t("composition.count",{family:family(name)})}>{counts[index]}</output>
-          <button type="button" aria-label={t("composition.add",{family:family(name)})} disabled={families.length>=MAX_KOI}
-            onClick={() => settings.setFamilyCount(index,counts[index]+1)}><Plus aria-hidden="true" /></button>
-        </div>
-      </div>)}
-    <p className="advanced-note">{t("composition.resizeHint")}</p>
+  return <section className="preference-group" aria-label={t("composition.title")}>
+    <h3 className="composition-heading"><span>{t("composition.title")}</span><output data-koi-total aria-live="polite">{t("composition.total",{count:families.length})}</output></h3>
+    <div className="preference-card">
+      {KOI_FAMILIES.map((name,index) => (all || includes(query,en.family(name),zh.family(name))) &&
+        <div className="preference-row" key={name} data-family={name}>
+          <FamilySwatch family={index} /><span className="preference-row__label">{family(name)}</span>
+          <output className="preference-row__value" aria-label={t("composition.count",{family:family(name)})}>{counts[index]}</output>
+          <Stepper value={counts[index]} min={0} max={families.length >= MAX_KOI ? counts[index] : MAX_KOI}
+            onChange={next => settings.setFamilyCount(index,next)}
+            decreaseLabel={t("composition.remove",{family:family(name)})} increaseLabel={t("composition.add",{family:family(name)})} />
+        </div>)}
+    </div>
+    <p className="preference-note">{t("composition.hint")} {t("composition.resizeHint")}</p>
   </section>;
 }
 
@@ -116,57 +129,68 @@ function FamilyAppearance({query, selectedFamily, previewFamily, onFamilyChange,
   const controls = familyColorControls(selectedFamily,settings.live["koi-patterns"][selectedFamily]);
   const all = includes(query,en.t("appearance.family"),zh.t("appearance.family"),en.family(KOI_FAMILIES[selectedFamily]),zh.family(KOI_FAMILIES[selectedFamily]));
   if (!all && !controls.some(control => controlMatches(control,query))) return null;
-  return <section className="family-appearance" aria-label={t("appearance.family")}>
-    <h4>{t("appearance.family")}</h4>
-    <div className="appearance-preview">
-      <label htmlFor="preview-family">{t("quick.family")}</label>
-      <SettingsSelect id="preview-family" value={String(selectedFamily)} onValueChange={next => onFamilyChange(Number(next))}
-        options={KOI_FAMILIES.map((name,index) => ({value:String(index),label:family(name)}))} />
-      <button type="button" className="family-preview-toggle" aria-pressed={previewFamily!==null}
+  return <section className="preference-group family-appearance" aria-label={t("appearance.family")}>
+    <h3>{t("appearance.family")}</h3>
+    <div className="preference-card">
+      <div className="config-property-row">
+        <label htmlFor="preview-family">{t("quick.family")}</label>
+        <SettingsSelect id="preview-family" value={String(selectedFamily)} onValueChange={next => onFamilyChange(Number(next))}
+          options={KOI_FAMILIES.map((name,index) => ({value:String(index),label:family(name)}))} />
+      </div>
+      {controls.filter(control => all || controlMatches(control,query)).map(control => <ProductControl control={control} key={control.id} />)}
+      <button type="button" className="preference-row preference-row--button family-preview-toggle" aria-pressed={previewFamily!==null}
         onClick={() => onPreviewFamilyChange(previewFamily===null ? selectedFamily : null)}>
         {t(previewFamily===null ? "quick.preview" : "quick.showAll",{family:family(KOI_FAMILIES[selectedFamily])})}
       </button>
     </div>
-    <p className="advanced-note">{t(previewFamily===null ? "appearance.hint" : "appearance.previewHint")}</p>
-    {controls.filter(control => all || controlMatches(control,query)).map(control => <ProductControl control={control} key={control.id} />)}
+    <p className="preference-note">{t(previewFamily===null ? "appearance.hint" : "appearance.previewHint")}</p>
   </section>;
 }
 
-function AdvancedGroup({group,query,...props}: {group:(typeof ADVANCED_GROUPS)[number];query:string} & Omit<ConfigEditorProps,"query"|"onQueryChange">) {
+function GroupBody({group,query,resettable,...props}: {group:(typeof ADVANCED_GROUPS)[number];query:string;resettable:boolean} & Omit<ConfigEditorProps,"query"|"onQueryChange"|"groupId"|"onOpenGroup">) {
   const {t} = useI18n();
-  const [expanded,setExpanded] = useState(group.id === "koi");
   const all = includes(query,en.t(`section.${group.id}`),zh.t(`section.${group.id}`),en.t(`group.${group.id}`),zh.t(`group.${group.id}`));
   const controls = group.controls.filter(control => all || controlMatches(control,query));
   const showComposition = group.id === "koi" && (all || compositionMatches(query));
-  const isOpen = expanded || Boolean(query);
-  return <details className="config-advanced-group" open={isOpen} onToggle={event => {
-    if (!query) setExpanded(event.currentTarget.open);
-    if (event.currentTarget.open && group.id !== "koi") props.onPreviewFamilyChange(null);
-  }}>
-    <summary className="config-section"><span><strong>{t(`section.${group.id}`)}</strong><small>{t(`group.${group.id}`)}</small></span><ChevronRight aria-hidden="true" /></summary>
-    {isOpen && <div className="config-advanced-group__body">
-      <button type="button" className="settings-section-reset" onClick={() => props.onResetSection(group.sections)}><RotateCcw aria-hidden="true" />{t("action.resetGroup",{group:t(`section.${group.id}`)})}</button>
-      {showComposition && <Composition query={all ? "" : query} />}
-      {controls.map(control => <ProductControl control={control} key={control.id} />)}
-      {group.id === "koi" && <FamilyAppearance {...props} query={all ? "" : query} />}
-      {group.id === "medaka" && <p className="advanced-note">{t("advanced.medakaHint")}</p>}
-      {group.id === "plants" && <p className="advanced-note">{t("advanced.plantsHint")}</p>}
-    </div>}
-  </details>;
+  const note = group.id === "medaka" ? t("advanced.medakaHint") : group.id === "plants" ? t("advanced.plantsHint") : null;
+  return <>
+    {showComposition && <Composition query={all ? "" : query} />}
+    {controls.length > 0 && <section className="preference-group">
+      <div className="preference-card">{controls.map(control => <ProductControl control={control} key={control.id} />)}</div>
+      {note && <p className="preference-note">{note}</p>}
+    </section>}
+    {group.id === "koi" && <FamilyAppearance {...props} query={all ? "" : query} />}
+    {resettable && <section className="preference-group"><div className="preference-card">
+      <button type="button" className="preference-row preference-row--button preference-row--danger settings-section-reset" onClick={() => props.onResetSection(group.sections)}>{t("action.resetGroup",{group:t(`section.${group.id}`)})}</button>
+    </div></section>}
+  </>;
 }
 
-export const ConfigEditor = memo(function ConfigEditor({query,onQueryChange,...props}: ConfigEditorProps) {
+export const ConfigEditor = memo(function ConfigEditor({groupId,onOpenGroup,query,onQueryChange,...props}: ConfigEditorProps) {
   const {t} = useI18n();
+  if (groupId) {
+    const group = ADVANCED_GROUPS.find(entry => entry.id === groupId);
+    return group ? <div className="preferences"><GroupBody group={group} query="" resettable {...props} /></div> : null;
+  }
   const normalized = query.trim().toLowerCase();
   const colorControls = familyColorControls(props.selectedFamily,settings.live["koi-patterns"][props.selectedFamily]);
   const groups = ADVANCED_GROUPS.filter(group => includes(normalized,en.t(`section.${group.id}`),zh.t(`section.${group.id}`),en.t(`group.${group.id}`),zh.t(`group.${group.id}`)) ||
     group.controls.some(control => controlMatches(control,normalized)) || (group.id === "koi" && (compositionMatches(normalized) ||
       includes(normalized,en.t("appearance.family"),zh.t("appearance.family")) || colorControls.some(control => controlMatches(control,normalized)))));
-  return <div className="advanced-settings">
+  return <div className="preferences advanced-settings">
     <div className="settings-search"><Search aria-hidden="true" /><Input value={query} onChange={event => onQueryChange(event.target.value)}
       placeholder={t("advanced.searchPlaceholder")} aria-label={t("advanced.search")} /></div>
-    {groups.length===0 ? <p className="config-empty">{t("advanced.empty",{query})}</p> : <div className="config-sections" aria-label={t("advanced.categories")}>
-      {groups.map(group => <AdvancedGroup key={group.id} group={group} query={normalized} {...props} />)}
-    </div>}
+    {groups.length===0 ? <p className="config-empty">{t("advanced.empty",{query})}</p>
+      : normalized ? groups.map(group => <div className="search-result" key={group.id}>
+          <h3 className="search-result__title">{t(`section.${group.id}`)}</h3>
+          <GroupBody group={group} query={normalized} resettable={false} {...props} />
+        </div>)
+      : <section className="preference-group" aria-label={t("advanced.categories")}><div className="preference-card">
+          {groups.map(group => <button type="button" className="preference-row preference-row--button config-group-row" data-group={group.id} key={group.id} onClick={() => onOpenGroup(group.id)}>
+            <IconTile color={GROUP_ICONS[group.id].color}>{GROUP_ICONS[group.id].icon}</IconTile>
+            <span className="preference-row__label config-group-row__text"><strong>{t(`section.${group.id}`)}</strong><small>{t(`group.${group.id}`)}</small></span>
+            <ChevronRight className="preference-row__chevron" aria-hidden="true" />
+          </button>)}
+        </div></section>}
   </div>;
 });

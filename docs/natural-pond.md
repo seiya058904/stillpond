@@ -1,5 +1,92 @@
 # Natural Pond & Visual Ecology
 
+## Shubunkin and the scene pass — local iteration
+
+**Shubunkin** are calico, single-tailed goldfish. They bring the first cool color
+to a pond of red, white, orange and silver. Two are present by default, with a
+separate 0–6 population and 70–130% size; older saves simply receive these
+defaults. Agents extend `Koi`, their random IDs follow the 48 koi, 8 Wakin and
+6 longfin slots, and they are appended last, so existing fish keep their starting
+positions and call delays. The disturbance pass now reserves 68 instances.
+
+Everything that distinguishes them is render-only, in `src/shubunkin-renderer.ts`:
+
+- A coat fixed per fish slot: a 10 × 6 cell grid of slate blue with broad vermilion
+  and pearl patches and single-cell ink flecks. Cells are flat-colored so patches stay crisp at
+  pixel scale, and they follow the bending spine.
+- The platinum longfin's long tail: the same contour and motion code, shared through
+  `src/fish-spine.ts`, with a test comparing both fish frame by frame. Two custom
+  tails, a sheared ribbon and a spring chain, were tried first and both looked stiffer.
+  Only the tail's color is specific to Shubunkin.
+- Pectorals that sweep rigidly around their root: tucked while cruising, rowing
+  alternately while hovering, with the inside fin opening as a brake on a turn. This
+  state belongs to the renderer; one rebuilt after GPU recovery relaxes from the
+  default opening.
+- A mouth that opens with the existing surface gulp, gill lines, eye glints, and a
+  scale glint that slides down the lit flank.
+
+Each fish uses 480 shape, 20 line and 198 shadow vertices, reserved for all six.
+
+The pond's output is not re-encoded after compositing, so authored hex values
+appear darker on screen. New colors are chosen for their final appearance.
+
+The rest of the scene had a matching pass:
+
+- **Butterflies** are larger, with brighter wings and fewer interior dark marks,
+  which used to merge into a blot at this size. Flight mixes beats with short glides,
+  the hindwing lags the forewing, and folding wings show a darker underside. They
+  bask on flowers for longer, and a tap within 46 logical pixels startles them away.
+- **Lotus leaves** are lighter saucers: a pale navel, a waxy crescent on the lit
+  side, a rim that catches light or falls into shade, and water beads on larger
+  leaves. About a third have one lifted edge.
+- **Lotus flowers** deepen from a pale base to the tip, press a soft shadow onto
+  the leaf, and breathe very slightly. Blooms and butterflies use opaque materials
+  in the transparent queue, because Three draws that queue last and the bloom has
+  to land on top of its translucent shadow.
+- **Koi** gain a ribbon tail with a traveling wave, alternating pectorals and eye
+  glints. Saved colors, families and the spine are unchanged.
+
+### Settings panel
+
+The panel follows iOS conventions: system semantic colors in light and dark, inset
+grouped lists with hairlines that start at the label, icon tiles, steppers, a
+segmented control, a large title that collapses into the bar, drill-down Advanced
+pages and an action sheet for reset. Escape closes the sheet, then climbs one level
+at a time, then closes the panel. Edge-swipe back is deliberately absent because it
+would conflict with the drawer's own swipe gesture.
+
+### Local acceptance, 2026-11-04
+
+These results were measured on the uncommitted iteration against
+`9ad4d55d7bbfd387543619232f2fe934486ffa8d`.
+
+- `npm run verify` passed, with the existing large-chunk build warning.
+- `scripts/browser-settings.mjs` passed at 1280×900 and 390×844 on headless
+  Chromium with SwiftShader, a software WebGL2 implementation.
+- A separate scripted run on an NVIDIA GeForce RTX 3070 Laptop through ANGLE D3D11
+  covered Shubunkin count and size changes while the context was lost, recovery,
+  hidden-page pause and resume, reload persistence, reset and undo, stepper limits,
+  an empty pond, koi preview and search.
+- GPU objects held at 78 geometries / 3 textures across five lotus rebuilds and
+  fell to zero on disposal. These are object counts, not memory bytes.
+- Panel navigation, reset and focus return were scripted and visually reviewed at
+  1440×900 (English dark, Chinese light), 390×844 (Chinese dark; English light with
+  reduced motion), 320×568 (English light and dark), 844×390 (English dark) and
+  3440×900 (Chinese light), not at every language and appearance combination. At
+  844×390, the side panel still overlaps part of the centered control dock.
+
+CPU time per animation-frame callback on the production builds, median / P95 / P99
+in milliseconds, with ranges across three 15-second samples at 1440×900. The
+"maximum" scene has 62 agents before this change and 68 after. This excludes GPU
+elapsed time.
+
+| Scene | Before | After |
+| --- | --- | --- |
+| Default | 1.8–1.9 / 3–3.3 / 3.5–4.3 | 2.2–2.3 / 3.3–3.5 / 3.8–4.4 |
+| Maximum population | 3.1–3.2 / 4.3–5 / 5.3–6.5 | 3.6 / 4.4–4.8 / 5.1–6.1 |
+
+Physical iOS and Android devices were not tested.
+
 ## Platinum butterfly koi — local iteration
 
 The added fish is a real longfin koi variety, **Platinum Butterfly Koi**: a

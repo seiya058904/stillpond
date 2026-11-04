@@ -18,7 +18,7 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 <p><strong>Watch the light move. Follow a fish. Let the water settle.</strong></p>
 
-<p>A full-screen, procedural pond where koi, platinum butterfly koi, Wakin goldfish, and Medaka<br>
+<p>A full-screen, procedural pond where koi, platinum butterfly koi, Shubunkin, Wakin goldfish, and Medaka<br>
 move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 <p>
@@ -81,6 +81,8 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 A visual ecology pass brings **three Wakin goldfish**, more distinct butterfly wing families, refined lotus geometry, and a subtler pond surface. The additions strengthen the shared scene without turning it into a collection game.
 
+**Two Shubunkin** add the pond's only cool color: slate-blue calico coats with vermilion, ink and pearl patches, different on every fish, and a long flowing tail. Their steering is the shared koi behavior and their tail motion is the platinum longfin's; the coat and alternating pectoral strokes are render-only.
+
 The pond also includes **two platinum butterfly koi** by default: a real silver-white,
 long-finned koi variety with broad pectoral fins and a flowing forked tail. Their
 population (0–6) and size (70–130%) are independent of the six koi color families;
@@ -113,7 +115,7 @@ The everyday settings are deliberately small. More detailed controls live in a s
   <tr>
     <td width="50%" valign="top">
       <h3>🐟 Pond</h3>
-      <p>Adjust koi, platinum butterfly koi and Wakin populations and selected composition settings. Switching Medaka off remembers their previous shoal count.</p>
+      <p>Adjust koi, platinum butterfly koi, Shubunkin and Wakin populations and selected composition settings in an iOS-style panel that follows your system's light or dark appearance. Switching Medaka off remembers their previous shoal count.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🌤️ Atmosphere</h3>
@@ -132,7 +134,7 @@ The everyday settings are deliberately small. More detailed controls live in a s
   </tr>
 </table>
 
-**English is the first-visit default**, and language changes update the interface and accessibility labels. Preferences are stored locally when browser storage permits; a storage-denied session should still be usable with defaults.
+**First visits follow the browser**: Chinese browsers start in Simplified Chinese and all others in English. Language changes update the interface and accessibility labels. Preferences are stored locally when browser storage permits; a storage-denied session should still be usable with defaults.
 
 **Reset pond** restores fish, plants, water and weather. Language, sound and
 display preferences stay as you chose them. Advanced Undo/Redo includes fish
@@ -175,8 +177,10 @@ npm run preview
 | [`src/school.ts`](src/school.ts) · [`src/koi.ts`](src/koi.ts) | Steering, group behavior, and procedural koi motion |
 | [`src/goldfish.ts`](src/goldfish.ts) | Wakin silhouette and motion integration |
 | [`src/butterfly-koi.ts`](src/butterfly-koi.ts) · [`src/butterfly-koi-renderer.ts`](src/butterfly-koi-renderer.ts) | Platinum longfin population and procedural membranes |
+| [`src/shubunkin.ts`](src/shubunkin.ts) · [`src/shubunkin-renderer.ts`](src/shubunkin-renderer.ts) | Shubunkin population, calico coats, and render-only fin strokes |
 | [`src/fish-renderer.ts`](src/fish-renderer.ts) | Layered fish and pond rendering |
-| [`src/settings/`](src/settings/) | Settings, persistence, and runtime effects |
+| [`src/settings/`](src/settings/) | Settings, persistence, runtime effects, and panel navigation |
+| [`src/settings-panel.tsx`](src/settings-panel.tsx) · [`src/settings-ui.tsx`](src/settings-ui.tsx) | iOS-style settings panel and its controls |
 | [`src/i18n/`](src/i18n/) | English and Chinese interface text |
 | [`docs/how-it-works.md`](docs/how-it-works.md) | Accessible explanation of procedural movement and rendering |
 | [`docs/natural-pond.md`](docs/natural-pond.md) | Natural references and visual-ecology design boundaries |

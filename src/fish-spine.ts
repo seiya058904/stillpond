@@ -28,6 +28,29 @@ export function buildRenderSpine(fish: Koi): void {
 
 export interface SpineSample { x: number; y: number; forwardX: number; forwardY: number }
 
+// The long caudal fin shared by platinum butterfly koi and Shubunkin. Coordinates
+// are fractions of body length, measured back from the snout.
+export const LONG_TAIL: readonly (readonly [number, number])[] = [
+  [0.94, 0.025], [1.08, 0.07], [1.26, 0.19], [1.46, 0.23],
+  [1.68, 0.17], [1.74, 0.10], [1.51, 0.08], [1.30, 0.035], [1.1, 0.014],
+];
+export const LONG_TAIL_ANCHOR = 0.97;
+export const longTailOpening = (body: Koi): number => 0.88 + Math.sin(body.swimPhase - 0.8) * 0.08;
+export const longTailFlex = (body: Koi): number => Math.sin(body.swimPhase - 1.4) * 0.06 * (0.25 + body.tailEffort);
+
+/**
+ * A membrane point attached to ONE spine tangent. Sampling a different tangent at
+ * every contour point folds wide fins inside out during sharp turns.
+ */
+export function membranePoint(body: Koi, anchor: number, t: number, width: number, flex: number, sample: SpineSample): void {
+  sampleSwimSpine(body, anchor, sample);
+  const along = (t - anchor) * body.bodyLength;
+  const across = width * body.bodyLength + along * (flex + body.turnBend * 0.025);
+  const {x, y, forwardX, forwardY} = sample;
+  sample.x = x - forwardX * along - forwardY * across;
+  sample.y = y - forwardY * along + forwardX * across;
+}
+
 /** Cubic centerline plus its tangent, including a tangent-continuous tail extension. */
 export function sampleSwimSpine(body: Koi, t: number, out: SpineSample): void {
   const spine = body.renderSpine, last = spine.length - 1;

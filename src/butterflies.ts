@@ -10,6 +10,7 @@ import {
   viewportPoint,
   flowerLeafIndex,
 } from "./config";
+import type { RippleSystem } from "./ripple-system";
 import {
   SurfaceGeometryBatch,
   type SurfacePoint,
@@ -44,7 +45,13 @@ interface Butterfly {
   randomState: number;
   flapPhase: number;
   wingSpread: number;
+  hindSpread: number;
   lift: number;
+  // A few beats, then a short glide on open wings: the rhythm of real flight.
+  gliding: boolean;
+  rhythmTimer: number;
+  startle: number;
+  displayHeading: number;
 }
 
 const PALETTES: readonly ButterflyPalette[] = BUTTERFLIES.palettes.map(
@@ -57,6 +64,20 @@ const PALETTES: readonly ButterflyPalette[] = BUTTERFLIES.palettes.map(
 );
 
 const SHADOW_COLOR = new THREE.Color(BUTTERFLIES.shadow.color);
+const STARTLE_RADIUS = 46;
+const HIND_WING_LAG = 0.5;
+
+/** Wing opening for one beat; both wings pass through nearly closed at the top of the stroke. */
+export function flapOpening(phase: number): number {
+  return 0.16 + Math.abs(Math.cos(phase)) * 0.84;
+}
+
+/** Slow basking on a flower, with an occasional quick shiver. */
+export function baskOpening(time: number, phase: number): number {
+  const breath = 0.5 + Math.sin(time * 0.85 + phase) * 0.5;
+  const shiver = Math.sin(time * 0.37 + phase * 2.1) > 0.97 ? Math.sin(time * 34) * 0.1 : 0;
+  return 0.28 + breath * breath * 0.6 + shiver;
+}
 
 function length(vector: SurfacePoint): number {
   return Math.hypot(vector.x, vector.y);
@@ -106,6 +127,7 @@ export class ButterflyPass {
   private lastTime = -1;
   private models: ButterflyModel[] = [];
   private readonly shadowStrength = new THREE.Color();
+  private readonly shade = new THREE.Color();
 
   public constructor() {
     this.butterflies = this.createButterflies();
@@ -114,7 +136,9 @@ export class ButterflyPass {
     this.shapeGeometry.name = "butterflies";
     this.lineGeometry.name = "butterfly antennae";
 
+    // Fully opaque, queued with the lotus blooms so a visitor stays on top of them.
     const shapeMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
       vertexColors: true,
       side: THREE.DoubleSide,
       depthTest: false,
@@ -122,6 +146,7 @@ export class ButterflyPass {
       toneMapped: false,
     });
     const lineMaterial = new THREE.LineBasicMaterial({
+      transparent: true,
       vertexColors: true,
       depthTest: false,
       depthWrite: false,
@@ -207,7 +232,12 @@ export class ButterflyPass {
         randomState,
         flapPhase: spawn.phase,
         wingSpread: 1,
+        hindSpread: 1,
         lift: 0.9,
+        gliding: false,
+        rhythmTimer: 0,
+        startle: 0,
+        displayHeading: spawn.phase,
       };
       this.beginWander(butterfly);
       butterfly.stateAge = this.random(butterfly) * butterfly.stateDuration;
@@ -215,7 +245,7 @@ export class ButterflyPass {
     });
   }
 
-  public update(time: number, weather?: Readonly<SurfaceWeather>): void {
+  public update(time: number, weather?: Readonly<SurfaceWeather>, ripples?: RippleSystem): void {
     const deltaTime =
       this.lastTime < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastTime));
     this.lastTime = time;
@@ -230,21 +260,67 @@ export class ButterflyPass {
     );
     for (let index = 0; index < visibleCount; index += 1) {
       const butterfly = this.butterflies[index];
+      this.startleFromRipples(butterfly, ripples);
       this.moveButterfly(butterfly, time, deltaTime);
-      // Pose clocks continue through approach and rest; changing a flight
-      // interval must not snap wing phase. Height is a visual cue only.
-      butterfly.flapPhase += butterfly.flapSpeed * deltaTime;
-      const resting = butterfly.state === "rest";
-      const spread = resting ? 0.25 + Math.sin(time * 1.3 + butterfly.phase) * 0.025 : 0.16 + Math.abs(Math.cos(butterfly.flapPhase)) * 0.84;
-      butterfly.wingSpread += (spread - butterfly.wingSpread) * (1 - Math.exp(-(resting ? 7 : 24) * deltaTime));
-      const lift = resting ? 0.07 : butterfly.state === "approach" ? 0.38 : butterfly.state === "orbit" ? 0.52 : 0.92;
-      butterfly.lift += (lift - butterfly.lift) * (1 - Math.exp(-3 * deltaTime));
-      this.drawButterfly(butterfly, weather);
+      this.updateWings(butterfly, time, deltaTime);
+      this.drawButterfly(butterfly, time, weather);
     }
 
     this.shadowBatch.commit();
     this.shapeBatch.commit();
     this.lineBatch.commit();
+  }
+
+  // A tap on the water sends a nearby butterfly up, whatever it was doing.
+  private startleFromRipples(butterfly: Butterfly, ripples?: RippleSystem): void {
+    if (!ripples || butterfly.startle > 0.5) return;
+    for (const ripple of ripples.instances) {
+      if (!ripple.alive || ripple.type !== "touch" || ripple.age < 0 || ripple.age > 0.2) continue;
+      const dx = butterfly.position.x - ripple.center.x, dy = butterfly.position.y - ripple.center.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > STARTLE_RADIUS) continue;
+      butterfly.startle = 1;
+      butterfly.gliding = false;
+      butterfly.rhythmTimer = 0.8;
+      if (butterfly.state !== "wander") this.beginWander(butterfly);
+      const away = Math.atan2(dy, dx) + (this.random(butterfly) - 0.5) * 0.9;
+      const margin = BUTTERFLIES.edgeMargin;
+      butterfly.wanderTarget = {
+        x: Math.max(margin, Math.min(CANVAS_WIDTH - margin, butterfly.position.x + Math.cos(away) * 90)),
+        y: Math.max(margin, Math.min(CANVAS_HEIGHT - margin, butterfly.position.y + Math.sin(away) * 90)),
+      };
+      return;
+    }
+  }
+
+  // Pose clocks continue through approach and rest; changing a flight interval
+  // must not snap wing phase. Height is a visual cue only.
+  private updateWings(butterfly: Butterfly, time: number, deltaTime: number): void {
+    const resting = butterfly.state === "rest";
+    butterfly.startle = Math.max(0, butterfly.startle - deltaTime * 0.9);
+    butterfly.rhythmTimer -= deltaTime;
+    if (butterfly.rhythmTimer <= 0) {
+      const mayGlide = !butterfly.gliding && butterfly.startle <= 0 && butterfly.state === "wander" && this.random(butterfly) < 0.7;
+      butterfly.gliding = mayGlide;
+      butterfly.rhythmTimer = mayGlide ? this.randomRange(butterfly, [0.18, 0.55]) : this.randomRange(butterfly, [0.35, 1.1]);
+    }
+    const gliding = butterfly.gliding && !resting;
+    if (!gliding) butterfly.flapPhase += butterfly.flapSpeed * (1 + butterfly.startle * 0.45) * deltaTime;
+    const hold = 0.74 + Math.sin(time * 9 + butterfly.phase) * 0.03;
+    const fore = resting ? baskOpening(time, butterfly.phase) : gliding ? hold : flapOpening(butterfly.flapPhase);
+    const hind = resting ? fore * 0.96 : gliding ? hold * 0.96 : flapOpening(butterfly.flapPhase - HIND_WING_LAG);
+    const response = 1 - Math.exp(-(resting ? 7 : gliding ? 10 : 26) * deltaTime);
+    butterfly.wingSpread += (fore - butterfly.wingSpread) * response;
+    butterfly.hindSpread += (hind - butterfly.hindSpread) * response;
+    // Each downstroke lifts the body a little, which shows in the shadow below it.
+    const beat = resting || gliding ? 0 : Math.sin(butterfly.flapPhase * 2) * 0.14;
+    const lift = (resting ? 0.07 : butterfly.state === "approach" ? 0.38 : butterfly.state === "orbit" ? 0.52 : 0.92) + beat + butterfly.startle * 0.2;
+    butterfly.lift += (lift - butterfly.lift) * (1 - Math.exp(-(resting ? 3 : 9) * deltaTime));
+    // Slow, near-zero rest velocity must not make the body spin on the spot.
+    const heading = Math.atan2(butterfly.velocity.y, butterfly.velocity.x);
+    let turn = heading - butterfly.displayHeading;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    butterfly.displayHeading += turn * (1 - Math.exp(-(resting ? 0.8 : 9) * deltaTime));
   }
 
   private moveButterfly(
@@ -334,7 +410,7 @@ export class ButterflyPass {
           BUTTERFLIES.speedVariation *
             (Math.sin(time * 0.73 + butterfly.speedPhase) * 0.68 +
               Math.sin(time * 1.91 + butterfly.speedPhase * 1.4) * 0.32);
-    targetSpeed *= speedPulse;
+    targetSpeed *= speedPulse * (1 + butterfly.startle * 1.3);
     const desiredVelocity = {
       x: direction.x * targetSpeed - direction.y * wobble,
       y: direction.y * targetSpeed + direction.x * wobble,
@@ -505,11 +581,10 @@ export class ButterflyPass {
     };
   }
 
-  private drawButterfly(butterfly: Butterfly, weather?: Readonly<SurfaceWeather>): void {
+  private drawButterfly(butterfly: Butterfly, time: number, weather?: Readonly<SurfaceWeather>): void {
     const model = this.models[butterfly.palette % this.models.length];
-    const heading = Math.atan2(butterfly.velocity.y, butterfly.velocity.x);
-    const fx = Math.cos(heading), fy = Math.sin(heading);
-    const lift = butterfly.lift;
+    const fx = Math.cos(butterfly.displayHeading), fy = Math.sin(butterfly.displayHeading);
+    const lift = Math.max(0, butterfly.lift);
     const shadowScale = BUTTERFLIES.shadow.scale * (0.92 + lift * 0.18);
     const shadowX = BUTTERFLIES.shadow.offset.x * (0.2 + lift * 1.4)
       * (-(weather?.lightDirection.x ?? -0.58) / 0.58) * (weather?.shadowScale ?? 1);
@@ -520,7 +595,9 @@ export class ButterflyPass {
     // forewing. Both attach at the thorax, rather than making a single diamond.
     for (let wingIndex = 0; wingIndex < 2; wingIndex++) {
       const wing = wingIndex === 0 ? model.hindwing : model.forewing;
-      const spread = butterfly.wingSpread * (wingIndex === 0 ? 0.96 : 1);
+      const spread = wingIndex === 0 ? butterfly.hindSpread : butterfly.wingSpread;
+      // A folding wing turns its darker underside toward the viewer.
+      const tone = 0.68 + Math.min(1, spread) * 0.32;
       for (let sign = -1; sign <= 1; sign += 2) {
         for (const p of wing.silhouette) {
           const x = p.x * spread * sign * shadowScale, y = p.y * shadowScale;
@@ -530,12 +607,12 @@ export class ButterflyPass {
         for (const p of wing.shape) {
           const x = p.x * spread * sign;
           this.shapeBatch.pointXY(butterfly.position.x + fx * p.y - fy * x,
-            butterfly.position.y + fy * p.y + fx * x, p.color);
+            butterfly.position.y + fy * p.y + fx * x, this.shade.copy(p.color).multiplyScalar(tone));
         }
         for (const p of wing.veins) {
           const x = p.x * spread * sign;
           this.lineBatch.pointXY(butterfly.position.x + fx * p.y - fy * x,
-            butterfly.position.y + fy * p.y + fx * x, p.color);
+            butterfly.position.y + fy * p.y + fx * x, this.shade.copy(p.color).multiplyScalar(tone));
         }
       }
     }
@@ -543,9 +620,12 @@ export class ButterflyPass {
       this.shapeBatch.pointXY(butterfly.position.x + fx * p.y - fy * p.x,
         butterfly.position.y + fy * p.y + fx * p.x, p.color);
     }
+    // Antennae open and close slightly; the body itself stays still between beats.
+    const feel = 1 + Math.sin(time * 4.3 + butterfly.phase) * 0.2;
     for (const p of model.antennae) {
-      this.lineBatch.pointXY(butterfly.position.x + fx * p.y - fy * p.x,
-        butterfly.position.y + fy * p.y + fx * p.x, p.color);
+      const x = p.x * feel;
+      this.lineBatch.pointXY(butterfly.position.x + fx * p.y - fy * x,
+        butterfly.position.y + fy * p.y + fx * x, p.color);
     }
   }
   private distance(a: SurfacePoint, b: SurfacePoint): number {
