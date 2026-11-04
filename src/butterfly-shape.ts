@@ -68,12 +68,13 @@ function buildWing(family: number, forewing: boolean, palette: ButterflyPalette)
   const wing: ButterflyWing = { shape: [], silhouette: [], veins: [] };
   const contour = outline(family, forewing).getPoints(5);
   const dark = palette.body.clone().lerp(palette.accent, family === 2 ? 0.22 : 0.08);
-  const faintVein = palette.wing.clone().lerp(dark, family === 0 ? 0.68 : 0.18);
-  const edge = family === 0 || family === 2 ? dark : palette.wing.clone().multiplyScalar(0.89);
+  // At this size a one-pixel line reads as a bar, so veins stay close to the wing color.
+  const faintVein = palette.wing.clone().lerp(dark, family === 0 ? 0.3 : 0.14);
+  const edge = family === 0 || family === 2 ? dark.clone().lerp(palette.wing, 0.25) : palette.wing.clone().multiplyScalar(0.85);
   polygon(contour, edge, wing.shape);
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
   for (const triangle of triangles) for (const index of triangle) wing.silhouette.push({ x: contour[index].x, y: contour[index].y });
-  const inset = contour.map(p => ({ x: p.x * (family === 0 ? 0.84 : 0.9) + 0.012, y: p.y * 0.88 + 0.008 }));
+  const inset = contour.map(p => ({ x: p.x * (family === 0 ? 0.88 : 0.92) + 0.012, y: p.y * 0.91 + 0.008 }));
   polygon(inset, forewing ? palette.wingLight : palette.wing, wing.shape);
   if (forewing) {
     if (family === 0) {
@@ -86,11 +87,10 @@ function buildWing(family: number, forewing: boolean, palette: ButterflyPalette)
       if (family === 2) ellipse(0.57, 0.43, 0.035, 0.038, dark, wing.shape);
     }
   } else if (family === 0) {
-    polygon([{x:0.26,y:-0.42},{x:0.63,y:-0.19},{x:0.73,y:-0.4},{x:0.47,y:-0.66},{x:0.17,y:-0.42}], dark, wing.shape);
-    for (let i = 0; i < 4; i++) ellipse(0.34 + i * 0.105, -0.5 + Math.sin(i * 0.8) * 0.1, 0.052, 0.034, palette.accent, wing.shape);
+    // A blue-spotted margin instead of a solid patch, which turned to a dark blot when small.
+    for (let i = 0; i < 4; i++) ellipse(0.34 + i * 0.105, -0.5 + Math.sin(i * 0.8) * 0.1, 0.066, 0.05, palette.accent, wing.shape);
     ellipse(0.27, -0.51, 0.042, 0.048, palette.wingLight.clone().lerp(new THREE.Color(0xd77c43), 0.5), wing.shape);
   } else if (family === 2) {
-    polygon([{x:0.17,y:-0.2},{x:0.58,y:-0.12},{x:0.6,y:-0.46},{x:0.39,y:-0.58},{x:0.15,y:-0.4}], dark, wing.shape);
     polygon([{x:0.2,y:-0.44},{x:0.43,y:-0.52},{x:0.59,y:-0.36},{x:0.6,y:-0.45},{x:0.42,y:-0.62},{x:0.15,y:-0.5}], palette.wingLight, wing.shape);
   }
   const ends = forewing ? [[0.73,0.66],[0.77,0.44],[0.63,0.24],[0.41,0.065]] : [[0.6,-0.19],[0.65,-0.4],[0.45,-0.54],[0.22,-0.43]];

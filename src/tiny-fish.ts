@@ -185,17 +185,17 @@ export class TinyFishSchools {
     }
   }
 
-  public update(dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance): void {
+  public update(dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance, shubunkin?: FishAvoidance): void {
     const visibleSchools = Math.min(
       TINY_FISH.visibleSchoolCount,
       this.ranges.length,
     );
     for (let schoolIndex = 0; schoolIndex < visibleSchools; schoolIndex += 1) {
-      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish, butterflyKoi);
+      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish, butterflyKoi, shubunkin);
     }
   }
 
-  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance): void {
+  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance, shubunkin?: FishAvoidance): void {
     let center = vec();
     let averageVelocity = vec();
     for (let index = range.start; index < range.start + range.count; index += 1) {
@@ -338,6 +338,9 @@ export class TinyFishSchools {
         fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
       ));
       if (butterflyKoi) steering = add(steering, butterflyKoi.avoidance(
+        fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
+      ));
+      if (shubunkin) steering = add(steering, shubunkin.avoidance(
         fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
       ));
 

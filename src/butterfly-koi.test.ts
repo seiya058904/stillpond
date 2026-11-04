@@ -22,7 +22,7 @@ describe("platinum butterfly koi integration", () => {
   });
 
   it("uses identical behavior and poses for an isolated agent in either population", () => {
-    settings.set(["goldfish", "count"], 0); settings.set(["butterfly-koi", "count"], 0);
+    settings.set(["goldfish", "count"], 0); settings.set(["butterfly-koi", "count"], 0); settings.set(["shubunkin", "count"], 0);
     const a = new School(), b = new School(); a.setCount(1); b.setCount(0);
     Object.defineProperty(b.butterflyKoi, "count", {get: () => 1});
     const koi = a.fish[0], longfin = b.butterflyKoi.fish[0]; Object.assign(longfin, structuredClone(koi));
@@ -53,35 +53,36 @@ describe("platinum butterfly koi integration", () => {
     settings.set(["butterfly-koi", "count"], 6); expect(population.fish[0]).toBe(fish);
   });
 
-  it.each([0, 3, 12, 32])("keeps all 62 agents finite alongside %i Medaka shoals and queries both avoidance populations", shoals => {
+  it.each([0, 3, 12, 32])("keeps all 68 agents finite alongside %i Medaka shoals and queries every avoidance population", shoals => {
     settings.set(["koi", "initialCount"], 48); settings.set(["goldfish", "count"], 8);
-    settings.set(["butterfly-koi", "count"], 6); settings.set(["tiny-fish", "visibleSchoolCount"], shoals);
-    const school = new School(), agents = [...school.fish, ...school.goldfish.fish, ...school.butterflyKoi.fish];
-    const wakin = vi.spyOn(school.goldfish, "avoidance"), longfin = vi.spyOn(school.butterflyKoi, "avoidance");
-    expect(new Set(agents.map(f => f.behaviorRng)).size).toBe(62);
+    settings.set(["butterfly-koi", "count"], 6); settings.set(["shubunkin", "count"], 6); settings.set(["tiny-fish", "visibleSchoolCount"], shoals);
+    const school = new School(), agents = [...school.fish, ...school.goldfish.fish, ...school.butterflyKoi.fish, ...school.shubunkin.fish];
+    const wakin = vi.spyOn(school.goldfish, "avoidance"), longfin = vi.spyOn(school.butterflyKoi, "avoidance"), shubunkin = vi.spyOn(school.shubunkin, "avoidance");
+    expect(new Set(agents.map(f => f.behaviorRng)).size).toBe(68);
     for (let frame = 0; frame < 120; frame++) {
       if (frame === 30) school.callTo({x: 400, y: 100}); if (frame === 90) school.scatter();
       school.update(1 / 60, frame / 60);
       expect(agents.every(f => Number.isFinite(f.position.x + f.position.y + f.speed + f.turnBend))).toBe(true);
     }
-    if (shoals) { expect(wakin).toHaveBeenCalled(); expect(longfin).toHaveBeenCalled(); }
+    if (shoals) { expect(wakin).toHaveBeenCalled(); expect(longfin).toHaveBeenCalled(); expect(shubunkin).toHaveBeenCalled(); }
     const f = school.butterflyKoi.fish[0];
     expect(Math.hypot(...Object.values(school.butterflyKoi.avoidance(f.position.x, f.position.y, 2)))).toBeGreaterThan(0);
   });
 
-  it("writes 62 disturbance instances, omits longfins in preview, and handles a fishless pond", () => {
-    settings.set(["koi", "initialCount"], 48); settings.set(["goldfish", "count"], 8); settings.set(["butterfly-koi", "count"], 6);
+  it("writes 68 disturbance instances, omits longfins and shubunkin in preview, and handles a fishless pond", () => {
+    settings.set(["koi", "initialCount"], 48); settings.set(["goldfish", "count"], 8); settings.set(["butterfly-koi", "count"], 6); settings.set(["shubunkin", "count"], 6);
     const school = new School(), pass = new SurfaceDisturbancePass();
     const draw = vi.fn();
     const gpu = { getClearColor: (out: THREE.Color) => out.set(0), getClearAlpha: () => 1,
       setRenderTarget: vi.fn(), setClearColor: vi.fn(), clear: vi.fn(), render: draw } as unknown as THREE.WebGLRenderer;
     pass.render(gpu, school, 0);
     const scene = draw.mock.calls[0][0] as THREE.Scene, geometry = (scene.children[0] as THREE.Mesh<THREE.InstancedBufferGeometry>).geometry;
-    expect(geometry.instanceCount).toBe(62);
-    expect(geometry.getAttribute("aCenter").count).toBe(62);
+    expect(geometry.instanceCount).toBe(68);
+    expect(geometry.getAttribute("aCenter").count).toBe(68);
     expect(geometry.getAttribute("aCenter").getX(56)).toBeCloseTo(school.butterflyKoi.fish[0].position.x, 4);
+    expect(geometry.getAttribute("aCenter").getX(62)).toBeCloseTo(school.shubunkin.fish[0].position.x, 4);
     pass.render(gpu, school, 0, 0); expect(geometry.instanceCount).toBe(1);
-    school.setCount(0); settings.set(["goldfish", "count"], 0); settings.set(["butterfly-koi", "count"], 0);
+    school.setCount(0); settings.set(["goldfish", "count"], 0); settings.set(["butterfly-koi", "count"], 0); settings.set(["shubunkin", "count"], 0);
     pass.render(gpu, school, 0); expect(geometry.instanceCount).toBe(0); pass.dispose();
   });
 

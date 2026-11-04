@@ -1,15 +1,18 @@
-import { Check, ChevronRight, SlidersHorizontal, Cloud, CloudFog, CloudRain, Maximize2, Moon, Sun, Sunset, Waves } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
-import { motion } from "motion/react";
+import { Check, ChevronRight, SlidersHorizontal, Cloud, CloudFog, CloudRain, Fish, Maximize2, Moon, Sun, Sunset, Volume2, Waves } from "lucide-react";
+import type { ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { languages, useI18n } from "./i18n";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
+import { IconTile, RangeInput, SegmentedControl, Stepper } from "./settings-ui";
 import { WEATHER_PRESETS, type WeatherPresetId } from "./weather";
 import type { FrameRateCap } from "./performance-prefs";
 
 const weatherIcons = {sunny: Sun, rain: CloudRain, "deep-clear": Waves, overcast: Cloud, mist: CloudFog, sunset: Sunset, moonlight: Moon};
-export type PreferencePage = "root" | "advanced";
+const frameRates = ["60", "30", "20", "native"] as const;
+
+// iOS system colors keep their meaning in light and dark, so tiles stay constant.
+export const TILE = {red: "#ff3b30", orange: "#ff9500", gray: "#8e8e93", indigo: "#5856d6", teal: "#30b0c7", pink: "#ff2d55", blue: "#007aff", purple: "#af52de", green: "#34c759"} as const;
 
 export interface QuickSettingsProps {
   weather: WeatherPresetId;
@@ -22,73 +25,109 @@ export interface QuickSettingsProps {
   ambient: boolean;
   onAmbientChange: () => void;
   onAdvanced: () => void;
+  onReset: () => void;
 }
 
-function Group({title, children, note, status, flush}: {title: string; children: ReactNode; note?: string; status?: boolean; flush?: boolean}) {
+function Group({title, children, note, status}: {title?: string; children: ReactNode; note?: string; status?: boolean}) {
   return <section className="preference-group" aria-label={title}>
-    <h3>{title}</h3>
-    <div className={"preference-card" + (flush ? " preference-card--flush" : "")}>{children}</div>
+    {title && <h3>{title}</h3>}
+    <div className="preference-card">{children}</div>
     {note && <p className="preference-note" role={status ? "status" : undefined}>{note}</p>}
   </section>;
 }
 
-export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onAdvanced}: QuickSettingsProps) {
+function FishStepper({id, tile, label, value, text, max, onChange}: {
+  id: string; tile: string; label: string; value: number; text: string; max: number; onChange: (value: number) => void;
+}) {
+  const {t} = useI18n();
+  return <div className="preference-row" role="group" aria-labelledby={id}>
+    <IconTile color={tile}><Fish /></IconTile>
+    <span className="preference-row__label" id={id}>{label}</span>
+    <output className="preference-row__value" aria-label={text} aria-live="polite">{value}</output>
+    <Stepper value={value} min={0} max={max} onChange={onChange}
+      decreaseLabel={t("composition.remove", {family: label})} increaseLabel={t("composition.add", {family: label})} />
+  </div>;
+}
+
+export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onAdvanced, onReset}: QuickSettingsProps) {
   const {t, language, setLanguage} = useI18n();
   const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
   const [shoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
   const [goldfish, setGoldfish] = useSetting<number>(["goldfish", "count"]);
   const [longfins, setLongfins] = useSetting<number>(["butterfly-koi", "count"]);
+  const [shubunkin, setShubunkin] = useSetting<number>(["shubunkin", "count"]);
   return <div className="preferences">
     <Group title={t("product.pond")} note={t("product.medakaHint")}>
-      <div className="preference-row"><label htmlFor="pond-density">{t("product.density")}</label><output htmlFor="pond-density">{t("product.koi", {count})}</output></div>
-      <input id="pond-density" className="pond-range" type="range" min="0" max="48" step="1" value={count}
-        aria-valuetext={t("product.koi", {count})} style={{"--range": (count/48*100)+"%"} as CSSProperties} onChange={event => setCount(Number(event.target.value))} />
-      <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
-      <div className="preference-row divided"><label htmlFor="pond-goldfish">{t("product.goldfish")}</label><output htmlFor="pond-goldfish">{t("product.goldfishCount", {count: goldfish})}</output></div>
-      <input id="pond-goldfish" className="pond-range" type="range" min="0" max="8" step="1" value={goldfish}
-        aria-valuetext={t("product.goldfishCount", {count: goldfish})} style={{"--range": (goldfish/8*100)+"%"} as CSSProperties} onChange={event => setGoldfish(Number(event.target.value))} />
-      <div className="preference-row divided"><label htmlFor="pond-butterfly-koi">{t("product.butterflyKoi")}</label><output htmlFor="pond-butterfly-koi">{t("product.butterflyKoiCount", {count: longfins})}</output></div>
-      <input id="pond-butterfly-koi" className="pond-range" type="range" min="0" max="6" step="1" value={longfins}
-        aria-valuetext={t("product.butterflyKoiCount", {count: longfins})} style={{"--range": (longfins/6*100)+"%"} as CSSProperties} onChange={event => setLongfins(Number(event.target.value))} />
-      <div className="preference-row divided"><label htmlFor="pond-medaka">{t("product.medaka")}</label><Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => settings.setMedakaEnabled(on)} /></div>
+      <div className="preference-cell" data-base-ui-swipe-ignore>
+        <div className="preference-row preference-row--plain">
+          <IconTile color={TILE.red}><Fish /></IconTile>
+          <label className="preference-row__label" htmlFor="pond-density">{t("product.density")}</label>
+          <output className="preference-row__value" htmlFor="pond-density">{t("product.koi", {count})}</output>
+        </div>
+        <RangeInput id="pond-density" min={0} max={48} step={1} value={count} valueText={t("product.koi", {count})} onChange={setCount} />
+        <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
+      </div>
+      <FishStepper id="pond-goldfish" tile={TILE.orange} label={t("product.goldfish")} value={goldfish} text={t("product.goldfishCount", {count: goldfish})} max={8} onChange={setGoldfish} />
+      <FishStepper id="pond-butterfly-koi" tile={TILE.gray} label={t("product.butterflyKoi")} value={longfins} text={t("product.butterflyKoiCount", {count: longfins})} max={6} onChange={setLongfins} />
+      <FishStepper id="pond-shubunkin" tile={TILE.indigo} label={t("product.shubunkin")} value={shubunkin} text={t("product.shubunkinCount", {count: shubunkin})} max={6} onChange={setShubunkin} />
+      <div className="preference-row">
+        <IconTile color={TILE.teal}><Fish /></IconTile>
+        <label className="preference-row__label" htmlFor="pond-medaka">{t("product.medaka")}</label>
+        <Switch id="pond-medaka" checked={shoals > 0} onCheckedChange={on => settings.setMedakaEnabled(on)} />
+      </div>
     </Group>
     <Group title={t("quick.atmosphere")}>
-      <div className="weather-cards" role="group" aria-label={t("controls.weatherLighting")}>
-        {WEATHER_PRESETS.map(preset => {
-          const Icon = weatherIcons[preset.id];
-          return <button key={preset.id} className={"weather-card weather-card--"+preset.id} aria-pressed={weather===preset.id}
-            onClick={() => onWeatherChange(preset.id)}>
-            <span className="weather-card__scene" aria-hidden="true"><Icon />
-              {weather===preset.id && <motion.span className="weather-check" layoutId="weather-check" transition={{type:"spring",stiffness:480,damping:36}}><Check /></motion.span>}
-            </span><span>{t(`weather.${preset.id}`)}</span>
-          </button>;
-        })}
+      <div className="preference-cell">
+        <div className="weather-cards" role="group" aria-label={t("controls.weatherLighting")}>
+          {WEATHER_PRESETS.map(preset => {
+            const Icon = weatherIcons[preset.id];
+            return <button key={preset.id} className={"weather-card weather-card--"+preset.id} aria-pressed={weather===preset.id}
+              onClick={() => onWeatherChange(preset.id)}>
+              <span className="weather-card__scene" aria-hidden="true"><Icon />
+                {weather===preset.id && <span className="weather-check"><Check /></span>}
+              </span><span>{t(`weather.${preset.id}`)}</span>
+            </button>;
+          })}
+        </div>
       </div>
-      <div className="preference-row divided"><label htmlFor="pond-rain">{t("quick.rain")}</label><Switch id="pond-rain" checked={rain} onCheckedChange={onRainChange} /></div>
+      <div className="preference-row">
+        <IconTile color={TILE.blue}><CloudRain /></IconTile>
+        <label className="preference-row__label" htmlFor="pond-rain">{t("quick.rain")}</label>
+        <Switch id="pond-rain" checked={rain} onCheckedChange={onRainChange} />
+      </div>
     </Group>
     <Group title={t("controls.sound")} note={t(sound.unavailable ? "audio.unavailable" : "product.soundHint")} status={sound.unavailable}>
-      <div className="preference-row"><label htmlFor="pond-sound">{t("quick.sound")}</label><Switch id="pond-sound" checked={sound.enabled} onCheckedChange={sound.change} /></div>
-    </Group>
-    <Group title={t("settings.language")} flush>
-      <div className="settings-choices" role="group" aria-label={t("settings.language")}>
-        {languages.map(option => <button className="selection-row" key={option.id} aria-pressed={language===option.id} lang={option.id} onClick={() => setLanguage(option.id)}>
-          <span>{option.label}</span>{language===option.id && <Check aria-hidden="true" />}</button>)}
+      <div className="preference-row">
+        <IconTile color={TILE.pink}><Volume2 /></IconTile>
+        <label className="preference-row__label" htmlFor="pond-sound">{t("quick.sound")}</label>
+        <Switch id="pond-sound" checked={sound.enabled} onCheckedChange={sound.change} />
       </div>
     </Group>
-    <Group title={t("product.display")} flush>
-      <div className="settings-choices" role="group" aria-label={t("product.motion")}>
-        {(["60","30","20","native"] as const).map(id => <button className="selection-row" key={id} aria-pressed={frameRate===id} onClick={() => onFrameRateChange(id)}>
-          <span><strong>{t(`product.fps.${id}`)}</strong><small>{id === "native" ? t("fps.native.hint") : t(`fps.${id}`)}</small></span>
-          {frameRate===id && <motion.span layoutId="display-check"><Check aria-hidden="true" /></motion.span>}</button>)}
+    <Group title={t("product.display")} note={t(frameRate === "native" ? "fps.native.hint" : `fps.${frameRate}`)}>
+      <div className="preference-row">
+        <IconTile color={TILE.indigo}><Maximize2 /></IconTile>
+        <label className="preference-row__label" htmlFor="pond-ambient">{t("product.ambient")}</label>
+        <Switch id="pond-ambient" checked={ambient} onCheckedChange={onAmbientChange} />
       </div>
-      <button className="preference-row row-button divided" aria-pressed={ambient} onClick={onAmbientChange}>
-        <span><Maximize2 aria-hidden="true" />{t(ambient ? "controls.exitAmbient" : "controls.enterAmbient")}</span><ChevronRight aria-hidden="true" />
+      <div className="preference-cell">
+        <SegmentedControl label={t("product.motion")} value={frameRate} onChange={onFrameRateChange}
+          options={frameRates.map(id => ({value: id, label: t(`product.fps.${id}`)}))} />
+      </div>
+    </Group>
+    <Group title={t("settings.language")}>
+      <div className="preference-list" role="group" aria-label={t("settings.language")}>
+        {languages.map(option => <button className="preference-row preference-row--button selection-row" key={option.id} aria-pressed={language===option.id} lang={option.id} onClick={() => setLanguage(option.id)}>
+          <span className="preference-row__label">{option.label}</span>{language===option.id && <Check className="selection-row__check" aria-hidden="true" />}</button>)}
+      </div>
+    </Group>
+    <Group note={t("product.advancedHint")}>
+      <button className="preference-row preference-row--button" data-preference="advanced" onClick={onAdvanced}>
+        <IconTile color={TILE.gray}><SlidersHorizontal /></IconTile>
+        <span className="preference-row__label">{t("advanced.title")}</span><ChevronRight className="preference-row__chevron" aria-hidden="true" />
       </button>
     </Group>
-    <div>
-      <div className="settings-list settings-list--advanced"><button className="settings-menu-row" data-preference="advanced" onClick={onAdvanced}>
-        <SlidersHorizontal aria-hidden="true" /><span>{t("advanced.title")}</span><ChevronRight aria-hidden="true" />
-      </button></div><p className="settings-menu-note">{t("product.advancedHint")}</p>
-    </div>
+    <Group>
+      <button className="preference-row preference-row--button preference-row--danger" data-preference="reset" onClick={onReset}>{t("action.resetAll")}</button>
+    </Group>
   </div>;
 }

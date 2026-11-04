@@ -19,27 +19,29 @@ button svg { width:19px; height:19px; flex:none; stroke-width:1.7; }
 .pond-ui--hidden > * { pointer-events:none; }
 .stage--idle, .stage--idle #pond { cursor:none; }
 .glass-button, .brand-float, .control-dock, .pond-preview-label, .pond-status, .settings-loading {
-  background:rgb(19 36 32 / 74%); color:#f0f5ed; backdrop-filter:blur(16px) saturate(125%);
-  box-shadow:0 8px 28px rgb(4 22 17 / 18%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  background:rgb(28 28 30 / 58%); color:#fff; -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%);
+  box-shadow:0 10px 30px rgb(0 0 0 / 22%), inset 0 0 0 0.5px rgb(255 255 255 / 16%);
   border:0;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI","PingFang SC","Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+  letter-spacing:-.01em;
 }
-.brand-float { position:absolute; top:max(22px, env(safe-area-inset-top)); left:max(24px, env(safe-area-inset-left)); border-radius:14px; padding:13px 17px; }
-.brand-float h1 { font-size:14px; font-weight:600; letter-spacing:.055em; line-height:20px; margin:0; }
-.glass-button { display:flex; align-items:center; justify-content:center; gap:9px; border-radius:14px; min-height:46px; padding:0 16px; font-size:14px; font-weight:550; }
+.brand-float { position:absolute; top:max(22px, env(safe-area-inset-top)); left:max(24px, env(safe-area-inset-left)); border-radius:23px; padding:13px 18px; }
+.brand-float h1 { font-size:15px; font-weight:600; letter-spacing:-.01em; line-height:20px; margin:0; }
+.glass-button { display:flex; align-items:center; justify-content:center; gap:7px; border-radius:23px; min-height:46px; padding:0 18px; font-size:15px; font-weight:500; }
 .settings-trigger { position:absolute; top:max(22px, env(safe-area-inset-top)); right:max(24px, env(safe-area-inset-right)); }
-.control-dock { display:flex; align-items:center; gap:2px; position:absolute; bottom:max(24px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); padding:5px; border-radius:20px; }
-.control-dock button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; min-width:48px; padding:0 14px; border-radius:15px; font-size:13px; color:inherit; background:transparent; border:0; }
-.control-dock button[aria-pressed=true] { background:rgb(194 229 206 / 13%); color:#d2f5de; }
-.control-dock button, .glass-button { transition:background-color .18s ease, transform .22s cubic-bezier(.2,.9,.3,1.2); }
-@media (hover:hover) { .control-dock button:hover, .glass-button:hover { background-color:rgb(206 233 214 / 18%); } }
+.control-dock { display:flex; align-items:center; gap:2px; position:absolute; bottom:max(24px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); padding:5px; border-radius:27px; }
+.control-dock button { display:flex; align-items:center; justify-content:center; gap:7px; min-height:44px; min-width:48px; padding:0 15px; border-radius:22px; font-size:14px; color:inherit; background:transparent; border:0; }
+.control-dock button[aria-pressed=true] { background:rgb(255 255 255 / 92%); color:#000; }
+.control-dock button, .glass-button { transition:background-color .18s ease, color .18s ease, transform .24s cubic-bezier(.32,.72,0,1); }
+@media (hover:hover) { .control-dock button:not([aria-pressed=true]):hover, .glass-button:hover { background-color:rgb(255 255 255 / 14%); } }
 .control-dock button:active, .glass-button:active { transform:scale(.96); }
 .restore-ui { position:absolute; right:20px; bottom:max(20px, env(safe-area-inset-bottom)); opacity:.55; }
 .restore-ui:hover, .restore-ui:focus-visible { opacity:1; }
-.pond-preview-label { position:absolute; top:24px; left:50%; transform:translateX(-50%); padding:10px 16px; border-radius:14px; font-size:13px; pointer-events:none; }
-.pond-status { position:absolute; z-index:60; top:50%; left:50%; transform:translate(-50%,-50%); width:min(360px,90vw); border-radius:20px; padding:24px; text-align:center; }
-.pond-status p { color:#c0d0c8; font-size:14px; margin:12px 0 20px; }
-.pond-status button { border:0; border-radius:10px; background:#d7ecd9; color:#163728; padding:12px 20px; }
-.settings-loading { position:fixed; z-index:50; top:82px; right:24px; padding:22px; border-radius:20px; font-size:14px; }
+.pond-preview-label { position:absolute; top:24px; left:50%; transform:translateX(-50%); padding:10px 16px; border-radius:20px; font-size:13px; pointer-events:none; }
+.pond-status { position:absolute; z-index:60; top:50%; left:50%; transform:translate(-50%,-50%); width:min(360px,90vw); border-radius:28px; padding:24px; text-align:center; }
+.pond-status p { color:rgb(235 235 245 / 60%); font-size:14px; margin:12px 0 20px; }
+.pond-status button { min-height:44px; border:0; border-radius:22px; background:#fff; color:#000; font-weight:600; padding:0 22px; }
+.settings-loading { position:fixed; z-index:50; top:82px; right:24px; padding:22px; border-radius:24px; font-size:14px; }
 .settings-load-error { max-width:calc(100vw - 48px); }
 .settings-load-error p { margin:0 0 16px; }
 .settings-load-error > div { display:flex; justify-content:flex-end; gap:8px; }

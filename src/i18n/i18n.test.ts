@@ -29,12 +29,18 @@ describe("complete bilingual UI", () => {
     }
   });
 
-  it("defaults to English even on a Chinese browser and validates stored values", () => {
+  it("follows a Chinese browser until a choice is saved, and validates stored values", () => {
     const data = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => data.set(key, value) });
+    for (const [browser, expected] of [["zh-CN", "zh-CN"], ["zh-TW", "zh-CN"], ["zh", "zh-CN"], ["en-US", "en"], ["ja", "en"], ["zhx", "en"]]) {
+      vi.stubGlobal("navigator", { language: browser });
+      expect(readLanguage(), browser).toBe(expected);
+    }
     vi.stubGlobal("navigator", { language: "zh-CN" });
-    vi.stubGlobal("localStorage", { getItem: (key: string) => data.get(key), setItem: (key: string, value: string) => data.set(key, value) });
-    expect(readLanguage()).toBe("en");
+    setLanguage("en");
+    expect(readLanguage()).toBe("en"); // An explicit choice outranks the browser.
     setLanguage("zh-CN");
+    vi.stubGlobal("navigator", { language: "en-US" });
     expect(readLanguage()).toBe("zh-CN");
     setLanguage("unsupported");
     expect(readLanguage()).toBe("zh-CN");
@@ -45,7 +51,10 @@ describe("complete bilingual UI", () => {
 
   it("continues to work when browser storage is blocked", () => {
     vi.stubGlobal("localStorage", { getItem() { throw Error("blocked"); }, setItem() { throw Error("blocked"); } });
+    vi.stubGlobal("navigator", { language: "en-US" });
     expect(readLanguage()).toBe("en");
+    vi.stubGlobal("navigator", { language: "zh-CN" });
+    expect(readLanguage()).toBe("zh-CN");
     expect(() => setLanguage("zh-CN")).not.toThrow();
     expect(() => setLanguage("en")).not.toThrow();
   });

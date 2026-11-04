@@ -9,6 +9,7 @@ import { Koi, SwimState } from "./koi";
 import { TinyFishSchools } from "./tiny-fish";
 import { GoldfishPopulation } from "./goldfish";
 import { ButterflyKoiPopulation } from "./butterfly-koi";
+import { ShubunkinPopulation } from "./shubunkin";
 import {
   add,
   clamp,
@@ -32,6 +33,7 @@ export class School {
   public readonly tinyFish = new TinyFishSchools();
   public readonly goldfish = new GoldfishPopulation();
   public readonly butterflyKoi = new ButterflyKoiPopulation();
+  public readonly shubunkin = new ShubunkinPopulation();
 
   public count: number = FISH.initialCount;
   public targetActive = false;
@@ -42,13 +44,20 @@ export class School {
 
   public constructor() {
     this.fish.forEach((fish, index) => fish.reset(index, this.random));
-    this.goldfish.reset(this.fish, this.count);
-    this.butterflyKoi.reset([...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count)]);
+    this.resetOrnamentalFish();
   }
 
   // All medium/large populations use the original koi behavior below.
   private activeFish(): Koi[] {
-    return [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count), ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count)];
+    return [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count),
+      ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count), ...this.shubunkin.fish.slice(0, this.shubunkin.count)];
+  }
+
+  private resetOrnamentalFish(): void {
+    this.goldfish.reset(this.fish, this.count);
+    const placed = [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count)];
+    this.butterflyKoi.reset(placed);
+    this.shubunkin.reset([...placed, ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count)]);
   }
 
   public setCount(count: number): void {
@@ -101,6 +110,7 @@ export class School {
     this.tinyFish.resize(scaleX, scaleY);
     this.goldfish.resize(scaleX, scaleY);
     this.butterflyKoi.resize(scaleX, scaleY);
+    this.shubunkin.resize(scaleX, scaleY);
     for (const ripple of this.ripples.instances) {
       ripple.center.x *= scaleX;
       ripple.center.y *= scaleY;
@@ -111,8 +121,7 @@ export class School {
     this.random.state = 0x00c0ffee;
     this.fish.forEach((fish, index) => fish.reset(index, this.random));
     this.tinyFish.reset();
-    this.goldfish.reset(this.fish, this.count);
-    this.butterflyKoi.reset([...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count)]);
+    this.resetOrnamentalFish();
     this.ripples.reset();
     this.targetActive = false;
   }
@@ -194,7 +203,7 @@ export class School {
     for (const [index, fish] of agents.entries()) {
       this.integrate(fish, desired[index], desiredSpeed[index], dt);
     }
-    this.tinyFish.update(dt, time, this.goldfish, this.butterflyKoi);
+    this.tinyFish.update(dt, time, this.goldfish, this.butterflyKoi, this.shubunkin);
 
     this.ripples.update(dt);
   }

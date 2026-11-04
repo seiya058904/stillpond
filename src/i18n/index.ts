@@ -6,12 +6,18 @@ import { fieldLabels } from "./fields";
 export { languages, type Language, type MessageKey } from "./catalog";
 export const LANGUAGE_STORAGE_KEY = `${project.storagePrefix}:language:v1`;
 
+// Without a saved choice, a Chinese browser gets the written Chinese copy. Showing
+// it English instead invites machine translation ("pond" became "蓄水池").
+function browserLanguage(): Language {
+  return typeof navigator !== "undefined" && /^zh\b/i.test(navigator.language ?? "") ? "zh-CN" : "en";
+}
+
 export function readLanguage(): Language {
   try {
-    return localStorage.getItem(LANGUAGE_STORAGE_KEY) === "zh-CN" ? "zh-CN" : "en";
-  } catch {
-    return "en";
-  }
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved === "zh-CN" || saved === "en") return saved;
+  } catch { /* Storage may be disabled. */ }
+  return browserLanguage();
 }
 
 export function createTranslator(language: Language) {

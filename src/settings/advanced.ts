@@ -26,6 +26,10 @@ export const ADVANCED_GROUPS = [
     {id: "butterfly-koi-count", label: "butterflyKoiCount", path: ["butterfly-koi", "count"]},
     {id: "butterfly-koi-size", label: "butterflyKoiSize", path: ["butterfly-koi", "size"], percent: true},
   ]},
+  {id: "shubunkin", sections: ["shubunkin"], controls: [
+    {id: "shubunkin-count", label: "shubunkinCount", path: ["shubunkin", "count"]},
+    {id: "shubunkin-size", label: "shubunkinSize", path: ["shubunkin", "size"], percent: true},
+  ]},
   {id: "medaka", sections: ["tiny-fish", "tiny-fish-schools"], controls: [
     {id: "medaka-shoals", label: "visibleSchoolCount", path: ["tiny-fish", "visibleSchoolCount"], max: 12},
     {id: "medaka-size", label: "bodyLength", path: ["tiny-fish", "bodyLength"], min: 3, max: 12},

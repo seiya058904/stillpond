@@ -354,6 +354,11 @@ const butterflyKoi = group({
   size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
 }, { effect: "butterfly-koi:refresh" });
 
+const shubunkin = group({
+  count: num({ default: 2, min: 0, max: 6, step: 1, int: true }),
+  size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
+}, { effect: "shubunkin:refresh" });
+
 // ---- pond bed --------------------------------------------------------
 
 const pondBed = group(
@@ -505,7 +510,7 @@ const lotus = group(
     visibleFlowerCount: num({ default: 4, min: 0, max: 16, step: 1, int: true, effect: "lotus:rebuild" }),
     radiusScale: num({ default: 1.18, min: 0, max: 5, step: 0.01 }),
     flowerRadiusScale: num({ default: 2.38, min: 0, max: 5, step: 0.01 }),
-    leafSegments: num({ default: 24, min: 3, max: 64, step: 1, int: true }),
+    leafSegments: num({ default: 36, min: 3, max: 64, step: 1, int: true }),
     veinCount: num({ default: 9, min: 0, max: 20, step: 1, int: true }),
     // Kept for existing custom artwork; natural Nelumbo has an entire margin.
     notchHalfAngle: num({ default: 0, min: 0, max: Math.PI, step: 0.01 }),
@@ -524,8 +529,8 @@ const lotus = group(
     leafPalettes: list(
       lotusLeafPalette,
       [
-        { base: 0x78a587, light: 0x95b79a, shade: 0x527d68, vein: 0x9db89a, center: 0x698b70 },
-        { base: 0x6b9278, light: 0x91a686, shade: 0x486e59, vein: 0x91a886, center: 0x607b61 },
+        { base: 0x8fbd91, light: 0xb5d6a6, shade: 0x6b9e83, vein: 0xc9e1bd, center: 0xadca9c },
+        { base: 0x83b599, light: 0xadcbad, shade: 0x639683, vein: 0xbdd9bd, center: 0xa1c0a1 },
       ],
       { effect: "lotus:rebuild" },
     ),
@@ -766,11 +771,11 @@ const butterflies = group(
   {
     visibleCount: num({ default: 4, min: 0, max: 12, step: 1, int: true }),
     edgeMargin: num({ default: 14, min: 0, max: 100, step: 1 }),
-    bodyLength: num({ default: 3.8, min: 0, max: 20, step: 0.1 }),
-    bodyWidth: num({ default: 0.32, min: 0, max: 5, step: 0.01 }),
-    headRadius: num({ default: 0.72, min: 0, max: 5, step: 0.01 }),
-    wingLength: num({ default: 4.7, min: 0, max: 20, step: 0.1 }),
-    wingWidth: num({ default: 5.4, min: 0, max: 20, step: 0.1 }),
+    bodyLength: num({ default: 4.4, min: 0, max: 20, step: 0.1 }),
+    bodyWidth: num({ default: 0.42, min: 0, max: 5, step: 0.01 }),
+    headRadius: num({ default: 0.8, min: 0, max: 5, step: 0.01 }),
+    wingLength: num({ default: 6.6, min: 0, max: 20, step: 0.1 }),
+    wingWidth: num({ default: 7.6, min: 0, max: 20, step: 0.1 }),
     wingSpotRadius: num({ default: 0.58, min: 0, max: 5, step: 0.01 }),
     minimumSpeed: num({ default: 8.5, min: 0, max: 100, step: 0.5 }),
     maximumSpeed: num({ default: 30.5, min: 0, max: 100, step: 0.5 }),
@@ -791,7 +796,7 @@ const butterflies = group(
     flowerOrbitSpeed: range({ default: [0.9, 1.5], min: 0, max: 10, step: 0.01 }),
     wanderDuration: range({ default: [3.8, 7.4], min: 0, max: 60, step: 0.05 }),
     flowerVisitDuration: range({ default: [2.2, 4.6], min: 0, max: 60, step: 0.05 }),
-    flowerRestDuration: range({ default: [0.8, 1.8], min: 0, max: 60, step: 0.05 }),
+    flowerRestDuration: range({ default: [2.4, 5.6], min: 0, max: 60, step: 0.05 }),
     flowerVisitChance: num({ default: 0.92, min: 0, max: 1, step: 0.01 }),
     flapSpeed: range({ default: [17.5, 31.5], min: 0, max: 100, step: 0.5 }),
     driftAmount: num({ default: 1.3, min: 0, max: 10, step: 0.01 }),
@@ -802,10 +807,10 @@ const butterflies = group(
       scale: num({ default: 0.82, min: 0, max: 3, step: 0.01 }),
     }),
     palettes: list(butterflyPalette, [
-      { wing: 0xe7ce7e, wingLight: 0xf5e4a2, accent: 0x7299ac, body: 0x303530 },
-      { wing: 0xe4e9d3, wingLight: 0xf6f2df, accent: 0x8a987c, body: 0x3a4438 },
-      { wing: 0xcc8141, wingLight: 0xe9ad66, accent: 0x765239, body: 0x3d342c },
-      { wing: 0xdfd986, wingLight: 0xf4ecac, accent: 0x97965b, body: 0x3a4235 },
+      { wing: 0xfae88f, wingLight: 0xfef2b5, accent: 0xa1c2e0, body: 0x4c4a48 },
+      { wing: 0xf6f7ee, wingLight: 0xffffff, accent: 0xb9c5ad, body: 0x565c54 },
+      { wing: 0xf7bf75, wingLight: 0xfcd99c, accent: 0xa77e5e, body: 0x54493f },
+      { wing: 0xf2f6b5, wingLight: 0xfafcd2, accent: 0xc9c98c, body: 0x565c50 },
     ]),
   },
   { effect: "butterflies:keep" },
@@ -851,6 +856,7 @@ export const definition = group({
   koi,
   goldfish,
   "butterfly-koi": butterflyKoi,
+  shubunkin,
   "koi-palettes": koiPalettes,
   "koi-patterns": koiPatterns,
   "tiny-fish": tinyFish,

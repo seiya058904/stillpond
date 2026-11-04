@@ -31,6 +31,7 @@ import { SurfaceDisturbancePass } from "./surface-disturbance";
 import { TinyFishRenderer } from "./tiny-fish-renderer";
 import { GoldfishRenderer } from "./goldfish-renderer";
 import { ButterflyKoiRenderer } from "./butterfly-koi-renderer";
+import { ShubunkinRenderer } from "./shubunkin-renderer";
 import { buildRenderSpine } from "./fish-spine";
 import { WaterSurfacePass } from "./water-surface";
 import { WeatherPass } from "./weather-pass";
@@ -39,6 +40,11 @@ import type { WeatherPresetId } from "./weather";
 const TRIANGLE_FLOAT_CAPACITY = 72_000;
 const LINE_FLOAT_CAPACITY = 18_000;
 const DEFAULT_COLOR = new THREE.Color(0xffffff);
+// Stations along the caudal fin, in units of body width. The upper and lower
+// lobes share the root and separate at a notch, so the tail can bend as a ribbon.
+const KOI_TAIL_REACH = [0, 0.46, 0.92, 1.38] as const;
+const KOI_TAIL_SPREAD = [0.1, 0.34, 0.54, 0.62] as const;
+const KOI_TAIL_NOTCH = [0, 0.04, 0.06, 0.28] as const;
 
 const shadowVertexShader = /* glsl */ `
   varying float vStrength;
@@ -231,6 +237,7 @@ export class FishRenderer {
   private readonly tinyFishRenderer = new TinyFishRenderer();
   private readonly goldfishRenderer = new GoldfishRenderer();
   private readonly butterflyKoiRenderer = new ButterflyKoiRenderer();
+  private readonly shubunkinRenderer = new ShubunkinRenderer();
   private readonly duckweed = new DuckweedPass();
   private readonly lotusLeaves = new LotusLeavesPass();
   private readonly butterflies = new ButterflyPass();
@@ -248,6 +255,7 @@ export class FishRenderer {
     (_, index) => createFishAppearance(index),
   );
   private readonly shadowStrengthColor = new THREE.Color();
+  private readonly glintColor = new THREE.Color();
   private readonly targetFishShadowColor = new THREE.Color(FISH.shadow.color);
   private previousAppearanceTime = -1;
   private currentVisualDepth = 0;
@@ -294,10 +302,12 @@ export class FishRenderer {
       this.tinyFishRenderer.shadowGroup,
       this.goldfishRenderer.shadowGroup,
       this.butterflyKoiRenderer.shadowGroup,
+      this.shubunkinRenderer.shadowGroup,
     );
     this.fishScene.add(this.tinyFishRenderer.group);
     this.fishScene.add(this.goldfishRenderer.group);
     this.fishScene.add(this.butterflyKoiRenderer.group);
+    this.fishScene.add(this.shubunkinRenderer.group);
     this.surfaceScene.add(this.waterSurface.mesh);
     this.surfaceShadowScene.add(
       this.duckweed.shadowGroup,
@@ -513,6 +523,9 @@ export class FishRenderer {
     this.butterflyKoiRenderer.group.visible = previewIndex === null;
     this.butterflyKoiRenderer.shadowGroup.visible = previewIndex === null;
     if (previewIndex === null) this.butterflyKoiRenderer.update(school.butterflyKoi, this.weather.surface);
+    this.shubunkinRenderer.group.visible = previewIndex === null;
+    this.shubunkinRenderer.shadowGroup.visible = previewIndex === null;
+    if (previewIndex === null) this.shubunkinRenderer.update(school.shubunkin, this.weather.surface, time);
     this.pondBed.update(time);
     this.surfaceDisturbance.render(
       this.renderer,
@@ -523,7 +536,7 @@ export class FishRenderer {
     this.waterSurface.update(school, time, this.weather.surface);
     this.duckweed.update(time, school.ripples);
     this.lotusLeaves.update(time, school.ripples, this.weather.surface);
-    this.butterflies.update(time, this.weather.surface);
+    this.butterflies.update(time, this.weather.surface, school.ripples);
 
     this.renderer.setRenderTarget(this.underwaterTarget);
     this.renderer.clear();
@@ -699,14 +712,17 @@ export class FishRenderer {
     const finPulse =
       0.82 +
         paddleActivity * 0.25 * Math.sin(fish.finPhase);
-    const pectoralReach =
-      fish.bodyWidth * (0.55 + paddleActivity * 0.25) * finPulse;
+    // The two pectorals row alternately; a turn opens the inside fin as a brake.
+    const leftPulse = 0.82 + paddleActivity * 0.25 * Math.sin(fish.finPhase);
+    const rightPulse = 0.82 + paddleActivity * 0.25 * Math.sin(fish.finPhase + Math.PI);
+    const leftReach = fish.bodyWidth * (0.55 + paddleActivity * 0.25 + Math.max(0, -fish.angularVelocity) * 0.16) * leftPulse;
+    const rightReach = fish.bodyWidth * (0.55 + paddleActivity * 0.25 + Math.max(0, fish.angularVelocity) * 0.16) * rightPulse;
     const leftPectoral = add(
-      add(left[pectoralCenter], mul(pectoralNormal, pectoralReach)),
+      add(left[pectoralCenter], mul(pectoralNormal, leftReach)),
       mul(pectoralTangent, -fish.bodyWidth * 0.22),
     );
     const rightPectoral = add(
-      add(right[pectoralCenter], mul(pectoralNormal, -pectoralReach)),
+      add(right[pectoralCenter], mul(pectoralNormal, -rightReach)),
       mul(pectoralTangent, -fish.bodyWidth * 0.22),
     );
     this.silhouetteTriangle(
@@ -785,32 +801,29 @@ export class FishRenderer {
     );
     const tailNormal = perpendicular(tailForward);
     const tailBackward = mul(tailForward, -1);
-    const tailSpread =
-      fish.bodyWidth * (0.58 + 0.08 * Math.sin(fish.swimPhase - 0.8));
-    const upperFin = add(
-      add(fish.renderSpine[tailNode], mul(tailBackward, fish.bodyWidth * 1.38)),
-      mul(tailNormal, tailSpread),
-    );
-    const lowerFin = add(
-      add(fish.renderSpine[tailNode], mul(tailBackward, fish.bodyWidth * 1.38)),
-      mul(tailNormal, -tailSpread),
-    );
-    const tailNotch = add(
-      fish.renderSpine[tailNode],
-      mul(tailBackward, fish.bodyWidth * 0.86),
-    );
-    this.silhouetteTriangle(
-      fish.renderSpine[tailNode],
-      upperFin,
-      tailNotch,
-      appearance.fin,
-    );
-    this.silhouetteTriangle(
-      fish.renderSpine[tailNode],
-      tailNotch,
-      lowerFin,
-      appearance.fin,
-    );
+    const tailOpen = 1 + 0.14 * Math.sin(fish.swimPhase - 0.8);
+    const tailEdge = (station: number, across: number): Vec2 => {
+      // A wave travels off the fin: each station trails the last by a little more.
+      const s = station / (KOI_TAIL_REACH.length - 1);
+      const sway = fish.bodyWidth * (
+        Math.sin(fish.swimPhase - 1.3 - s * 2.4) * 0.3 * s * (0.2 + fish.tailEffort)
+        + fish.turnBend * 0.28 * s * s
+      );
+      return add(
+        add(fish.renderSpine[tailNode], mul(tailBackward, fish.bodyWidth * KOI_TAIL_REACH[station])),
+        mul(tailNormal, sway + across * fish.bodyWidth * tailOpen),
+      );
+    };
+    for (let station = 0; station < KOI_TAIL_REACH.length - 1; station += 1) {
+      for (let side = -1; side <= 1; side += 2) {
+        const innerA = tailEdge(station, side * KOI_TAIL_NOTCH[station]);
+        const outerA = tailEdge(station, side * KOI_TAIL_SPREAD[station]);
+        const innerB = tailEdge(station + 1, side * KOI_TAIL_NOTCH[station + 1]);
+        const outerB = tailEdge(station + 1, side * KOI_TAIL_SPREAD[station + 1]);
+        this.silhouetteTriangle(innerA, outerA, outerB, appearance.fin);
+        this.silhouetteTriangle(innerA, outerB, innerB, appearance.fin);
+      }
+    }
 
     // Pattern positions are authored in normalized body space. The shapes sample
     // the live spine, so they stay attached when the fish bends and turns.
@@ -862,6 +875,19 @@ export class FishRenderer {
       appearance.eye,
       6,
     );
+    // A speck of reflected sky, only where an eye is large enough to carry it.
+    if (eyeRadius >= 0.8) {
+      this.glintColor.copy(appearance.base).lerp(DEFAULT_COLOR, 0.72);
+      const glintOffset = { x: this.weather.surface.lightDirection.x * eyeRadius * 0.35, y: -this.weather.surface.lightDirection.y * eyeRadius * 0.35 };
+      for (const side of [1, -1]) {
+        this.bodyTriangles.circle(
+          add(add(eyeAnchor, mul(headNormal, side * eyeOffset)), glintOffset),
+          eyeRadius * 0.42,
+          this.glintColor,
+          4,
+        );
+      }
+    }
   }
 
   private drawDebug(fish: Koi, appearance: FishAppearance): void {
