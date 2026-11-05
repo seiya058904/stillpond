@@ -19,7 +19,7 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 <p><strong>Watch the light move. Follow a fish. Let the water settle.</strong></p>
 
 <p>A full-screen, procedural pond where koi, platinum butterfly koi, Wakin goldfish, and Medaka<br>
-move through water, weather, lotus leaves, and the occasional butterfly, with eleven more fish you can invite in.</p>
+move through water, weather, lotus leaves, and the occasional butterfly, with ten more fish you can invite in.</p>
 
 <p>
   <a href="https://seiya058904.github.io/stillpond/"><strong>▶ Enter the Pond</strong></a>
