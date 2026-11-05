@@ -78,7 +78,7 @@ describe("platinum butterfly koi integration", () => {
     pass.render(gpu, school, 0);
     const scene = draw.mock.calls[0][0] as THREE.Scene, geometry = (scene.children[0] as THREE.Mesh<THREE.InstancedBufferGeometry>).geometry;
     expect(geometry.instanceCount).toBe(68);
-    expect(geometry.getAttribute("aCenter").count).toBe(68);
+    expect(geometry.getAttribute("aCenter").count).toBeGreaterThanOrEqual(68); // The optional species reserve theirs after these.
     expect(geometry.getAttribute("aCenter").getX(56)).toBeCloseTo(school.butterflyKoi.fish[0].position.x, 4);
     expect(geometry.getAttribute("aCenter").getX(62)).toBeCloseTo(school.shubunkin.fish[0].position.x, 4);
     pass.render(gpu, school, 0, 0); expect(geometry.instanceCount).toBe(1);

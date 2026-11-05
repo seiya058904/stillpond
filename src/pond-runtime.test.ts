@@ -92,6 +92,42 @@ describe("pond runtime lifecycle", () => {
     tick(20);
     expect(pose(goldfish).position).not.toEqual(before.position);
   });
+  it("refreshes the small species with Medaka when Medaka's size changes", () => {
+    const { runtime } = setup();
+    tick(20);
+    const fish = runtime.school.smallSpecies[0].schools.fish;
+    settings.set(["tiny-fish", "bodyLength"], [16, 16]);
+    tick(20);
+    vi.advanceTimersByTime(100);
+    expect(fish[0].bodyLength).toBeCloseTo(16 * 0.88);
+  });
+  it("adds and resizes optional species while the GPU is lost, keeping them through recovery", () => {
+    const { runtime, lose } = setup();
+    tick(20);
+    const school = runtime.school;
+    const ranchu = school.species.populations.find(population => population.id === "ranchu")!;
+    const shoals = school.smallSpecies.find(entry => entry.id === "white-cloud")!;
+    const fish = ranchu.fish[0], position = { ...fish.position };
+    lose();
+    settings.set(["ranchu", "count"], 3);
+    settings.set(["ranchu", "size"], 1.25);
+    settings.set(["white-cloud", "count"], 2);
+    settings.set(["white-cloud", "size"], 1.2);
+    tick(20);
+    vi.advanceTimersByTime(100);
+    expect(ranchu.count).toBe(3);
+    expect(fish.bodyLength).toBeCloseTo(fish.baseLength * 1.25);
+    expect(fish.position).toEqual(position);
+    expect(shoals.visibleFish).toBe(39);
+    const shoalPosition = { ...shoals.schools.fish[0].position };
+    runtime.retry();
+    expect(runtime.school).toBe(school);
+    expect(ranchu.fish[0]).toBe(fish);
+    expect(fish.position).toEqual(position);
+    tick(20);
+    expect(fish.position).not.toEqual(position);
+    expect(shoals.schools.fish[0].position).not.toEqual(shoalPosition);
+  });
   it("keeps CPU refreshes queued before context loss and disconnects them on dispose", () => {
     const { runtime, lose } = setup();
     const goldfish = runtime.school.goldfish.fish[0];

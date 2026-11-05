@@ -1,11 +1,184 @@
 # Natural Pond & Visual Ecology
 
+## Optional species — local iteration
+
+The default pond no longer includes Shubunkin, and nine new species join them as fish
+a visitor can add. None is present until added. A saved count is an explicit edit and
+is never rewritten, whatever its value; a save that never touched a count receives
+the new default of zero.
+
+| Class | Species | Scientific name or line | Reads as | Limit |
+| --- | --- | --- | --- | --- |
+| Large | Sterlet / 小体鲟 | *Acipenser ruthenus* | Near-black back, pale scute rows, pointed rostrum, shark tail | 4 fish |
+| Large | High-fin banded shark / 胭脂鱼 | *Myxocyprinus asiaticus* | Cream head, dark slanting bands, a leaning dorsal sail | 4 fish |
+| Large | American paddlefish / 匙吻鲟 | *Polyodon spathula* | Pale spoon rostrum, mottled gill flaps, steel skin | 4 fish |
+| Medium | Ranchu / 兰寿 | Goldfish variety | Broad back with no dorsal, raspberry hood, short tucked tail | 6 fish |
+| Medium | Panda butterfly tail / 熊猫蝶尾 | Goldfish variety | Black and white blocks, telescope eyes, wings of a tail | 6 fish |
+| Medium | Bubble eye / 水泡眼 | Goldfish variety | Two jiggling fluid sacs, no dorsal, long soft fan | 6 fish |
+| Medium | Golden orfe / 金色高体雅罗鱼 | *Leuciscus idus*, golden form | Slim orange dart, pale flanks, freckled head, clean fork | 6 fish |
+| Small | White Cloud minnow / 唐鱼 | *Tanichthys albonubes* | A Medaka in olive gold with a red tail | 4 shoals |
+| Small | Paradise fish / 叉尾斗鱼 | *Macropodus opercularis* | A Medaka in coral with blue-green fins | 4 shoals |
+
+Shubunkin also receive their own tail. Theirs had been the platinum longfin's outline,
+as a stopgap. It is now the Bristol form: broad, moderately forked and rounded at the
+ends, like a heart or a soft "B". The motion code did not change, and a test compares each vertex with
+`membranePoint` and the shared clocks.
+
+### Choices where the fish and the view disagree
+
+These are illustrations seen from above, so a few things are deliberately not literal:
+
+- Caudal fins are vertical on a living fish and nearly edge-on from above. Here, as with
+  every fish in the pond, they lie spread so the outline can be read. The sterlet's and
+  paddlefish's unequal lobes are the heterocercal tail, laid flat.
+- A high-fin banded shark is laterally compressed, so its back is narrower from above
+  than drawn. The pond shows the banded juvenile, which is the recognizable form; bands
+  fade in adults, which grow long and lose the tall fin.
+- Its tall sail would be seen nearly edge-on. It leans with the stroke and away from a
+  turn so that it stays visible, and never collapses to a line.
+- The small species are not drawn to their own outlines at all. Individually drawn
+  bodies, a thin pond loach among them, looked less natural at this scale than the
+  Medaka, so the loach was dropped and the other two became Medaka in their own colors.
+  Their real colors sit mostly on the flanks, and are brought onto the back here.
+- No established Chinese trade name was found for the golden orfe. 高体雅罗鱼 is the
+  species name, so the label is that name with 金色 for the color form.
+
+### Motion
+
+No fish has its own swimming rules. Large and medium species are `Koi` agents in
+`School`. Small species are `TinyFishSchools` whose config inherits the live Medaka
+settings and adds only a shoal count and a size slider. Tests check that, from the same
+start, they swim exactly as Medaka do and draw the same vertices in other colors.
+
+The knobs are proportions and pace. `waveRatio` sets the swimming wave through
+`bodyWidth`, separately from the silhouette, so a fat Ranchu does not thrash. `pace`
+scales speed: fancy goldfish are slow, and the orfe is quick. `agility` scales turning,
+because at the koi's turn strength a fish 50 pixels long coils like a snake.
+
+All caudal fins run on `membranePoint`, `longTailOpening` and `longTailFlex`. A long
+fin held rigid looked stiff beside a bending body, so large and medium species add the
+koi's own traveling wave and turn follow-through to the `flex` argument. Sideways
+motion that varies along a fin can flip thin triangles, so those fins are cut into
+strips with one edge across the fin, whose area is exactly preserved under it. Fins that
+double back along their length (the butterfly wing) keep plain triangles and a lower
+wave. Pectorals are the Shubunkin's rigid sweep, now done in contour space and passed
+through `membranePoint`.
+
+Tail-tip smoothness was compared with the koi over one scripted run with a call and a
+scatter, as the largest change between consecutive frame-to-frame movements. A test
+requires each large and medium species to stay within twice the koi's value in pond
+pixels. Tails are longer than the koi's, so they travel further for the same swing. The
+table below is one measured run, in fractions of body length.
+
+| Fish | Beats per second at cruise | Tail swing | P99 | Largest |
+| --- | --- | --- | --- | --- |
+| Koi | 0.71 | 1.01 | 0.022 | 0.093 |
+| Platinum longfin | 1.07 | 1.68 | 0.030 | 0.115 |
+| Sterlet | 0.65 | 0.92 | 0.014 | 0.041 |
+| High-fin banded shark | 0.79 | 0.96 | 0.036 | 0.061 |
+| American paddlefish | 0.71 | 0.72 | 0.017 | 0.023 |
+| Ranchu | 1.02 | 0.92 | 0.036 | 0.062 |
+| Panda butterfly tail | 0.87 | 1.03 | 0.030 | 0.073 |
+| Bubble eye | 0.93 | 1.42 | 0.040 | 0.089 |
+| Golden orfe | 1.17 | 1.21 | 0.035 | 0.057 |
+
+### Rendering and settings
+
+One `SpeciesRenderer` draws every large and medium fish in one batch and three draw
+calls, deepest first across species, beneath the koi and above the older medium fish.
+Buffers start empty and grow on demand, and the groups are hidden while empty. Each fish
+uses 516–792 shape, 234–330 shadow and 4–108 line vertices. Small species are drawn by
+`TinyFishRenderer` in the Medaka batch, one palette per shoal, in shoals of the default
+Medaka sizes (24, 15, 34 and 19). The disturbance pass reserves 104 instances.
+
+The settings root now has the koi slider, one row for the fish list, and the Medaka
+switch. The list groups all 14 populations into large, medium and small, each row with a
+portrait drawn from the fish's own outlines, a count and a stepper. Advanced replaces one
+page per species with one per size class, and search still finds each fish in either
+language. "Restore default fish" resets who is in the pond, leaving sizes and koi colors
+alone, and can be undone.
+
+To keep the maximum scene responsive, the shared spine functions and the neighbor loop
+stopped allocating a vector per node. The arithmetic is unchanged, and the default pond
+trace below confirms it.
+
+### Sources
+
+Photographs and illustrations studied, from Wikimedia Commons:
+[sterlet](https://commons.wikimedia.org/wiki/File:Acipenser_ruthenus_Prague_Vltava_1.jpg),
+[high-fin juveniles](https://commons.wikimedia.org/wiki/File:Myxocyprinus_asiaticus_by_OpenCage.jpg),
+[high-fin juvenile and adult](https://commons.wikimedia.org/wiki/File:Myxocyprinus-asiaticus-Catostomidae-juveniles-body-length-14cm-foreground-differ-in.png),
+[paddlefish illustration](https://commons.wikimedia.org/wiki/File:Paddlefish_Polyodon_spathula.jpg),
+[Ranchu](https://commons.wikimedia.org/wiki/File:Three_Ranchu_Goldfish.jpg),
+[Ranchu plate](https://commons.wikimedia.org/wiki/File:Ranchu_goldfish_plate.jpg),
+[butterfly tail from above](https://commons.wikimedia.org/wiki/File:Calico-butterfly-tail-demekin.png),
+[panda butterfly tail](https://commons.wikimedia.org/wiki/File:%E3%83%91%E3%83%B3%E3%83%80%E3%83%81%E3%83%A7%E3%82%A6%E3%83%93.jpg),
+[bubble eye from above](https://commons.wikimedia.org/wiki/File:Bubble_eye_goldfish_(top).jpg),
+[golden orfe from above, in a pond](https://commons.wikimedia.org/wiki/File:Wraxall_2009_MMB_%C2%AB01_leuciscus_idus.jpg),
+[White Cloud minnow](https://commons.wikimedia.org/wiki/File:White_Cloud_Mountain_Minnow_1.jpg),
+[paradise fish](https://commons.wikimedia.org/wiki/File:DV_Paradise_fish_male_05.jpg) and
+[Shubunkin](https://commons.wikimedia.org/wiki/File:Shubunkin_goldfish.jpg).
+Only the butterfly tail, bubble eye and orfe images are true top views. The others were
+read from the side alongside these descriptions:
+
+- [FishBase on the sterlet](https://www.fishbase.org/summary/4604): beige back and flanks, five scute rows, narrow snout. Photographs show darker fish, which the pond follows.
+- [Wikipedia on *Myxocyprinus*](https://en.wikipedia.org/wiki/Myxocyprinus): three slanting bands, the tall fin, and how both change with age.
+- [Louisiana Wildlife and Fisheries on the paddlefish](https://www.wlf.louisiana.gov/species/detail/80): dark gray and scaleless, with a long gill flap; [USFWS](https://legacy.fws.gov/species/paddlefish-polyodon-spathula) on the paddle.
+- [The Goldfish Council on top-view Ranchu](https://www.thegoldfishcouncil.org/post/top-view-ranchu): judged from above, rectangular body, short tail, large hood. [Wikipedia](https://en.wikipedia.org/wiki/Ranchu) on the same.
+- [Wikipedia's list of goldfish varieties](https://en.wikipedia.org/wiki/List_of_goldfish_varieties): butterfly-shaped caudal fins when viewed from above, and tails flattened horizontally.
+- [Wikipedia on the bubble eye](https://en.wikipedia.org/wiki/Bubble_Eye): sacs of fluid that jiggle, no dorsal fin, slow swimming.
+- [Garnelio on the golden orfe](https://www.garnelio.de/en/golden-orfe-leuciscus-idus): golden orange with a lighter belly, a schooling fish.
+- [Seriously Fish on the White Cloud minnow](https://seriouslyfish.com/species/Tanichthys-albonubes) and [Britannica](https://www.britannica.com/print/article/642182): olive to reddish brown, a gleaming line, red on the fins.
+- [FishBase on the paradise fish](https://www.fishbase.org/summary/4777): forked tail with filaments, and an air breather.
+- [Wikipedia on the Shubunkin](https://en.wikipedia.org/wiki/Shubunkin): the Bristol's large, moderately forked tail, rounded at the end, shaped like a heart or a capital "B". [Practical Fishkeeping](https://www.practicalfishkeeping.co.uk/features/the-bristol-shubunkin-a-national-treasure/): a drooping tail is a fault.
+- Chinese Wikipedia for the names [胭脂鱼](https://zh.wikipedia.org/wiki/胭脂魚), [高体雅罗鱼](https://zh.wikipedia.org/wiki/高体雅罗鱼), [唐鱼](https://zh.wikipedia.org/wiki/唐鱼), [叉尾斗鱼](https://zh.wikipedia.org/wiki/叉尾鬥魚) and [小体鲟](https://zh.wikipedia.org/wiki/小体鲟). Its current title for the last is 小体鳇, after a change of genus; 小体鲟 stays the common name.
+
+### Local acceptance, 2026-11-05
+
+These results were measured on the uncommitted iteration against
+`bea5d6d87f5199ee5ac6a34bd07ff8fcb0a0dcb7`, before the small species became recolored
+Medaka and the pond loach was removed. The GPU object counts, the trace comparison and the
+CPU table below have not been repeated since; the largest scene now has 184 small fish,
+not 92. The change itself was checked by the tests above, `scripts/browser-settings.mjs`
+at both sizes and an enlarged visual comparison of the three small fish, on SwiftShader.
+
+- `npm run verify` passed 357 tests, with the existing large-chunk build warning.
+- With a fixed clock and seeded randomness, the default pond was compared against that
+  commit with its Shubunkin count set to zero: all six sampled frames over 20 seconds,
+  including a call and a scatter, matched byte for byte, as did the fish state trace.
+- `scripts/browser-settings.mjs` passed at 1280×900 and 390×844 on real WebGL2 (NVIDIA
+  GeForce RTX 3070 Laptop through ANGLE D3D11). It now also adds a sterlet and a shoal
+  while the context is lost and checks both after a reload.
+- A separate scripted run covered defaults, steppers and limits, overflow, focus return,
+  search in both languages, reload, restore and undo at 1440×900 (English dark), 1280×800
+  (Chinese light), 390×844 (Chinese dark, English light), 320×568 (Chinese light) and
+  844×390 (English dark). At 844×390 the side panel still overlaps part of the dock.
+- GPU objects stayed at 84 geometries / 3 textures across five rounds of adding and
+  removing every species, up from 78 / 3 before the first fish is added, and fell to zero
+  on disposal. These are object counts, not memory bytes.
+- Each species was reviewed on frame-by-frame sheets of straight swimming, a turn, a call
+  and a scatter, beside the koi. The full pond was reviewed on desktop in sunny, sunset
+  and moonlight weather, and at phone size in sunny weather.
+
+CPU time per animation-frame callback on production builds, P95 / P99 in milliseconds,
+across two or three 12-second samples at 1440×900. Most callbacks at this display's refresh rate do no
+work under the 60 fps cap, which is why medians are omitted. No frame interval exceeded
+50 ms. This excludes GPU elapsed time.
+
+| Scene | Before | After |
+| --- | --- | --- |
+| Default, without Shubunkin | 2.8 / 3.6–3.9 | 2.7–2.9 / 3.3–3.7 |
+| 68 older fish | 4.2–4.4 / 6.1–6.2 | 4.2–4.3 / 5.1–5.6 |
+| All 104 large and medium fish, 92 small, default Medaka | n/a | 8.7–8.9 / 10.1–10.9 |
+
+Physical iOS and Android devices and low-end GPUs were not tested.
+
 ## Shubunkin and the scene pass — local iteration
 
 **Shubunkin** are calico, single-tailed goldfish. They bring the first cool color
-to a pond of red, white, orange and silver. Two are present by default, with a
-separate 0–6 population and 70–130% size; older saves simply receive these
-defaults. Agents extend `Koi`, their random IDs follow the 48 koi, 8 Wakin and
+to a pond of red, white, orange and silver. When this section was written, two were
+present by default, with a separate 0–6 population and 70–130% size; older saves simply
+received these defaults. Agents extend `Koi`, their random IDs follow the 48 koi, 8 Wakin and
 6 longfin slots, and they are appended last, so existing fish keep their starting
 positions and call delays. The disturbance pass now reserves 68 instances.
 

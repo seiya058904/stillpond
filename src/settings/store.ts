@@ -453,6 +453,16 @@ export class SettingsStore {
     this.schedulePersist();
   }
 
+  /** Forget specific edits, leaving the rest of each section as the visitor set it. */
+  public resetOverrides(keys: readonly string[]): void {
+    this.pushUndoSnapshot();
+    this.openInteraction = null;
+    for (const key of keys) this.overrides.delete(key);
+    this.redoStack.length = 0;
+    this.fullRefresh([...new Set(keys.map(key => key.split(".")[0] as SectionId))]);
+    this.schedulePersist();
+  }
+
   public resetAll(): void {
     this.pushUndoSnapshot();
     this.openInteraction = null;

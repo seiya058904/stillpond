@@ -63,10 +63,12 @@ school does not move as one synchronized group.
 The random choices use repeatable number generators. They add variation, but
 they do not replace the movement rules or randomly teleport fish around.
 
-Wakin goldfish, platinum butterfly koi and Shubunkin inherit this same movement system.
-Their independent populations change body proportions and procedural artwork,
-not the swimming rules. Medaka keep their separate schooling system and avoid
-the bodies of both additional populations.
+Wakin goldfish, platinum butterfly koi, Shubunkin and the optional large and medium
+species inherit this same movement system. Their independent populations change body
+proportions, pace and procedural artwork, not the swimming rules. Medaka keep their
+separate schooling system, and the optional small species are Medaka in another
+color: the same settings, swimming and outline. All of them avoid the bodies of the
+populations above them.
 
 ## 2. Simple intentions create natural movement
 
@@ -193,10 +195,26 @@ The renderer looks up each slot's explicit family. A preview reads a separate
 family palette and never changes the array. Older saves receive their original
 alternating assignment once during loading; colors and internal edits survive.
 
-Platinum butterfly koi and Shubunkin have their own `butterfly-koi` and
-`shubunkin` settings, separate from both koi color families and flying butterflies. The store also remembers the
+Platinum butterfly koi, Shubunkin and each optional species have their own settings
+section (such as `butterfly-koi`, `shubunkin` or `ranchu`), separate from both koi
+color families and flying butterflies. A saved count is an explicit edit, so it
+outranks any later change to the default. The store also remembers the
 last positive Medaka shoal count. Count and memory are one saved, undoable
 operation; turning the schools off does not erase their previous count.
+
+**To add a fish:** add its outline, colors and pace to
+[`src/species-art.ts`](../src/species-art.ts), its id and limit to
+[`src/settings/species.ts`](../src/settings/species.ts), a settings section in
+`definition.ts`, its count and size to `advanced.ts`, and a row to
+[`src/fish-settings.tsx`](../src/fish-settings.tsx) with its English and Chinese names.
+A small fish is only a palette in `SMALL_SPECIES_PALETTES`, drawn by
+[`src/tiny-fish-renderer.ts`](../src/tiny-fish-renderer.ts) with the Medaka.
+Start its count at zero. Do not write new motion: a body is drawn along
+`buildRenderSpine`, a tail or wide fin goes through `membranePoint`, and
+[`src/species-renderer.ts`](../src/species-renderer.ts) already does both. Check the
+new fish frame by frame through straight swimming, a turn, a call and a scatter, and
+compare it with the koi. Colors are final on-screen values: the pipeline does not
+re-encode them, so an authored hex value would appear darker.
 
 ## Why the pond stays responsive
 
@@ -224,6 +242,9 @@ garbage-collection work low.
 | [`src/koi.ts`](../src/koi.ts) | Stores the state of one koi |
 | [`src/school.ts`](../src/school.ts) | Controls behavior, steering, depth, and interactions |
 | [`src/fish-renderer.ts`](../src/fish-renderer.ts) | Builds fish geometry and combines render layers |
+| [`src/species-art.ts`](../src/species-art.ts) | Outlines, colors and pace of the large and medium species, palettes of the small ones |
+| [`src/species.ts`](../src/species.ts) | Their populations, on the shared koi and Medaka systems |
+| [`src/species-renderer.ts`](../src/species-renderer.ts) | Draws the large and medium species in one batch from that data |
 | [`src/water-surface.ts`](../src/water-surface.ts) | Draws currents, tint, and surface distortion |
 | [`src/ripple-system.ts`](../src/ripple-system.ts) | Manages reusable ripple events |
 | [`src/lotus-leaves.ts`](../src/lotus-leaves.ts) | Builds lotus leaves, flowers, and their shadows |

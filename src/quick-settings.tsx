@@ -4,7 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import { languages, useI18n } from "./i18n";
 import { useSetting } from "./settings/react";
 import { settings } from "./settings/store";
-import { IconTile, RangeInput, SegmentedControl, Stepper } from "./settings-ui";
+import { IconTile, RangeInput, SegmentedControl } from "./settings-ui";
+import { speciesInPond, useFishCounts } from "./fish-settings";
 import { WEATHER_PRESETS, type WeatherPresetId } from "./weather";
 import type { FrameRateCap } from "./performance-prefs";
 
@@ -24,6 +25,7 @@ export interface QuickSettingsProps {
   onFrameRateChange: (value: string) => void;
   ambient: boolean;
   onAmbientChange: () => void;
+  onFish: () => void;
   onAdvanced: () => void;
   onReset: () => void;
 }
@@ -36,26 +38,11 @@ function Group({title, children, note, status}: {title?: string; children: React
   </section>;
 }
 
-function FishStepper({id, tile, label, value, text, max, onChange}: {
-  id: string; tile: string; label: string; value: number; text: string; max: number; onChange: (value: number) => void;
-}) {
-  const {t} = useI18n();
-  return <div className="preference-row" role="group" aria-labelledby={id}>
-    <IconTile color={tile}><Fish /></IconTile>
-    <span className="preference-row__label" id={id}>{label}</span>
-    <output className="preference-row__value" aria-label={text} aria-live="polite">{value}</output>
-    <Stepper value={value} min={0} max={max} onChange={onChange}
-      decreaseLabel={t("composition.remove", {family: label})} increaseLabel={t("composition.add", {family: label})} />
-  </div>;
-}
-
-export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onAdvanced, onReset}: QuickSettingsProps) {
+export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onFish, onAdvanced, onReset}: QuickSettingsProps) {
   const {t, language, setLanguage} = useI18n();
   const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
   const [shoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
-  const [goldfish, setGoldfish] = useSetting<number>(["goldfish", "count"]);
-  const [longfins, setLongfins] = useSetting<number>(["butterfly-koi", "count"]);
-  const [shubunkin, setShubunkin] = useSetting<number>(["shubunkin", "count"]);
+  const kinds = speciesInPond(useFishCounts());
   return <div className="preferences">
     <Group title={t("product.pond")} note={t("product.medakaHint")}>
       <div className="preference-cell" data-base-ui-swipe-ignore>
@@ -67,9 +54,12 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
         <RangeInput id="pond-density" min={0} max={48} step={1} value={count} valueText={t("product.koi", {count})} onChange={setCount} />
         <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
       </div>
-      <FishStepper id="pond-goldfish" tile={TILE.orange} label={t("product.goldfish")} value={goldfish} text={t("product.goldfishCount", {count: goldfish})} max={8} onChange={setGoldfish} />
-      <FishStepper id="pond-butterfly-koi" tile={TILE.gray} label={t("product.butterflyKoi")} value={longfins} text={t("product.butterflyKoiCount", {count: longfins})} max={6} onChange={setLongfins} />
-      <FishStepper id="pond-shubunkin" tile={TILE.indigo} label={t("product.shubunkin")} value={shubunkin} text={t("product.shubunkinCount", {count: shubunkin})} max={6} onChange={setShubunkin} />
+      <button className="preference-row preference-row--button" data-preference="fish" onClick={onFish}>
+        <IconTile color={TILE.orange}><Fish /></IconTile>
+        <span className="preference-row__label">{t("fish.row")}</span>
+        <span className="preference-row__value">{t("fish.kinds", {count: kinds})}</span>
+        <ChevronRight className="preference-row__chevron" aria-hidden="true" />
+      </button>
       <div className="preference-row">
         <IconTile color={TILE.teal}><Fish /></IconTile>
         <label className="preference-row__label" htmlFor="pond-medaka">{t("product.medaka")}</label>

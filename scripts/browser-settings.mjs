@@ -88,6 +88,17 @@ try {
       await page.waitForTimeout(250);
       assert.equal(await density.inputValue(), '19');
       assert.equal(await medaka.getAttribute('aria-checked'), 'false');
+      // Optional species: nothing is added by default, and one light and one heavy refresh while lost.
+      await activate(page.locator('[data-preference="fish"]'));
+      const speciesRow = id => page.locator(`[data-species="${id}"]`);
+      for (const id of ['sterlet', 'shubunkin', 'white-cloud']) assert.equal(await speciesRow(id).locator('output').innerText(), '0', `${id} starts absent`);
+      await activate(speciesRow('sterlet').locator('.ios-stepper button').last());
+      await activate(speciesRow('white-cloud').locator('.ios-stepper button').last());
+      assert.equal(await speciesRow('sterlet').locator('output').innerText(), '1');
+      assert.equal(await speciesRow('white-cloud').locator('output').innerText(), '1');
+      await activate(page.locator('.settings-back'));
+      await density.waitFor();
+      await page.waitForTimeout(250);
       assert.equal(await page.evaluate(() => window.__fishGpu.draws), lostDraws, 'lost context stops GPU drawing');
       await page.evaluate(() => window.__fishLose.restoreContext());
       await page.waitForFunction(() => window.__fishGpu.restored === 1 && !document.querySelector('.pond-status') && window.__fishGpu.draws > 0);
@@ -110,6 +121,9 @@ try {
       assert.equal(saved.v1, null);
       assert.equal(saved.v2.overrides['koi.initialCount'], 19);
       assert.equal(saved.v2.overrides['tiny-fish.visibleSchoolCount'], 0);
+      assert.equal(saved.v2.overrides['sterlet.count'], 1);
+      assert.equal(saved.v2.overrides['white-cloud.count'], 1);
+      assert.equal(saved.v2.overrides['shubunkin.count'], undefined);
       assert.equal(saved.v2.weather, 'sunset');
       assert.equal(saved.v2.rain, true);
       await page.reload({ waitUntil: 'networkidle' });
@@ -119,6 +133,11 @@ try {
       assert.equal(await medaka.getAttribute('aria-checked'), 'false');
       assert.equal(await page.locator('.weather-card--sunset').getAttribute('aria-pressed'), 'true');
       assert.equal(await rain.getAttribute('aria-checked'), 'true');
+      await activate(page.locator('[data-preference="fish"]'));
+      assert.equal(await page.locator('[data-species="sterlet"] output').innerText(), '1', 'an added fish survives a reload');
+      assert.equal(await page.locator('[data-species="white-cloud"] output').innerText(), '1', 'an added shoal survives a reload');
+      await activate(page.locator('.settings-back'));
+      await density.waitFor();
       await page.keyboard.press('Escape');
       await page.locator('[role="dialog"]').waitFor({ state: 'hidden' });
       if (out) {

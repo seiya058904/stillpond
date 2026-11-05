@@ -4,6 +4,7 @@ import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/reac
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "./hooks/use-mobile";
 import { QuickSettings, type QuickSettingsProps } from "./quick-settings";
+import { FishSettings } from "./fish-settings";
 import { useI18n } from "./i18n";
 import { settings } from "./settings/store";
 import { useSettingsMeta } from "./settings/react";
@@ -101,7 +102,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     if (forward) scrollMemory.current[page] = activePage()?.scrollTop ?? 0;
     else delete scrollMemory.current[page];
     // Going back returns focus to the row that opened the page we are leaving.
-    focusTarget.current = forward ? "back" : page === "advanced" ? '[data-preference="advanced"]' : `[data-group="${pageGroup(page)}"]`;
+    focusTarget.current = forward ? "back" : page === "advanced" || page === "fish" ? `[data-preference="${page}"]` : `[data-group="${pageGroup(page)}"]`;
     setPage(next); setReset(false); setQuery(""); onPreviewChange(null);
   };
   const closeReset = () => setReset(false);
@@ -114,9 +115,10 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     else onOpenChange(false);
   };
   const resetSection = (ids: readonly SectionId[]) => settings.resetSections(ids);
-  const title = page === "root" ? t("settings.title") : group ? t(`section.${group}`) : t("advanced.title");
-  const subtitle = page === "root" ? t("product.settingsHint") : group ? t(`group.${group}`) : t("advanced.hint");
-  const backLabel = page === "advanced" ? t("settings.button") : t("advanced.title");
+  const title = page === "root" ? t("settings.title") : page === "fish" ? t("fish.title") : group ? t(`section.${group}`) : t("advanced.title");
+  const subtitle = page === "root" ? t("product.settingsHint") : page === "fish" ? t("fish.hint") : group ? t(`group.${group}`) : t("advanced.hint");
+  const backToRoot = page === "advanced" || page === "fish";
+  const backLabel = backToRoot ? t("settings.button") : t("advanced.title");
 
   return <MotionConfig reducedMotion={reduced ? "always" : "never"}><Drawer open={open} modal={false}
     onOpenChange={(next, details) => {
@@ -127,7 +129,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape" && !event.defaultPrevented) dismiss(event.nativeEvent.timeStamp); }}>
       <DrawerHeader ref={header} className="settings-navbar" inert={reset || undefined}>
         <div className="settings-navbar__leading">
-          {page !== "root" && <button ref={back} className="settings-nav-button settings-back" aria-label={t(page === "advanced" ? "product.back" : "product.backAdvanced")} onClick={() => navigate(parentPage(page))}><ChevronLeft aria-hidden="true" /><span>{backLabel}</span></button>}
+          {page !== "root" && <button ref={back} className="settings-nav-button settings-back" aria-label={t(backToRoot ? "product.back" : "product.backAdvanced")} onClick={() => navigate(parentPage(page))}><ChevronLeft aria-hidden="true" /><span>{backLabel}</span></button>}
         </div>
         <DrawerTitle className="settings-navbar__title">{title}</DrawerTitle>
         <div className="settings-navbar__trailing">
@@ -147,7 +149,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
               if (target === "back") back.current?.focus({preventScroll:true});
               else if (target) activePage()?.querySelector<HTMLButtonElement>(target)?.focus({preventScroll:true});
             }}>
-            {page !== "root" ? <AdvancedBoundary fallback={<div className="preference-group" role="alert">
+            {page === "fish" ? <FishSettings /> : page !== "root" ? <AdvancedBoundary fallback={<div className="preference-group" role="alert">
               <div className="preference-card"><button type="button" className="preference-row preference-row--button settings-reload" onClick={() => window.location.reload()}>{t("action.reload")}</button></div>
               {/* A failed import stays failed in this page, and a deployment can remove the file, so only a reload recovers. */}
               <p className="preference-note">{t("settings.advancedFailed")}</p>
@@ -156,7 +158,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
                 selectedFamily={selectedFamily} previewFamily={preview} onFamilyChange={index => {setSelectedFamily(index); if(preview !== null) onPreviewChange(index);}}
                 onPreviewFamilyChange={onPreviewChange} />
             </Suspense></AdvancedBoundary> : <QuickSettings {...preferences} weather={meta.weather} rain={meta.rain}
-                onAdvanced={() => navigate("advanced")} onReset={() => setReset(true)}
+                onFish={() => navigate("fish")} onAdvanced={() => navigate("advanced")} onReset={() => setReset(true)}
                 onWeatherChange={id => settings.setWeather(id)} onRainChange={on => settings.setRain(on)} />}
           </SettingsPage>
         </AnimatePresence>

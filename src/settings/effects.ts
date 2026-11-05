@@ -52,10 +52,16 @@ const HANDLERS: Record<string, EffectHandler> = {
   "goldfish:refresh": { run: (runtime) => runtime.school.goldfish.refreshConfig() },
   "butterfly-koi:refresh": { run: (runtime) => runtime.school.butterflyKoi.refreshConfig() },
   "shubunkin:refresh": { run: (runtime) => runtime.school.shubunkin.refreshConfig() },
+  "species:refresh": { run: (runtime) => runtime.school.species.refreshConfig() },
+  "small-species:refresh": { heavy: true, run: (runtime) => { for (const shoals of runtime.school.smallSpecies) shoals.refreshConfig(); } },
   "tiny-fish:render": { run: (runtime) => runtime.renderer?.refreshSection("tiny-fish") },
   "tiny-fish:respawn": {
     heavy: true,
-    run: (runtime) => runtime.school.tinyFish.refreshConfig(),
+    // The small species inherit Medaka's size, width and speed, so they refresh with them.
+    run: (runtime) => {
+      runtime.school.tinyFish.refreshConfig();
+      for (const shoals of runtime.school.smallSpecies) shoals.refreshConfig();
+    },
   },
   "tiny-fish:shift": {
     run: (runtime, _store, changes) => {

@@ -3,19 +3,20 @@ import {
   CANVAS_WIDTH,
   FISH,
   MAX_FISH,
-  SPINE_NODES,
 } from "./config";
+import { followSpine } from "./fish-spine";
 import { Koi, SwimState } from "./koi";
 import { TinyFishSchools } from "./tiny-fish";
 import { GoldfishPopulation } from "./goldfish";
 import { ButterflyKoiPopulation } from "./butterfly-koi";
 import { ShubunkinPopulation } from "./shubunkin";
+import { createSmallShoals, SpeciesPopulations } from "./species";
+import type { FishAvoidance } from "./tiny-fish";
 import {
   add,
   clamp,
   fromAngle,
   length,
-  lerp,
   mul,
   normalize,
   perpendicular,
@@ -34,6 +35,8 @@ export class School {
   public readonly goldfish = new GoldfishPopulation();
   public readonly butterflyKoi = new ButterflyKoiPopulation();
   public readonly shubunkin = new ShubunkinPopulation();
+  public readonly species = new SpeciesPopulations();
+  public readonly smallSpecies = createSmallShoals();
 
   public count: number = FISH.initialCount;
   public targetActive = false;
@@ -50,14 +53,17 @@ export class School {
   // All medium/large populations use the original koi behavior below.
   private activeFish(): Koi[] {
     return [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count),
-      ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count), ...this.shubunkin.fish.slice(0, this.shubunkin.count)];
+      ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count), ...this.shubunkin.fish.slice(0, this.shubunkin.count),
+      ...this.species.active()];
   }
 
   private resetOrnamentalFish(): void {
     this.goldfish.reset(this.fish, this.count);
     const placed = [...this.fish.slice(0, this.count), ...this.goldfish.fish.slice(0, this.goldfish.count)];
     this.butterflyKoi.reset(placed);
-    this.shubunkin.reset([...placed, ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count)]);
+    const before = [...placed, ...this.butterflyKoi.fish.slice(0, this.butterflyKoi.count)];
+    this.shubunkin.reset(before);
+    this.species.reset([...before, ...this.shubunkin.fish.slice(0, this.shubunkin.count)]);
   }
 
   public setCount(count: number): void {
@@ -111,6 +117,8 @@ export class School {
     this.goldfish.resize(scaleX, scaleY);
     this.butterflyKoi.resize(scaleX, scaleY);
     this.shubunkin.resize(scaleX, scaleY);
+    this.species.resize(scaleX, scaleY);
+    for (const shoals of this.smallSpecies) shoals.resize(scaleX, scaleY);
     for (const ripple of this.ripples.instances) {
       ripple.center.x *= scaleX;
       ripple.center.y *= scaleY;
@@ -121,6 +129,7 @@ export class School {
     this.random.state = 0x00c0ffee;
     this.fish.forEach((fish, index) => fish.reset(index, this.random));
     this.tinyFish.reset();
+    for (const shoals of this.smallSpecies) shoals.reset();
     this.resetOrnamentalFish();
     this.ripples.reset();
     this.targetActive = false;
@@ -150,6 +159,7 @@ export class School {
       fish.callResponseAge = 0;
     }
     this.tinyFish.fleeFrom(point);
+    for (const shoals of this.smallSpecies) shoals.fleeFrom(point);
     this.ripples.trigger("touch", point);
   }
 
@@ -203,7 +213,10 @@ export class School {
     for (const [index, fish] of agents.entries()) {
       this.integrate(fish, desired[index], desiredSpeed[index], dt);
     }
-    this.tinyFish.update(dt, time, this.goldfish, this.butterflyKoi, this.shubunkin);
+    const avoid: FishAvoidance[] = [this.goldfish, this.butterflyKoi, this.shubunkin];
+    for (const population of this.species.populations) if (population.count > 0) avoid.push(population);
+    this.tinyFish.update(dt, time, avoid);
+    for (const shoals of this.smallSpecies) shoals.update(dt, time, avoid);
 
     this.ripples.update(dt);
   }
@@ -378,14 +391,16 @@ export class School {
     let cohesion = vec();
     let neighbours = 0;
 
+    const aheadX = fish.position.x + fish.velocity.x * 0.2, aheadY = fish.position.y + fish.velocity.y * 0.2;
     for (const other of agents) {
       if (other === fish) continue;
       // A short look ahead softens avoidance before bodies overlap. Keep the
       // small, predictable O(n²) neighbourhood rather than adding an index.
-      const offset = sub(add(fish.position, mul(fish.velocity, 0.2)),
-        add(other.position, mul(other.velocity, 0.2)));
-      const distance = length(offset);
+      const offsetX = aheadX - (other.position.x + other.velocity.x * 0.2);
+      const offsetY = aheadY - (other.position.y + other.velocity.y * 0.2);
+      const distance = Math.hypot(offsetX, offsetY);
       if (distance > 0.001 && distance < 37) {
+        const offset = {x: offsetX, y: offsetY};
         neighbours += 1;
         cohesion = add(cohesion, other.position);
         alignment = add(alignment, normalize(other.velocity));
@@ -534,16 +549,7 @@ export class School {
     fish.swimPhase += beatRate * dt;
     fish.finPhase += (3.2 + fish.reactivity + (1 - Math.min(fish.speed / fish.cruiseSpeed, 1)) * 2.2) * dt;
 
-    fish.spine[0] = { ...fish.position };
-    const spacing = fish.bodyLength / (SPINE_NODES - 1);
-    for (let node = 1; node < SPINE_NODES; node += 1) {
-      const fallback = mul(fromAngle(fish.heading), -1);
-      const direction = normalize(sub(fish.spine[node], fish.spine[node - 1]), fallback);
-      const constrained = add(fish.spine[node - 1], mul(direction, spacing));
-      const tailAmount = node / (SPINE_NODES - 1);
-      const stiffness = 0.94 - tailAmount * 0.17;
-      fish.spine[node] = lerp(fish.spine[node], constrained, stiffness);
-    }
+    followSpine(fish);
   }
 
 }
