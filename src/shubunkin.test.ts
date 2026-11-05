@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 import { setCanvasSize } from "./config";
-import { buildRenderSpine, LONG_TAIL } from "./fish-spine";
+import { buildRenderSpine, LONG_TAIL, LONG_TAIL_ANCHOR, longTailFlex, longTailOpening, membranePoint, SHUBUNKIN_TAIL } from "./fish-spine";
 import { Koi } from "./koi";
 import { School } from "./school";
 import { settings, SettingsStore } from "./settings/store";
 import { ShubunkinRenderer, SHUBUNKIN_VERTEX_BUDGET, shubunkinCoat } from "./shubunkin-renderer";
-import { ButterflyKoiRenderer } from "./butterfly-koi-renderer";
 
 afterEach(() => { settings.resetAll(); setCanvasSize(480, 270); vi.restoreAllMocks(); });
 
@@ -17,7 +16,7 @@ const signedArea = (position: THREE.BufferAttribute | THREE.InterleavedBufferAtt
 };
 
 describe("shubunkin integration", () => {
-  it("persists independently of koi families and gives old saves the default population", () => {
+  it("persists independently of koi families, and old saves without a count get today's default of none", () => {
     const store = new SettingsStore(), families = [...store.live.koi.families];
     store.set(["shubunkin", "count"], 6); store.set(["shubunkin", "size"], 1.3);
     const next = new SettingsStore(); next.importOverrides(store.exportOverrides(), "sunny", false);
@@ -25,7 +24,7 @@ describe("shubunkin integration", () => {
     expect(next.live.koi.families).toEqual(families);
     next.importOverrides({"goldfish.count": 5}, "sunny", false);
     expect(next.live.goldfish.count).toBe(5);
-    expect(next.live.shubunkin).toEqual({count: 2, size: 1});
+    expect(next.live.shubunkin).toEqual({count: 0, size: 1});
     expect(next.live["butterfly-koi"]).toEqual({count: 2, size: 1});
   });
 
@@ -43,7 +42,9 @@ describe("shubunkin integration", () => {
     }
   });
 
-  it("does not change how the existing fish start or respond when it is added", () => {
+  it("is not in the default pond, and does not change how the existing fish start or respond when it is added", () => {
+    expect(new SettingsStore().live.shubunkin.count).toBe(0);
+    expect(new School().shubunkin.count).toBe(0);
     const run = (count: number) => {
       settings.set(["shubunkin", "count"], count);
       const school = new School(); school.reset();
@@ -117,24 +118,28 @@ describe("shubunkin integration", () => {
     for (const mesh of meshes) { mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose(); }
   });
 
-  it("moves its tail exactly like the platinum longfin, frame by frame", () => {
+  it("has its own Bristol tail, moving on exactly the platinum longfin's functions, frame by frame", () => {
+    expect(SHUBUNKIN_TAIL).not.toEqual(LONG_TAIL);
+    expect(Math.max(...SHUBUNKIN_TAIL.map(([t]) => t))).toBeLessThan(Math.max(...LONG_TAIL.map(([t]) => t)));
     settings.set(["koi", "initialCount"], 0); settings.set(["goldfish", "count"], 0);
-    settings.set(["butterfly-koi", "count"], 1); settings.set(["shubunkin", "count"], 0);
-    const school = new School(), longfinRenderer = new ButterflyKoiRenderer(), renderer = new ShubunkinRenderer();
-    const longfin = school.butterflyKoi.fish[0], fish = school.shubunkin.fish[0];
-    Object.defineProperty(school.shubunkin, "count", {get: () => 1});
-    const theirs = (longfinRenderer.group.children[0] as THREE.Mesh).geometry.getAttribute("position");
+    settings.set(["butterfly-koi", "count"], 0); settings.set(["shubunkin", "count"], 1);
+    const school = new School(), renderer = new ShubunkinRenderer(), fish = school.shubunkin.fish[0];
     const ours = (renderer.group.children[0] as THREE.Mesh).geometry.getAttribute("position");
-    const tailVertices = (LONG_TAIL.length - 2) * 3;
+    const triangles = THREE.ShapeUtils.triangulateShape(SHUBUNKIN_TAIL.map(([x, y]) => new THREE.Vector2(x, y)), []);
+    const sample = {x: 0, y: 0, forwardX: 1, forwardY: 0};
     for (let frame = 0; frame < 480; frame++) {
       if (frame === 120) school.callTo({x: 460, y: 25}); if (frame === 360) school.scatter();
       school.update(1 / 60, frame / 60);
-      Object.assign(fish, structuredClone({...longfin}));
-      longfinRenderer.update(school.butterflyKoi); renderer.update(school.shubunkin, undefined, frame / 60);
-      for (let vertex = 0; vertex < tailVertices; vertex++) {
-        expect(ours.getX(vertex)).toBeCloseTo(theirs.getX(vertex), 4);
-        expect(ours.getY(vertex)).toBeCloseTo(theirs.getY(vertex), 4);
+      renderer.update(school.shubunkin, undefined, frame / 60);
+      let vertex = 0;
+      for (let side = 0; side < 2; side++) for (const triangle of triangles) for (const index of triangle) {
+        const [t, width] = SHUBUNKIN_TAIL[index];
+        membranePoint(fish, LONG_TAIL_ANCHOR, t, width * (side === 0 ? -1 : 1) * longTailOpening(fish), longTailFlex(fish), sample);
+        expect(ours.getX(vertex)).toBeCloseTo(sample.x, 3);
+        expect(ours.getY(vertex)).toBeCloseTo(sample.y, 3);
+        vertex++;
       }
     }
+    for (const mesh of [...renderer.group.children, ...renderer.shadowGroup.children] as THREE.Mesh[]) mesh.geometry.dispose();
   });
 });

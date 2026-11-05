@@ -21,6 +21,7 @@ import {
   type ValueOf,
 } from "./schema";
 import { DEFAULT_FAMILIES, KOI_FAMILIES, MAX_KOI } from "./composition";
+import { MAX_LARGE_SPECIES, MAX_MEDIUM_SPECIES, MAX_SMALL_SHOALS } from "./species";
 
 const TAU = Math.PI * 2;
 
@@ -354,10 +355,21 @@ const butterflyKoi = group({
   size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
 }, { effect: "butterfly-koi:refresh" });
 
+// Only ever added by the visitor. A saved count is an explicit override, so it
+// outranks this default, whatever it was when it was saved.
 const shubunkin = group({
-  count: num({ default: 2, min: 0, max: 6, step: 1, int: true }),
+  count: num({ default: 0, min: 0, max: 6, step: 1, int: true }),
   size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
 }, { effect: "shubunkin:refresh" });
+
+// The optional species start at zero; `count` is fish, or shoals for the small ones.
+const species = (max: number, effect: string) => group({
+  count: num({ default: 0, min: 0, max, step: 1, int: true }),
+  size: num({ default: 1, min: 0.7, max: 1.3, step: 0.01 }),
+}, { effect });
+const largeSpecies = () => species(MAX_LARGE_SPECIES, "species:refresh");
+const mediumSpecies = () => species(MAX_MEDIUM_SPECIES, "species:refresh");
+const smallSpecies = () => species(MAX_SMALL_SHOALS, "small-species:refresh");
 
 // ---- pond bed --------------------------------------------------------
 
@@ -857,6 +869,15 @@ export const definition = group({
   goldfish,
   "butterfly-koi": butterflyKoi,
   shubunkin,
+  sterlet: largeSpecies(),
+  "high-fin": largeSpecies(),
+  paddlefish: largeSpecies(),
+  ranchu: mediumSpecies(),
+  "panda-butterfly": mediumSpecies(),
+  "bubble-eye": mediumSpecies(),
+  orfe: mediumSpecies(),
+  "white-cloud": smallSpecies(),
+  "paradise-fish": smallSpecies(),
   "koi-palettes": koiPalettes,
   "koi-patterns": koiPatterns,
   "tiny-fish": tinyFish,

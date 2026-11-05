@@ -18,21 +18,37 @@ export const ADVANCED_GROUPS = [
     {id: "adult-size", label: "regularLength", path: ["koi", "regularLength"], min: 18, max: 55},
     {id: "young-size", label: "tinyLength", path: ["koi", "tinyLength"], min: 10, max: 32},
   ]},
-  {id: "goldfish", sections: ["goldfish"], controls: [
+  {id: "large-fish", sections: ["sterlet", "high-fin", "paddlefish"], controls: [
+    {id: "sterlet-count", label: "sterletCount", path: ["sterlet", "count"]},
+    {id: "sterlet-size", label: "sterletSize", path: ["sterlet", "size"], percent: true},
+    {id: "high-fin-count", label: "highFinCount", path: ["high-fin", "count"]},
+    {id: "high-fin-size", label: "highFinSize", path: ["high-fin", "size"], percent: true},
+    {id: "paddlefish-count", label: "paddlefishCount", path: ["paddlefish", "count"]},
+    {id: "paddlefish-size", label: "paddlefishSize", path: ["paddlefish", "size"], percent: true},
+  ]},
+  {id: "medium-fish", sections: ["goldfish", "butterfly-koi", "shubunkin", "ranchu", "panda-butterfly", "bubble-eye", "orfe"], controls: [
     {id: "goldfish-count", label: "goldfishCount", path: ["goldfish", "count"]},
     {id: "goldfish-size", label: "goldfishSize", path: ["goldfish", "size"], percent: true},
-  ]},
-  {id: "butterfly-koi", sections: ["butterfly-koi"], controls: [
     {id: "butterfly-koi-count", label: "butterflyKoiCount", path: ["butterfly-koi", "count"]},
     {id: "butterfly-koi-size", label: "butterflyKoiSize", path: ["butterfly-koi", "size"], percent: true},
-  ]},
-  {id: "shubunkin", sections: ["shubunkin"], controls: [
     {id: "shubunkin-count", label: "shubunkinCount", path: ["shubunkin", "count"]},
     {id: "shubunkin-size", label: "shubunkinSize", path: ["shubunkin", "size"], percent: true},
+    {id: "ranchu-count", label: "ranchuCount", path: ["ranchu", "count"]},
+    {id: "ranchu-size", label: "ranchuSize", path: ["ranchu", "size"], percent: true},
+    {id: "panda-butterfly-count", label: "pandaButterflyCount", path: ["panda-butterfly", "count"]},
+    {id: "panda-butterfly-size", label: "pandaButterflySize", path: ["panda-butterfly", "size"], percent: true},
+    {id: "bubble-eye-count", label: "bubbleEyeCount", path: ["bubble-eye", "count"]},
+    {id: "bubble-eye-size", label: "bubbleEyeSize", path: ["bubble-eye", "size"], percent: true},
+    {id: "orfe-count", label: "orfeCount", path: ["orfe", "count"]},
+    {id: "orfe-size", label: "orfeSize", path: ["orfe", "size"], percent: true},
   ]},
-  {id: "medaka", sections: ["tiny-fish", "tiny-fish-schools"], controls: [
+  {id: "small-fish", sections: ["tiny-fish", "tiny-fish-schools", "white-cloud", "paradise-fish"], controls: [
     {id: "medaka-shoals", label: "visibleSchoolCount", path: ["tiny-fish", "visibleSchoolCount"], max: 12},
     {id: "medaka-size", label: "bodyLength", path: ["tiny-fish", "bodyLength"], min: 3, max: 12},
+    {id: "white-cloud-count", label: "whiteCloudCount", path: ["white-cloud", "count"]},
+    {id: "white-cloud-size", label: "whiteCloudSize", path: ["white-cloud", "size"], percent: true},
+    {id: "paradise-fish-count", label: "paradiseFishCount", path: ["paradise-fish", "count"]},
+    {id: "paradise-fish-size", label: "paradiseFishSize", path: ["paradise-fish", "size"], percent: true},
   ]},
   {id: "plants", sections: ["lotus", "lotus-leaves", "lotus-flowers", "duckweed", "duckweed-patches", "butterflies", "butterfly-spawns"], controls: [
     {id: "lotus-leaves", label: "visibleLeafCount", path: ["lotus", "visibleLeafCount"]},

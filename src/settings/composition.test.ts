@@ -137,10 +137,11 @@ describe("every retained Advanced value", () => {
     expect(store.get(control.path)).toEqual(before);
     store.undo(); expect(store.get(control.path)).toEqual(next);
   });
-  it("keeps Advanced at 46 meaningful settings, including longfin and shubunkin controls but no internal history", () => {
-    expect(controls.length+6).toBe(46);
+  it("keeps Advanced at 64 meaningful settings: count and size for each added fish, but no internal history", () => {
+    expect(controls.length+6).toBe(64);
     expect(controls.filter(control => control.path[0] === "butterfly-koi")).toHaveLength(2);
-    expect(controls.filter(control => control.path[0] === "shubunkin")).toHaveLength(2);
+    for (const id of ["shubunkin","sterlet","high-fin","paddlefish","ranchu","panda-butterfly","bubble-eye","orfe","white-cloud","paradise-fish"])
+      expect(controls.filter(control => control.path[0] === id),id).toHaveLength(2);
     expect(controls.some(control => control.path.join(".").includes("lastEnabledSchoolCount"))).toBe(false);
     expect(controls.some(control => /visualStart|offset|phase|sharpness/i.test(control.path.join('.')))).toBe(false);
   });

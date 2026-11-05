@@ -18,7 +18,13 @@ describe("settings navigation hierarchy", () => {
     expect(pageGroup("root")).toBeNull();
   });
 
-  it("gives the new fish its own page in the list", () => {
-    expect(ADVANCED_GROUPS.map(group => group.id)).toContain("shubunkin");
+  it("keeps fish on one page per size class, so the list stays short", () => {
+    expect(ADVANCED_GROUPS.map(group => group.id)).toEqual(["koi", "large-fish", "medium-fish", "small-fish", "plants", "water", "appearance"]);
+  });
+
+  it("reaches the fish list from the root, and returns to it", () => {
+    expect(pageDepth("fish")).toBe(1);
+    expect(parentPage("fish")).toBe("root");
+    expect(pageGroup("fish")).toBeNull();
   });
 });

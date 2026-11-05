@@ -29,10 +29,9 @@ interface ConfigEditorProps {
 
 const GROUP_ICONS: Record<AdvancedGroupId, {color: string; icon: ReactNode}> = {
   koi: {color: TILE.red, icon: <Fish />},
-  goldfish: {color: TILE.orange, icon: <Fish />},
-  "butterfly-koi": {color: TILE.gray, icon: <Fish />},
-  shubunkin: {color: TILE.indigo, icon: <Fish />},
-  medaka: {color: TILE.teal, icon: <Fish />},
+  "large-fish": {color: TILE.indigo, icon: <Fish />},
+  "medium-fish": {color: TILE.orange, icon: <Fish />},
+  "small-fish": {color: TILE.teal, icon: <Fish />},
   plants: {color: TILE.pink, icon: <Flower2 />},
   water: {color: TILE.blue, icon: <Droplets />},
   appearance: {color: TILE.purple, icon: <Palette />},
@@ -152,7 +151,7 @@ function GroupBody({group,query,resettable,...props}: {group:(typeof ADVANCED_GR
   const all = includes(query,en.t(`section.${group.id}`),zh.t(`section.${group.id}`),en.t(`group.${group.id}`),zh.t(`group.${group.id}`));
   const controls = group.controls.filter(control => all || controlMatches(control,query));
   const showComposition = group.id === "koi" && (all || compositionMatches(query));
-  const note = group.id === "medaka" ? t("advanced.medakaHint") : group.id === "plants" ? t("advanced.plantsHint") : null;
+  const note = group.id === "small-fish" ? t("advanced.medakaHint") : group.id === "plants" ? t("advanced.plantsHint") : null;
   return <>
     {showComposition && <Composition query={all ? "" : query} />}
     {controls.length > 0 && <section className="preference-group">

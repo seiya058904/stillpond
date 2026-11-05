@@ -18,8 +18,8 @@ A calm digital pond with procedural koi, full-viewport scenery, and English / Si
 
 <p><strong>Watch the light move. Follow a fish. Let the water settle.</strong></p>
 
-<p>A full-screen, procedural pond where koi, platinum butterfly koi, Shubunkin, Wakin goldfish, and Medaka<br>
-move through water, weather, lotus leaves, and the occasional butterfly.</p>
+<p>A full-screen, procedural pond where koi, platinum butterfly koi, Wakin goldfish, and Medaka<br>
+move through water, weather, lotus leaves, and the occasional butterfly, with eleven more fish you can invite in.</p>
 
 <p>
   <a href="https://seiya058904.github.io/stillpond/"><strong>▶ Enter the Pond</strong></a>
@@ -81,13 +81,30 @@ move through water, weather, lotus leaves, and the occasional butterfly.</p>
 
 A visual ecology pass brings **three Wakin goldfish**, more distinct butterfly wing families, refined lotus geometry, and a subtler pond surface. The additions strengthen the shared scene without turning it into a collection game.
 
-**Two Shubunkin** add the pond's only cool color: slate-blue calico coats with vermilion, ink and pearl patches, different on every fish, and a long flowing tail. Their steering is the shared koi behavior and their tail motion is the platinum longfin's; the coat and alternating pectoral strokes are render-only.
-
 The pond also includes **two platinum butterfly koi** by default: a real silver-white,
 long-finned koi variety with broad pectoral fins and a flowing forked tail. Their
 population (0–6) and size (70–130%) are independent of the six koi color families;
 swimming, depth, calls and scattering use the same behavior system. Wakin keep
 their shorter double tails with fuller membranes and quieter fin rays.
+
+### ✦ Fish You Can Invite
+
+None of these are in the default pond. Add them under **Settings → All fish species**, where each row shows a small portrait of the fish it adds. What you add stays until you change it.
+
+| Size | Fish | Look for |
+| --- | --- | --- |
+| Large | **Sterlet** | A near-black back ruled by pale scute rows, a pointed rostrum, a shark tail |
+| Large | **High-fin banded shark** | A cream head, dark slanting bands, a dorsal sail that leans with each stroke |
+| Large | **American paddlefish** | A third of the fish is a pale spoon-ended rostrum, with long mottled gill flaps |
+| Medium | **Shubunkin** | A slate-blue calico coat and a broad, heart-shaped Bristol tail |
+| Medium | **Ranchu** | A broad back with no dorsal fin, a raspberry hood, a short tucked tail |
+| Medium | **Panda butterfly tail** | Black and white blocks, bulging eyes, a tail spread flat like wings |
+| Medium | **Bubble eye** | Two soft fluid sacs that jiggle as it swims, and a long, soft fan |
+| Medium | **Golden orfe** | A slim orange dart with pale flanks and a clean fork |
+| Small | **White Cloud minnow** | A Medaka in olive gold, with a red tail |
+| Small | **Paradise fish** | A Medaka in coral, with a blue-green stripe and fins |
+
+Every one swims on the same systems as the fish already here. Large and medium fish are koi agents with their own proportions, pace, silhouettes, fins and colors. Small fish are Medaka in every way but color.
 
 <a id="a-gentle-touch"></a>
 ## 🫧 A Gentle Touch
@@ -115,7 +132,7 @@ The everyday settings are deliberately small. More detailed controls live in a s
   <tr>
     <td width="50%" valign="top">
       <h3>🐟 Pond</h3>
-      <p>Adjust koi, platinum butterfly koi, Shubunkin and Wakin populations and selected composition settings in an iOS-style panel that follows your system's light or dark appearance. Switching Medaka off remembers their previous shoal count.</p>
+      <p>Set the koi population, switch Medaka on or off, or open the full fish list, grouped into large, medium and small, in an iOS-style panel that follows your system's light or dark appearance. Switching Medaka off remembers their previous shoal count.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🌤️ Atmosphere</h3>
@@ -178,6 +195,8 @@ npm run preview
 | [`src/goldfish.ts`](src/goldfish.ts) | Wakin silhouette and motion integration |
 | [`src/butterfly-koi.ts`](src/butterfly-koi.ts) · [`src/butterfly-koi-renderer.ts`](src/butterfly-koi-renderer.ts) | Platinum longfin population and procedural membranes |
 | [`src/shubunkin.ts`](src/shubunkin.ts) · [`src/shubunkin-renderer.ts`](src/shubunkin-renderer.ts) | Shubunkin population, calico coats, and render-only fin strokes |
+| [`src/species-art.ts`](src/species-art.ts) · [`src/species.ts`](src/species.ts) · [`src/species-renderer.ts`](src/species-renderer.ts) | The optional species: outlines and colors, populations, and one shared renderer |
+| [`src/fish-settings.tsx`](src/fish-settings.tsx) · [`src/fish-glyphs.ts`](src/fish-glyphs.ts) | The fish list and its portraits, drawn from the same outlines |
 | [`src/fish-renderer.ts`](src/fish-renderer.ts) | Layered fish and pond rendering |
 | [`src/settings/`](src/settings/) | Settings, persistence, runtime effects, and panel navigation |
 | [`src/settings-panel.tsx`](src/settings-panel.tsx) · [`src/settings-ui.tsx`](src/settings-ui.tsx) | iOS-style settings panel and its controls |

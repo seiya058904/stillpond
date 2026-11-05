@@ -10,8 +10,9 @@ import {
 } from "./config";
 import { clamp } from "./math";
 import type { School } from "./school";
+import { MAX_SPINE_SPECIES_FISH } from "./settings/species";
 
-const DISTURBANCE_CAPACITY = MAX_FISH + MAX_GOLDFISH + MAX_BUTTERFLY_KOI + MAX_SHUBUNKIN;
+const DISTURBANCE_CAPACITY = MAX_FISH + MAX_GOLDFISH + MAX_BUTTERFLY_KOI + MAX_SHUBUNKIN + MAX_SPINE_SPECIES_FISH;
 
 const vertexHeader = /* glsl */ `
   precision highp float;
@@ -267,7 +268,7 @@ export class SurfaceDisturbancePass {
       this.motionValues[offset + 1] = fish.tailPhase;
       count++;
     }
-    if (previewFishIndex === null) for (const population of [school.butterflyKoi, school.shubunkin]) for (let index = 0; index < population.count; index++) {
+    if (previewFishIndex === null) for (const population of [school.butterflyKoi, school.shubunkin, ...school.species.populations]) for (let index = 0; index < population.count; index++) {
       const fish = population.fish[index], offset = count * 2;
       const depth = clamp((fish.depth - FISH.depth.visualStart) / depthRange, 0, 1);
       this.depthCenters[offset] = fish.position.x;

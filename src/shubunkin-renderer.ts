@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { FISH, MAX_SHUBUNKIN } from "./config";
-import { buildRenderSpine, LONG_TAIL, LONG_TAIL_ANCHOR, longTailFlex, longTailOpening, membranePoint, sampleSwimSpine } from "./fish-spine";
+import { buildRenderSpine, LONG_TAIL_ANCHOR, longTailFlex, longTailOpening, membranePoint, sampleSwimSpine, SHUBUNKIN_TAIL } from "./fish-spine";
 import { SwimState } from "./koi";
 import { clamp } from "./math";
 import type { ShubunkinAgent, ShubunkinPopulation } from "./shubunkin";
@@ -13,7 +13,7 @@ const BODY_WIDTH = [0.03, 0.08, 0.122, 0.155, 0.162, 0.148, 0.12, 0.09, 0.062, 0
 const BAND = [-1, -0.66, -0.3, 0, 0.3, 0.66, 1] as const;
 const BAND_SHADE = [0.82, 0.94, 1.03, 1.03, 0.94, 0.82] as const;
 const SEGMENTS = BODY_T.length - 1, BANDS = BAND.length - 1;
-const TAIL_TRIANGLES = THREE.ShapeUtils.triangulateShape(LONG_TAIL.map(([x, y]) => new THREE.Vector2(x, y)), []);
+const TAIL_TRIANGLES = THREE.ShapeUtils.triangulateShape(SHUBUNKIN_TAIL.map(([x, y]) => new THREE.Vector2(x, y)), []);
 const PECTORAL_LENGTH = 0.27, PELVIC_LENGTH = 0.13;
 const PECTORAL: readonly (readonly [number, number])[] = [[0, 0], [0.35, 0.32], [0.75, 0.42], [1, 0.22], [0.9, -0.11], [0.45, -0.2]];
 const PELVIC: readonly (readonly [number, number])[] = [[0, 0], [0.7, 0.3], [1, 0.05], [0.55, -0.22]];
@@ -187,7 +187,7 @@ export class ShubunkinRenderer {
     this.drawHead(fish, gulp);
   }
 
-  // The motion is the platinum longfin's own (see fish-spine.ts); only the color is ours.
+  // The motion is the platinum longfin's own (see fish-spine.ts); the outline and color are ours.
   private drawTail(fish: ShubunkinAgent, index: number): void {
     const opening = longTailOpening(fish), flex = longTailFlex(fish);
     for (let side = 0; side < 2; side++) {
@@ -195,7 +195,7 @@ export class ShubunkinRenderer {
       const streak = (index + side) % 2 === 0;
       for (const triangle of TAIL_TRIANGLES) {
         for (const vertex of triangle) {
-          const [t, width] = LONG_TAIL[vertex];
+          const [t, width] = SHUBUNKIN_TAIL[vertex];
           this.tailPoint(this.shapeBatch, fish, t, width * sign * opening, flex, this.tailColor(fish, t, streak), false);
           this.tailPoint(this.shadowBatch, fish, t, width * sign * opening, flex, this.shadowColor, true);
         }
@@ -203,14 +203,14 @@ export class ShubunkinRenderer {
       for (let ray = 0; ray < 3; ray++) {
         const color = this.tailColor(fish, 1.3, false).multiplyScalar(0.93);
         this.tailPoint(this.lineBatch, fish, 1.01, sign * 0.022 * opening, flex, color, false);
-        this.tailPoint(this.lineBatch, fish, 1.42 + ray * 0.065, sign * (0.07 + ray * 0.047) * opening, flex, color, false);
+        this.tailPoint(this.lineBatch, fish, 1.34 + ray * 0.06, sign * (0.075 + ray * 0.06) * opening, flex, color, false);
       }
     }
   }
 
   // Translucent toward the tip, with an occasional calico streak near the root.
   private tailColor(fish: ShubunkinAgent, t: number, streak: boolean): THREE.Color {
-    const s = clamp((t - 0.94) / 0.8, 0, 1);
+    const s = clamp((t - 0.94) / 0.66, 0, 1);
     this.finColor.copy(FIN_ROOT).lerp(FIN_TIP, s);
     if (streak && s < 0.3) this.finColor.lerp(TONES[Tone.red], (0.3 - s) * 2);
     this.tint(this.finColor, fish.depth);

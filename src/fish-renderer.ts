@@ -32,6 +32,7 @@ import { TinyFishRenderer } from "./tiny-fish-renderer";
 import { GoldfishRenderer } from "./goldfish-renderer";
 import { ButterflyKoiRenderer } from "./butterfly-koi-renderer";
 import { ShubunkinRenderer } from "./shubunkin-renderer";
+import { SpeciesRenderer } from "./species-renderer";
 import { buildRenderSpine } from "./fish-spine";
 import { WaterSurfacePass } from "./water-surface";
 import { WeatherPass } from "./weather-pass";
@@ -238,6 +239,8 @@ export class FishRenderer {
   private readonly goldfishRenderer = new GoldfishRenderer();
   private readonly butterflyKoiRenderer = new ButterflyKoiRenderer();
   private readonly shubunkinRenderer = new ShubunkinRenderer();
+  // Beneath the koi, over the other medium fish: one batch and three draw calls for all of them.
+  private readonly speciesRenderer = new SpeciesRenderer(-0.5, -0.4, "large and medium species");
   private readonly duckweed = new DuckweedPass();
   private readonly lotusLeaves = new LotusLeavesPass();
   private readonly butterflies = new ButterflyPass();
@@ -303,11 +306,13 @@ export class FishRenderer {
       this.goldfishRenderer.shadowGroup,
       this.butterflyKoiRenderer.shadowGroup,
       this.shubunkinRenderer.shadowGroup,
+      this.speciesRenderer.shadowGroup,
     );
     this.fishScene.add(this.tinyFishRenderer.group);
     this.fishScene.add(this.goldfishRenderer.group);
     this.fishScene.add(this.butterflyKoiRenderer.group);
     this.fishScene.add(this.shubunkinRenderer.group);
+    this.fishScene.add(this.speciesRenderer.group);
     this.surfaceScene.add(this.waterSurface.mesh);
     this.surfaceShadowScene.add(
       this.duckweed.shadowGroup,
@@ -516,7 +521,7 @@ export class FishRenderer {
     this.outlineLines.commit();
     this.tinyFishRenderer.group.visible = previewIndex === null;
     this.tinyFishRenderer.shadowGroup.visible = previewIndex === null;
-    if (previewIndex === null) this.tinyFishRenderer.update(school.tinyFish);
+    if (previewIndex === null) this.tinyFishRenderer.update(school.tinyFish, school.smallSpecies);
     this.goldfishRenderer.group.visible = previewIndex === null;
     this.goldfishRenderer.shadowGroup.visible = previewIndex === null;
     if (previewIndex === null) this.goldfishRenderer.update(school.goldfish, this.weather.surface);
@@ -526,6 +531,11 @@ export class FishRenderer {
     this.shubunkinRenderer.group.visible = previewIndex === null;
     this.shubunkinRenderer.shadowGroup.visible = previewIndex === null;
     if (previewIndex === null) this.shubunkinRenderer.update(school.shubunkin, this.weather.surface, time);
+    if (previewIndex === null) {
+      this.speciesRenderer.update(school.species.populations, this.weather.surface, time);
+    } else {
+      this.speciesRenderer.setVisible(false);
+    }
     this.pondBed.update(time);
     this.surfaceDisturbance.render(
       this.renderer,

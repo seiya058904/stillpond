@@ -64,7 +64,7 @@
 
 /* Pages */
 .settings-scroll { position:relative; isolation:isolate; flex:1; min-height:0; overflow:hidden; }
-.settings-page { position:absolute; inset:0; padding:calc(var(--nav-height) + 2px) 16px max(24px,env(safe-area-inset-bottom)); overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--label-3) transparent; }
+.settings-page { position:absolute; inset:0; padding:calc(var(--nav-height) + 2px) 16px max(24px,env(safe-area-inset-bottom)); scroll-padding-block:calc(var(--nav-height) + 8px) 16px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--label-3) transparent; }
 .settings-page[inert] { pointer-events:none; }
 .settings-large-title { margin:0 4px; color:var(--label); font-size:32px; font-weight:700; letter-spacing:-.03em; line-height:1.18; }
 .settings-subtitle { margin:4px 4px 20px; color:var(--label-2); font-size:15px; line-height:1.35; text-wrap:pretty; }
@@ -92,6 +92,12 @@
 .icon-tile svg { width:18px; height:18px; stroke-width:2; }
 .selection-row__check { width:20px; height:20px; flex:none; color:var(--tint); stroke-width:2.8; }
 .preference-list > * + *::before { left:16px; }
+
+/* Fish list: a small pond tile with a portrait of the fish it adds. */
+.fish-settings { --row-inset:72px; }
+.fish-row { min-height:54px; }
+.fish-row .preference-row__label { font-size:16px; line-height:1.22; text-wrap:balance; }
+.fish-tile { display:block; width:44px; height:28px; flex:none; border-radius:8px; background:linear-gradient(160deg,#4f9a80,#2f7560); box-shadow:inset 0 0 0 0.5px rgb(255 255 255 / 14%); }
 
 /* Slider */
 .pond-range { appearance:none; display:block; width:100%; height:34px; margin:2px 0 0; background:transparent; cursor:pointer; touch-action:pan-y; }
@@ -222,6 +228,7 @@
   .settings-drawer { --row-inset:51px; }
   .preference-row { gap:9px; padding-inline:12px; } .preference-row--plain { padding-inline:0; } .preference-cell { padding-inline:12px; }
   .ios-stepper button { width:38px; } .settings-page { padding-inline:10px; } .preference-row__value { font-size:15px; }
+  .fish-settings { --row-inset:65px; } .fish-row .preference-row__label { font-size:15px; }
   .settings-nav-button { padding-inline:11px; }
   /* iOS drops the back label when the bar runs out of room; the chevron is enough. */
   .settings-back { width:36px; padding:0 2px 0 0; justify-content:center; } .settings-back span { display:none; }

@@ -20,7 +20,9 @@ import {
   type Vec2,
   XorShift32,
 } from "./math";
-interface FishAvoidance { avoidance(x: number, y: number, radius: number): Vec2 }
+export interface FishAvoidance { avoidance(x: number, y: number, radius: number): Vec2 }
+/** Medaka read the live settings; a small species inherits them and adds its own count and size. */
+export type TinyFishConfig = typeof TINY_FISH;
 
 export interface TinyFishAgent {
   position: Vec2;
@@ -50,19 +52,27 @@ export class TinyFishSchools {
   public readonly fish: TinyFishAgent[] = [];
 
   private readonly ranges: TinySchoolRange[] = [];
-  private readonly random = new XorShift32(0x51a7f15c);
+  private readonly random: XorShift32;
+  private readonly config: TinyFishConfig;
+  private readonly schools: readonly TinyFishSchoolSetting[];
+  private readonly seed: number;
   private callPoint = vec();
 
-  public constructor() {
+  public constructor(config: TinyFishConfig = TINY_FISH, schools: readonly TinyFishSchoolSetting[] = TINY_FISH_SCHOOLS, seed = 0x51a7f15c) {
+    this.config = config;
+    this.schools = schools;
+    this.seed = seed;
+    this.random = new XorShift32(seed);
     this.reset();
   }
 
   public reset(): void {
     this.fish.length = 0;
     this.ranges.length = 0;
-    this.random.state = 0x51a7f15c;
+    this.random.state = this.seed;
+    const TINY_FISH = this.config;
 
-    for (const [schoolIndex, setting] of TINY_FISH_SCHOOLS.entries()) {
+    for (const [schoolIndex, setting] of this.schools.entries()) {
       const start = this.fish.length;
       const placement = viewportPoint(setting.x, setting.y);
       for (let index = 0; index < setting.count; index += 1) {
@@ -150,7 +160,7 @@ export class TinyFishSchools {
   }
 
   public syncSchoolPosition(schoolIndex: number): void {
-    const range = this.ranges[schoolIndex], setting = TINY_FISH_SCHOOLS[schoolIndex];
+    const range = this.ranges[schoolIndex], setting = this.schools[schoolIndex];
     if (!range || !setting) return;
     // Synchronize the authored origin, preserving each fish's natural drift.
     // Repeated or stale light callbacks after a heavy refresh are then no-ops.
@@ -165,6 +175,7 @@ export class TinyFishSchools {
   }
 
   public fleeFrom(point: Vec2): void {
+    const TINY_FISH = this.config;
     this.callPoint = { ...point };
     const visibleSchools = Math.min(
       TINY_FISH.visibleSchoolCount,
@@ -185,17 +196,18 @@ export class TinyFishSchools {
     }
   }
 
-  public update(dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance, shubunkin?: FishAvoidance): void {
+  public update(dt: number, time: number, avoid: readonly FishAvoidance[] = []): void {
     const visibleSchools = Math.min(
-      TINY_FISH.visibleSchoolCount,
+      this.config.visibleSchoolCount,
       this.ranges.length,
     );
     for (let schoolIndex = 0; schoolIndex < visibleSchools; schoolIndex += 1) {
-      this.updateSchool(this.ranges[schoolIndex], dt, time, goldfish, butterflyKoi, shubunkin);
+      this.updateSchool(this.ranges[schoolIndex], dt, time, avoid);
     }
   }
 
-  private updateSchool(range: TinySchoolRange, dt: number, time: number, goldfish?: FishAvoidance, butterflyKoi?: FishAvoidance, shubunkin?: FishAvoidance): void {
+  private updateSchool(range: TinySchoolRange, dt: number, time: number, avoid: readonly FishAvoidance[]): void {
+    const TINY_FISH = this.config;
     let center = vec();
     let averageVelocity = vec();
     for (let index = range.start; index < range.start + range.count; index += 1) {
@@ -334,13 +346,7 @@ export class TinyFishSchools {
           * Math.min(1, fish.fleeTime / 0.55);
       }
       steering = add(steering, mul(edgeForce, TINY_FISH.edgeStrength));
-      if (goldfish) steering = add(steering, goldfish.avoidance(
-        fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
-      ));
-      if (butterflyKoi) steering = add(steering, butterflyKoi.avoidance(
-        fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
-      ));
-      if (shubunkin) steering = add(steering, shubunkin.avoidance(
+      for (const population of avoid) steering = add(steering, population.avoidance(
         fish.position.x + fish.velocity.x * 0.2, fish.position.y + fish.velocity.y * 0.2, fish.bodyWidth + 1,
       ));
 

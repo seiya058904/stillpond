@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { TINY_FISH } from "./config";
 import { add, mul, normalize, perpendicular, type Vec2 } from "./math";
+import type { SmallSpeciesId } from "./settings/species";
+import { SMALL_SPECIES_PALETTES, type SmallSpeciesPalette } from "./species-art";
 import { SurfaceGeometryBatch } from "./surface-geometry";
 import { TinyFishSchools, type TinyFishAgent } from "./tiny-fish";
 
@@ -12,15 +14,26 @@ interface TinyFishPalette {
   eye: THREE.Color;
 }
 
-const PALETTES: readonly TinyFishPalette[] = TINY_FISH.palettes.map(
-  (palette) => ({
-    body: new THREE.Color(palette.body),
-    light: new THREE.Color(palette.light),
-    accent: new THREE.Color(palette.accent),
-    fin: new THREE.Color(palette.fin),
-    eye: new THREE.Color(palette.eye),
-  }),
-);
+const compilePalette = (palette: SmallSpeciesPalette): TinyFishPalette => ({
+  body: new THREE.Color(palette.body),
+  light: new THREE.Color(palette.light),
+  accent: new THREE.Color(palette.accent),
+  fin: new THREE.Color(palette.fin),
+  eye: new THREE.Color(palette.eye),
+});
+
+const PALETTES: readonly TinyFishPalette[] = TINY_FISH.palettes.map(compilePalette);
+const SHOAL_PALETTES: Record<SmallSpeciesId, readonly TinyFishPalette[]> = {
+  "white-cloud": SMALL_SPECIES_PALETTES["white-cloud"].map(compilePalette),
+  "paradise-fish": SMALL_SPECIES_PALETTES["paradise-fish"].map(compilePalette),
+};
+
+/** Medaka in another color: the same drawing, from the species' own palette. */
+export interface TinyFishShoals {
+  readonly id: SmallSpeciesId;
+  readonly count: number;
+  readonly schools: TinyFishSchools;
+}
 
 export class TinyFishRenderer {
   public readonly shadowGroup = new THREE.Group();
@@ -94,19 +107,27 @@ export class TinyFishRenderer {
     }
   }
 
-  public update(schools: TinyFishSchools): void {
+  public update(schools: TinyFishSchools, shoals: readonly TinyFishShoals[] = []): void {
+    let population = schools.fish.length;
+    for (const shoal of shoals) if (shoal.count > 0) population += shoal.schools.fish.length;
     // Each body uses 24 shadow, 30 silhouette and 36 detail vertices. Reserve
     // for the existing population before filling; the default buffers stay small.
-    this.shadowBatch.reserve(schools.fish.length * 72);
-    this.shapeBatch.reserve(schools.fish.length * 90);
-    this.detailBatch.reserve(schools.fish.length * 108);
+    this.shadowBatch.reserve(population * 72);
+    this.shapeBatch.reserve(population * 90);
+    this.detailBatch.reserve(population * 108);
     this.shadowBatch.reset();
     this.shapeBatch.reset();
     this.detailBatch.reset();
 
     for (const fish of schools.fish) {
       if (fish.schoolIndex >= TINY_FISH.visibleSchoolCount) continue;
-      this.drawFish(fish);
+      this.drawFish(fish, PALETTES);
+    }
+    for (const shoal of shoals) {
+      for (const fish of shoal.schools.fish) {
+        if (fish.schoolIndex >= shoal.count) continue;
+        this.drawFish(fish, SHOAL_PALETTES[shoal.id]);
+      }
     }
 
     this.shadowBatch.commit();
@@ -114,8 +135,8 @@ export class TinyFishRenderer {
     this.detailBatch.commit();
   }
 
-  private drawFish(fish: TinyFishAgent): void {
-    const palette = PALETTES[fish.palette % PALETTES.length];
+  private drawFish(fish: TinyFishAgent, palettes: readonly TinyFishPalette[]): void {
+    const palette = palettes[fish.palette % palettes.length];
     const forward = normalize(fish.velocity);
     const side = perpendicular(forward);
     const shadowCenter = add(fish.position, TINY_FISH.shadow.offset);
