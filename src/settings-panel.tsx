@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, Undo2 } from "lucide-react";
+import { ChevronLeft, ChevronUp, Eye, Redo2, Undo2 } from "lucide-react";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "./hooks/use-mobile";
@@ -30,6 +31,10 @@ interface Props extends Pick<QuickSettingsProps, "sound" | "frameRate" | "onFram
 const TITLE_COLLAPSE = 34;
 // Close to the UIKit navigation push: quick to leave, settling without an overshoot.
 const PUSH = {type: "spring", stiffness: 420, damping: 44, mass: 1} as const;
+// A handle and one accessible button stay above the water; the editor remains
+// mounted at its full size, so its scroll position and inputs do not move.
+const PREVIEW_SNAP = 64;
+const MOBILE_SNAP_POINTS = [PREVIEW_SNAP, 1];
 
 function SettingsPage({children, page, direction, reduced, scrollTop, onEntered, onScrolled, title, subtitle}: {
   children: ReactNode; page: PreferencePage; direction: number; reduced: boolean; scrollTop: number; onEntered: () => void; onScrolled: (top: number) => void; title: string; subtitle: string;
@@ -74,12 +79,15 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
   const scrollMemory = useRef<Partial<Record<PreferencePage, number>>>({});
   const focusTarget = useRef<string | null>(null);
   const [reset, setReset] = useState(false);
+  const [pondPreview, setPondPreview] = useState(false);
+  const previewing = mobile && pondPreview;
   const [query, setQuery] = useState("");
   const [selectedFamily, setSelectedFamily] = useState(0);
   const scroll = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const header = useRef<HTMLDivElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
+  const previewToggle = useRef<HTMLButtonElement>(null);
   const lastEscape = useRef(-1);
   const activePage = () => scroll.current?.querySelector<HTMLDivElement>(".settings-page:not([inert])") ?? null;
 
@@ -87,14 +95,14 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
   // survives the network or server going away afterward. A failure here is not
   // reported: it only matters if Advanced is opened, and the boundary covers that.
   useEffect(() => { loadConfigEditor().catch(() => undefined); }, []);
-  useEffect(() => { if (!open) { setReset(false); setPage("root"); scrollMemory.current = {}; focusTarget.current = null; onPreviewChange(null); } }, [open, onPreviewChange]);
-  // Effects run after the list stops being inert, so focus can actually land on it.
-  const sheetWasOpen = useRef(false);
-  useEffect(() => {
-    if (reset) cancel.current?.focus({preventScroll:true});
-    else if (sheetWasOpen.current) activePage()?.querySelector<HTMLButtonElement>('[data-preference="reset"]')?.focus({preventScroll:true});
-    sheetWasOpen.current = reset;
-  }, [reset]);
+  useEffect(() => { if (!open) { setReset(false); setPondPreview(false); setPage("root"); scrollMemory.current = {}; focusTarget.current = null; onPreviewChange(null); } }, [open, onPreviewChange]);
+
+  const changePondPreview = (next: boolean) => {
+    // Move focus out of the editor before making it inert, including a swipe
+    // started while a control still has focus. The pond's canvas never resizes.
+    if (next) previewToggle.current?.focus({preventScroll:true});
+    setPondPreview(next);
+  };
 
   const navigate = (next: PreferencePage) => {
     const forward = pageDepth(next) > pageDepth(page);
@@ -105,12 +113,12 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     focusTarget.current = forward ? "back" : page === "advanced" || page === "fish" ? `[data-preference="${page}"]` : `[data-group="${pageGroup(page)}"]`;
     setPage(next); setReset(false); setQuery(""); onPreviewChange(null);
   };
-  const closeReset = () => setReset(false);
   // Escape reaches here from both the popup and Base UI's document listener.
   const dismiss = (stamp: number) => {
     if (stamp === lastEscape.current) return;
     lastEscape.current = stamp;
-    if (reset) closeReset();
+    if (reset) return; // The nested alert dialog owns Escape and focus restoration.
+    if (previewing) changePondPreview(false);
     else if (page !== "root") navigate(parentPage(page));
     else onOpenChange(false);
   };
@@ -122,23 +130,36 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
 
   return <MotionConfig reducedMotion={reduced ? "always" : "never"}><Drawer open={open} modal={false}
     onOpenChange={(next, details) => {
-      if (!next && details.reason === "escape-key") { dismiss(details.event.timeStamp); return; }
+      if (reset) { details.cancel(); return; }
+      // Navigation and leaving preview do not close the drawer. Cancel Base UI's
+      // close side effects too, including its automatic snap-point reset.
+      if (!next && details.reason === "escape-key") { details.cancel(); dismiss(details.event.timeStamp); return; }
       onOpenChange(next);
     }}
+    snapPoints={mobile ? MOBILE_SNAP_POINTS : undefined} defaultSnapPoint={1} snapPoint={previewing ? PREVIEW_SNAP : 1}
+    onSnapPointChange={next => { if (mobile) changePondPreview(next === PREVIEW_SNAP); }} snapToSequentialPoints
     swipeDirection={mobile ? "down" : "right"} showSwipeHandle={mobile} disablePointerDismissal>
-    <DrawerContent className="settings-drawer" data-page={page} onKeyDown={event => { if(event.key === "Escape" && !event.defaultPrevented) dismiss(event.nativeEvent.timeStamp); }}>
-      <DrawerHeader ref={header} className="settings-navbar" inert={reset || undefined}>
+    <DrawerContent className="settings-drawer" data-page={page} data-pond-preview={previewing || undefined}
+      onKeyDown={event => { if(event.key === "Escape" && !event.defaultPrevented) dismiss(event.nativeEvent.timeStamp); }}>
+      {mobile && <button ref={previewToggle} className="settings-preview-toggle" data-base-ui-swipe-ignore
+        inert={reset || undefined} aria-expanded={!previewing} aria-controls="pond-settings-editor" onClick={() => changePondPreview(!previewing)}>
+        {previewing ? <ChevronUp aria-hidden="true" /> : <Eye aria-hidden="true" />}
+        <span>{t(previewing ? "settings.resumeEditing" : "settings.previewPond")}</span>
+        {previewing && <span className="settings-preview-toggle__page">{title}</span>}
+      </button>}
+      <DrawerHeader ref={header} className="settings-navbar" inert={reset || previewing || undefined}>
         <div className="settings-navbar__leading">
           {page !== "root" && <button ref={back} className="settings-nav-button settings-back" aria-label={t(backToRoot ? "product.back" : "product.backAdvanced")} onClick={() => navigate(parentPage(page))}><ChevronLeft aria-hidden="true" /><span>{backLabel}</span></button>}
         </div>
         <DrawerTitle className="settings-navbar__title">{title}</DrawerTitle>
         <div className="settings-navbar__trailing">
           <button className="settings-nav-button settings-nav-button--icon" aria-label={t("action.undo")} disabled={!meta.canUndo} onClick={() => settings.undo()}><Undo2 aria-hidden="true" /></button>
+          <button className="settings-nav-button settings-nav-button--icon" aria-label={t("action.redo")} disabled={!meta.canRedo} onClick={() => settings.redo()}><Redo2 aria-hidden="true" /></button>
           <button className="settings-nav-button settings-done" aria-label={t("settings.close")} onClick={() => onOpenChange(false)}>{t("action.done")}</button>
         </div>
         <DrawerDescription className="sr-only">{subtitle}</DrawerDescription>
       </DrawerHeader>
-      <div ref={scroll} className="settings-scroll" data-base-ui-swipe-ignore inert={reset || undefined}>
+      <div ref={scroll} id="pond-settings-editor" className="settings-scroll" data-base-ui-swipe-ignore inert={reset || previewing || undefined}>
         <AnimatePresence mode="sync" initial={false} custom={direction.current}>
           <SettingsPage key={page} page={page} direction={direction.current} reduced={reduced} title={title} subtitle={subtitle}
             scrollTop={scrollMemory.current[page] ?? 0}
@@ -163,18 +184,21 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
           </SettingsPage>
         </AnimatePresence>
       </div>
-      <AnimatePresence>
-        {reset && <motion.div key="scrim" className="settings-sheet-scrim" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:reduced ? 0 : 0.2}} onClick={closeReset}>
-          <motion.div className="settings-sheet" role="alertdialog" aria-modal="true" aria-label={t("settings.resetConfirmLabel")} aria-describedby="settings-reset-message"
-            initial={{y:reduced ? 0 : "110%"}} animate={{y:0}} exit={{y:reduced ? 0 : "110%"}} transition={reduced ? {duration:0} : PUSH} onClick={event => event.stopPropagation()}>
+      <AlertDialog.Root open={reset} onOpenChange={setReset}>
+        <AlertDialog.Portal>
+          {/* Nested dialogs omit their backdrop by default, but this parent is non-modal. */}
+          <AlertDialog.Backdrop forceRender className="settings-reset-backdrop" />
+          <AlertDialog.Popup className="settings-sheet settings-confirmation" initialFocus={cancel}
+            finalFocus={() => activePage()?.querySelector<HTMLButtonElement>('[data-preference="reset"]') ?? false}>
+            <AlertDialog.Title className="sr-only">{t("settings.resetConfirmLabel")}</AlertDialog.Title>
             <div className="settings-sheet__group">
-              <p id="settings-reset-message">{t("settings.resetConfirm")}</p>
-              <button className="settings-sheet__action settings-sheet__action--danger" onClick={() => {settings.resetAll(); onPreviewChange(null); closeReset();}}>{t("action.resetAll")}</button>
+              <AlertDialog.Description>{t("settings.resetConfirm")}</AlertDialog.Description>
+              <button className="settings-sheet__action settings-sheet__action--danger" onClick={() => {settings.resetAll(); onPreviewChange(null); setReset(false);}}>{t("action.resetAll")}</button>
             </div>
-            <button ref={cancel} className="settings-sheet__action settings-sheet__cancel" onClick={closeReset}>{t("action.cancel")}</button>
-          </motion.div>
-        </motion.div>}
-      </AnimatePresence>
+            <AlertDialog.Close ref={cancel} className="settings-sheet__action settings-sheet__cancel">{t("action.cancel")}</AlertDialog.Close>
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </DrawerContent>
   </Drawer></MotionConfig>;
 }

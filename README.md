@@ -157,6 +157,12 @@ The everyday settings are deliberately small. More detailed controls live in a s
 display preferences stay as you chose them. Advanced Undo/Redo includes fish
 counts and the remembered Medaka count, including older saves with 13–32 shoals.
 
+On phones, **View pond** folds the settings into a small bar so you can see the
+result. **Continue editing** returns to the same page, scroll position and search;
+you can also swipe the handle to fold or expand it. Undo and Redo are available
+in every settings page. Reset confirmation keeps keyboard focus inside its two
+actions and blocks the pond until you confirm or cancel.
+
 > [!NOTE]
 > **A procedural illustration, not a scientific tank simulator.** Fish steering and water rendering are informed by natural references, but their speeds, proportions, and behavior are tuned for an artistic, low-resolution pond. Physical devices and browsers can differ in WebGL performance and visual detail.
 
@@ -185,6 +191,14 @@ npm run preview
 ```
 
 `verify` checks generated project metadata, runs Vitest tests, type-checks, and builds the production app. The production preview uses the project's **`/stillpond/`** path (normally **http://localhost:4173/stillpond/**). Browser-based checks of real WebGL recovery, visibility changes, pointer alignment, and touch interactions are separate from unit-test coverage.
+
+With an existing Playwright installation, `node scripts/browser-settings.mjs`
+checks GPU recovery and storage, and `node scripts/browser-settings-ui.mjs`
+checks preview, touch controls, Undo/Redo and reset focus across screen sizes and
+both languages. Set `QA_PLAYWRIGHT_PACKAGE` to an external Playwright package if
+needed, `QA_FISH_URL` to the preview URL, and `QA_SCREENSHOT_DIR` to a unique
+evidence directory outside this repository. Physical iOS and Android checks
+remain separate from Chromium touch emulation.
 
 ### Source map
 

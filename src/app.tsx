@@ -122,7 +122,7 @@ export function App() {
     };
   }, [ambient, settingsOpen]);
 
-  return <main className={"stage" + (idle ? " stage--idle" : "")} data-version={project.version} aria-label={t("pond.label")}>
+  return <main className={"stage" + (idle ? " stage--idle" : "")} data-version={project.version} data-settings-open={settingsOpen || undefined} aria-label={t("pond.label")}>
     <div className="pond-shell"><div className="display" ref={display}>
       <canvas ref={canvas} id="pond" aria-label={t("pond.canvas")} onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;
