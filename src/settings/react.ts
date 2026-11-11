@@ -3,10 +3,11 @@
 // arrays (rgb, range, vec2) are copied only when their contents change, since
 // `live` arrays are mutated in place and would otherwise never re-render.
 
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useSyncExternalStore } from "react";
 import { settings } from "./store";
 import type { SettingPath } from "./schema";
 import type { WeatherPresetId } from "../weather";
+import { getPersistenceStatus, subscribePersistenceStatus } from "./persistence";
 
 const subscribeToSettings = (onStoreChange: () => void): (() => void) =>
   settings.subscribe(() => onStoreChange());
@@ -33,7 +34,12 @@ function useVersionedSnapshot<T>(read: () => T, key: string): T {
   return useSyncExternalStore(subscribeToSettings, getSnapshot, getSnapshot);
 }
 
-export function useSetting<T = unknown>(path: SettingPath): [T, (value: T, interaction?: string) => void] {
+export interface SettingInteraction {
+  onInteractionStart: () => void;
+  onInteractionEnd: () => void;
+}
+
+export function useSetting<T = unknown>(path: SettingPath): [T, (value: T, interaction?: string) => void, SettingInteraction] {
   const key = JSON.stringify(path);
   const value = useVersionedSnapshot(() => settings.get(path) as T, key);
   const setValue = useCallback(
@@ -42,8 +48,16 @@ export function useSetting<T = unknown>(path: SettingPath): [T, (value: T, inter
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key],
   );
-  return [value, setValue];
+  const interaction = useMemo(() => ({
+    onInteractionStart: () => settings.beginInteraction(key),
+    onInteractionEnd: () => settings.endInteraction(key),
+  }), [key]);
+  return [value, setValue, interaction];
 }
+
+const subscribePersistence = (listener: () => void) => subscribePersistenceStatus(settings, listener);
+const persistenceSnapshot = () => getPersistenceStatus(settings);
+export const usePersistenceStatus = () => useSyncExternalStore(subscribePersistence, persistenceSnapshot, persistenceSnapshot);
 
 export interface SettingsMeta {
   weather: WeatherPresetId;

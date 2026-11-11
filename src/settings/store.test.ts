@@ -69,6 +69,38 @@ describe("SettingsStore", () => {
     expect(store.live.koi.initialCount).toBe(30);
   });
 
+  it("undoes a held gesture across pauses, but separates the next gesture", () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    try {
+      store.beginInteraction("density");
+      store.set(["koi", "initialCount"], 25, { interaction: "density" });
+      now.mockReturnValue(900);
+      store.set(["koi", "initialCount"], 40, { interaction: "density" });
+      store.endInteraction("density");
+      store.beginInteraction("density");
+      store.set(["koi", "initialCount"], 30, { interaction: "density" });
+      store.endInteraction("density");
+      store.undo(); expect(store.live.koi.initialCount).toBe(40);
+      store.undo(); expect(store.live.koi.initialCount).toBe(14);
+      store.redo(); expect(store.live.koi.initialCount).toBe(40);
+      store.redo(); expect(store.live.koi.initialCount).toBe(30);
+    } finally { now.mockRestore(); }
+  });
+
+  it("does not record untouched gestures or absorb an intervening action", () => {
+    store.beginInteraction("density"); store.endInteraction("density");
+    expect(store.meta().canUndo).toBe(false);
+    store.beginInteraction("density");
+    store.set(["koi", "initialCount"], 25, { interaction: "density" });
+    store.setRain(true);
+    store.set(["koi", "initialCount"], 40, { interaction: "density" });
+    store.endInteraction("density");
+    store.undo(); expect(store.live.koi.initialCount).toBe(25);
+    expect(store.meta().rain).toBe(true);
+    store.undo(); expect(store.meta().rain).toBe(false);
+    store.undo(); expect(store.live.koi.initialCount).toBe(14);
+  });
+
   it("setWeather drops only preset-owned overrides; later edits stick", () => {
     store.set(["koi", "shadow", "color"], 0xabcdef);
     store.set(["koi", "initialCount"], 33); // not preset-owned

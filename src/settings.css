@@ -66,6 +66,7 @@
 .settings-scroll { position:relative; isolation:isolate; flex:1; min-height:0; overflow:hidden; }
 .settings-page { position:absolute; inset:0; padding:calc(var(--nav-height) + 2px) 16px max(24px,env(safe-area-inset-bottom)); scroll-padding-block:calc(var(--nav-height) + 8px) 16px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--label-3) transparent; }
 .settings-page[inert] { pointer-events:none; }
+.settings-persistence-note { flex:none; margin:0; padding:10px 20px max(14px,env(safe-area-inset-bottom)); background:var(--bar); color:var(--label); font-size:13px; line-height:1.4; }
 .settings-large-title { margin:0 4px; color:var(--label); font-size:32px; font-weight:700; letter-spacing:-.03em; line-height:1.18; }
 .settings-subtitle { margin:4px 4px 20px; color:var(--label-2); font-size:15px; line-height:1.35; text-wrap:pretty; }
 .preferences { display:grid; gap:28px; }

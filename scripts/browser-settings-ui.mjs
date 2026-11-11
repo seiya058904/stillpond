@@ -16,7 +16,7 @@ const cases = [
   { width: 1280, height: 900, locale: 'zh-CN', colorScheme: 'light' },
 ];
 const results = [];
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ headless: true, channel: process.env.QA_BROWSER_CHANNEL || undefined, args: ['--enable-webgl', '--ignore-gpu-blocklist'] });
 try {
   for (const sample of cases) {
     const { width, height, locale, colorScheme, reducedMotion = 'no-preference' } = sample;
@@ -189,9 +189,12 @@ try {
       const result = { ...sample, gpu, reversibleEdits: true, preview: mobile, resetFocusAndBackdrop: true, reload: true, consoleErrors: errors };
       results.push(result); console.log(JSON.stringify({ pass: true, ...result }));
     } catch (error) {
+      results.push({ ...sample, pass: false, error: String(error) });
       await screenshot('failed').catch(() => {});
       throw error;
     } finally { await context.close(); }
   }
-  if (out) fs.writeFileSync(path.join(out, 'settings-ui-results.json'), JSON.stringify(results, null, 2));
-} finally { await browser.close(); }
+} finally {
+  if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'settings-ui-results.json'), JSON.stringify(results, null, 2)); }
+  await browser.close();
+}

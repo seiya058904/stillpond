@@ -8,6 +8,7 @@ import { IconTile, RangeInput, SegmentedControl } from "./settings-ui";
 import { speciesInPond, useFishCounts } from "./fish-settings";
 import { WEATHER_PRESETS, type WeatherPresetId } from "./weather";
 import type { FrameRateCap } from "./performance-prefs";
+import type { usePondAudio } from "./use-pond-audio";
 
 const weatherIcons = {sunny: Sun, rain: CloudRain, "deep-clear": Waves, overcast: Cloud, mist: CloudFog, sunset: Sunset, moonlight: Moon};
 const frameRates = ["60", "30", "20", "native"] as const;
@@ -20,7 +21,7 @@ export interface QuickSettingsProps {
   rain: boolean;
   onWeatherChange: (id: WeatherPresetId) => void;
   onRainChange: (enabled: boolean) => void;
-  sound: { enabled: boolean; change: (enabled: boolean) => void; unavailable: boolean };
+  sound: ReturnType<typeof usePondAudio>;
   frameRate: FrameRateCap;
   onFrameRateChange: (value: string) => void;
   ambient: boolean;
@@ -40,7 +41,7 @@ function Group({title, children, note, status}: {title?: string; children: React
 
 export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sound, frameRate, onFrameRateChange, ambient, onAmbientChange, onFish, onAdvanced, onReset}: QuickSettingsProps) {
   const {t, language, setLanguage} = useI18n();
-  const [count, setCount] = useSetting<number>(["koi", "initialCount"]);
+  const [count, setCount, countInteraction] = useSetting<number>(["koi", "initialCount"]);
   const [shoals] = useSetting<number>(["tiny-fish", "visibleSchoolCount"]);
   const kinds = speciesInPond(useFishCounts());
   return <div className="preferences">
@@ -51,7 +52,7 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
           <label className="preference-row__label" htmlFor="pond-density">{t("product.density")}</label>
           <output className="preference-row__value" htmlFor="pond-density">{t("product.koi", {count})}</output>
         </div>
-        <RangeInput id="pond-density" min={0} max={48} step={1} value={count} valueText={t("product.koi", {count})} onChange={setCount} />
+        <RangeInput id="pond-density" min={0} max={48} step={1} value={count} valueText={t("product.koi", {count})} onChange={setCount} {...countInteraction} />
         <div className="range-captions"><span>{t("product.few")}</span><span>{t("product.many")}</span></div>
       </div>
       <button className="preference-row preference-row--button" data-preference="fish" onClick={onFish}>
@@ -86,12 +87,13 @@ export function QuickSettings({weather, rain, onWeatherChange, onRainChange, sou
         <Switch id="pond-rain" checked={rain} onCheckedChange={onRainChange} />
       </div>
     </Group>
-    <Group title={t("controls.sound")} note={t(sound.unavailable ? "audio.unavailable" : "product.soundHint")} status={sound.unavailable}>
+    <Group title={t("controls.sound")} note={t(sound.status === "error" ? "audio.unavailable" : sound.status === "loading" ? "audio.loading" : sound.status === "waiting" ? "audio.waiting" : "product.soundHint")} status={sound.enabled}>
       <div className="preference-row">
         <IconTile color={TILE.pink}><Volume2 /></IconTile>
         <label className="preference-row__label" htmlFor="pond-sound">{t("quick.sound")}</label>
-        <Switch id="pond-sound" checked={sound.enabled} onCheckedChange={sound.change} />
+        <Switch id="pond-sound" data-audio-control checked={sound.enabled} onCheckedChange={sound.change} />
       </div>
+      {sound.status === "error" && <button data-audio-control className="preference-row preference-row--button" onClick={sound.retry}>{t("audio.retry")}</button>}
     </Group>
     <Group title={t("product.display")} note={t(frameRate === "native" ? "fps.native.hint" : `fps.${frameRate}`)}>
       <div className="preference-row">

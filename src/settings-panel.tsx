@@ -8,7 +8,7 @@ import { QuickSettings, type QuickSettingsProps } from "./quick-settings";
 import { FishSettings } from "./fish-settings";
 import { useI18n } from "./i18n";
 import { settings } from "./settings/store";
-import { useSettingsMeta } from "./settings/react";
+import { usePersistenceStatus, useSettingsMeta } from "./settings/react";
 import type { SectionId } from "./settings/definition";
 import { pageDepth, pageGroup, parentPage, type PreferencePage } from "./settings/navigation";
 import "./settings.css";
@@ -73,6 +73,7 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
     return () => media.removeEventListener("change", update);
   }, []);
   const meta = useSettingsMeta();
+  const persistence = usePersistenceStatus();
   const [page, setPage] = useState<PreferencePage>("root");
   const group = pageGroup(page);
   const direction = useRef(1);
@@ -184,6 +185,9 @@ export default function SettingsPanel({open, onOpenChange, preview, onPreviewCha
           </SettingsPage>
         </AnimatePresence>
       </div>
+      {persistence === "unavailable" && !previewing && <p className="settings-persistence-note" role="status" inert={reset || undefined}>
+        {t("settings.sessionOnly")}
+      </p>}
       <AlertDialog.Root open={reset} onOpenChange={setReset}>
         <AlertDialog.Portal>
           {/* Nested dialogs omit their backdrop by default, but this parent is non-modal. */}

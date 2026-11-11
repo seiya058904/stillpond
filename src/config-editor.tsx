@@ -47,7 +47,7 @@ const formatNumber = (value: number) => Number(value.toFixed(2)).toLocaleString(
 
 function ProductControl({control}: {control: AdvancedControl}) {
   const {t, field} = useI18n();
-  const [value, setValue] = useSetting(control.path);
+  const [value, setValue, interaction] = useSetting(control.path);
   const [leafCount] = useSetting<number>(["lotus","visibleLeafCount"]);
   const node = controlNode(control);
   const label = field(control.label);
@@ -75,7 +75,7 @@ function ProductControl({control}: {control: AdvancedControl}) {
   const format = (current: number) => control.percent ? `${Math.round(current*100)}%` : formatNumber(current);
   const slider = (current: number, name: string, index?: number) => <div className="config-slider" key={name}>
     <div className="config-slider__heading"><span>{name}</span><output>{format(current)}</output></div>
-    <RangeInput ariaLabel={index === undefined ? label : `${label} · ${name}`} min={min} max={max} step={node.step} value={current} valueText={format(current)}
+    <RangeInput {...interaction} ariaLabel={index === undefined ? label : `${label} · ${name}`} min={min} max={max} step={node.step} value={current} valueText={format(current)}
       onChange={next => {
         if (index === undefined) setValue(next);
         else { const range = [...values]; range[index] = index === 0 ? Math.min(next,range[1]) : Math.max(next,range[0]); setValue(range); }

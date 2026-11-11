@@ -41,9 +41,31 @@ jobs:
         with:
           path: dist
 
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:browser
+        env:
+          QA_SCREENSHOT_DIR: ${{ runner.temp }}/stillpond-browser
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-evidence
+          path: ${{ runner.temp }}/stillpond-browser
+          retention-days: 7
+
   deploy:
     if: github.event_name != 'pull_request'
-    needs: build
+    needs: [build, browser]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

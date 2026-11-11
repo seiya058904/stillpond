@@ -1,13 +1,14 @@
 {
   "name": "stillpond",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:browser": "node scripts/browser-tests.mjs",
     "sync:project": "node scripts/project-metadata.mjs",
     "check:project": "node scripts/project-metadata.mjs --check",
     "verify": "npm run check:project && npm test && npm run build"
@@ -29,6 +30,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.1.1",
+    "playwright": "1.65.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",

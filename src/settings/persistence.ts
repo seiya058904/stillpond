@@ -13,6 +13,29 @@ import project from "../../project.config.json";
 const STORAGE_KEY_V2 = `${project.storagePrefix}:pond-settings:v2`;
 const STORAGE_KEY_V1 = `${project.storagePrefix}:pond-settings:v1`;
 
+export type PersistenceStatus = "unknown" | "saved" | "unavailable";
+const persistence = new WeakMap<SettingsStore, { status: PersistenceStatus; listeners: Set<() => void> }>();
+function stateFor(store: SettingsStore) {
+  let state = persistence.get(store);
+  if (!state) {
+    state = { status: "unknown", listeners: new Set() };
+    persistence.set(store, state);
+  }
+  return state;
+}
+export const getPersistenceStatus = (store: SettingsStore): PersistenceStatus => stateFor(store).status;
+export function subscribePersistenceStatus(store: SettingsStore, listener: () => void): () => void {
+  const state = stateFor(store);
+  state.listeners.add(listener);
+  return () => { state.listeners.delete(listener); };
+}
+function reportPersistence(store: SettingsStore, status: PersistenceStatus): void {
+  const state = stateFor(store);
+  if (state.status === status) return;
+  state.status = status;
+  for (const listener of state.listeners) listener();
+}
+
 interface SavedV2 {
   version: 2;
   overrides: Record<string, unknown>;
@@ -24,15 +47,18 @@ function isValidWeather(id: unknown): id is WeatherPresetId {
   return WEATHER_PRESETS.some((preset) => preset.id === id);
 }
 
-function readJson(key: string): unknown {
+function readJson(store: SettingsStore, key: string): unknown {
+  let raw: string | null;
   try {
     const storage = globalThis.localStorage;
-    if (!storage) return null;
-    const raw = storage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+    if (!storage) { reportPersistence(store, "unavailable"); return null; }
+    raw = storage.getItem(key);
   } catch {
+    reportPersistence(store, "unavailable");
     return null;
   }
+  // A malformed older save does not establish that the browser cannot save.
+  try { return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
 
 function writeJson(key: string, value: unknown): boolean {
@@ -105,7 +131,7 @@ function migrateV1ToOverrides(draft: Record<string, unknown>): Record<string, un
 }
 
 export function loadInto(store: SettingsStore): void {
-  const savedV2 = readJson(STORAGE_KEY_V2) as Partial<SavedV2> | null;
+  const savedV2 = readJson(store, STORAGE_KEY_V2) as Partial<SavedV2> | null;
   if (savedV2 && savedV2.version === 2 && isValidWeather(savedV2.weather)) {
     store.importOverrides(
       (savedV2.overrides as Record<string, unknown>) ?? {},
@@ -115,7 +141,7 @@ export function loadInto(store: SettingsStore): void {
     return;
   }
 
-  const savedV1 = readJson(STORAGE_KEY_V1) as { version?: number; config?: unknown; weather?: unknown; rain?: unknown } | null;
+  const savedV1 = readJson(store, STORAGE_KEY_V1) as { version?: number; config?: unknown; weather?: unknown; rain?: unknown } | null;
   if (savedV1 && savedV1.version === 1 && isValidWeather(savedV1.weather) && savedV1.config && typeof savedV1.config === "object") {
     const overrides = migrateV1ToOverrides(savedV1.config as Record<string, unknown>);
     store.importOverrides(overrides, savedV1.weather, savedV1.rain === true);
@@ -131,14 +157,17 @@ export function save(store: SettingsStore): boolean {
     weather: meta.weather,
     rain: meta.rain,
   };
-  return writeJson(STORAGE_KEY_V2, payload);
+  const saved = writeJson(STORAGE_KEY_V2, payload);
+  reportPersistence(store, saved ? "saved" : "unavailable");
+  return saved;
 }
 
 export function connectPersistence(store: SettingsStore): () => void {
-  store.onPersistRequested(() => save(store));
+  const disconnect = store.onPersistRequested(() => { save(store); });
   const onPageHide = (): void => store.flushPersist();
   if (typeof window !== "undefined") window.addEventListener("pagehide", onPageHide);
   return () => {
+    disconnect();
     if (typeof window !== "undefined") window.removeEventListener("pagehide", onPageHide);
   };
 }

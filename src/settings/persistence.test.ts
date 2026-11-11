@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaults } from "./schema";
 import { definition } from "./definition";
 import { SettingsStore } from "./store";
-import { __internal, connectPersistence, loadInto, save } from "./persistence";
+import { __internal, connectPersistence, getPersistenceStatus, loadInto, save, subscribePersistenceStatus } from "./persistence";
 
 function makeMemoryStorage(): Storage {
   const data = new Map<string, string>();
@@ -201,5 +201,43 @@ describe("persistence", () => {
 
   it("exposes the migration helper for direct testing", () => {
     expect(typeof __internal.migrateV1ToOverrides).toBe("function");
+  });
+
+  it("reports denied reads, recovers on a successful write, and keeps status separate from pond effects", () => {
+    const store = new SettingsStore();
+    const statuses: string[] = [];
+    const disconnect = subscribePersistenceStatus(store, () => statuses.push(getPersistenceStatus(store)));
+    const changes = vi.fn(); store.subscribe(changes);
+    const storage = localStorage;
+    vi.stubGlobal("localStorage", undefined);
+    loadInto(store);
+    save(store);
+    expect(statuses).toEqual(["unavailable"]);
+    vi.stubGlobal("localStorage", storage);
+    expect(save(store)).toBe(true);
+    expect(statuses).toEqual(["unavailable", "saved"]);
+    expect(changes).not.toHaveBeenCalled();
+    expect(getPersistenceStatus(new SettingsStore())).toBe("unknown");
+    disconnect();
+  });
+
+  it("does not label malformed JSON as unavailable storage", () => {
+    localStorage.setItem(__internal.STORAGE_KEY_V2, "{");
+    const store = new SettingsStore(); loadInto(store);
+    expect(getPersistenceStatus(store)).toBe("unknown");
+    expect(save(store)).toBe(true);
+    expect(getPersistenceStatus(store)).toBe("saved");
+  });
+
+  it("disconnects pending persistence writes", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new SettingsStore();
+      const disconnect = connectPersistence(store);
+      store.set(["koi", "initialCount"], 7);
+      disconnect();
+      vi.runAllTimers(); store.flushPersist();
+      expect(localStorage.getItem(__internal.STORAGE_KEY_V2)).toBeNull();
+    } finally { vi.useRealTimers(); }
   });
 });

@@ -24,11 +24,11 @@ npm run preview
 
 `verify` checks project metadata, runs Vitest, type-checks and builds. Development uses `/`; production preview uses the pathname in `siteUrl`. Run `npm run sync:project` after intentional metadata changes, then verify the resulting diff.
 
-For runtime/settings changes, use an isolated browser profile and real WebGL2: change both light and heavy settings while the context is lost, restore it, confirm fish state and motion, then reload to check persistence. Also cover visibility pause/resume and disposal. Browser tests have no npm script; unit tests alone do not establish GPU recovery. Keep unique browser evidence outside the repository and run `git diff --check`.
+For runtime/settings changes, use an isolated browser profile and real WebGL2: change both light and heavy settings while the context is lost, restore it, confirm fish state and motion, then reload to check persistence. Also cover visibility pause/resume and disposal. After building, run `npm run test:browser` (install the locked Chromium with `npx playwright install chromium` first). The runner owns its preview and writes unique evidence outside the repository. CI software WebGL and unit tests alone do not establish hardware GPU recovery. Run `git diff --check`.
 
 ## Delivery
 
-`.github/workflows/pages.yml` runs `verify` for pull requests and deploys `dist/` on `main`. Check the exact final CI/Pages commit, deployed `build-info.json` and asset bytes. This is a fork: derive GitHub CLI `--repo` from `origin`; automatic selection can choose `upstream` instead. Preserve upstream history, attribution and unique evidence; remove only verified disposable outputs.
+`.github/workflows/pages.yml` runs `verify` and browser acceptance for pull requests and deploys `dist/` on `main` after both pass. Check the exact final CI/Pages commit, deployed `build-info.json` and asset bytes. This is a fork: derive GitHub CLI `--repo` from `origin`; automatic selection can choose `upstream` instead. Preserve upstream history, attribution and unique evidence; remove only verified disposable outputs.
 
 ## Browser tool selection
 

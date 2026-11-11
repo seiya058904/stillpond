@@ -144,8 +144,10 @@ export function App() {
         <button aria-label={t(ambient ? "controls.exitAmbient" : "controls.enterAmbient")} aria-pressed={ambient} aria-keyshortcuts="F" onClick={() => void toggleAmbient()}>
           {ambient ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}<span>{t("controls.ambient")}</span></button>
         <button aria-label={t("controls.scatter")} aria-keyshortcuts="Space" onClick={() => runtime.current?.school.scatter()}><Shuffle aria-hidden="true" /><span>{t("controls.scatter")}</span></button>
-        <button aria-label={t("controls.soundLabel")} aria-pressed={sound.enabled} onClick={() => sound.change(!sound.enabled)}>
-          {sound.enabled ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}<span>{t("controls.sound")}</span></button>
+        <button data-audio-control data-audio-status={sound.status} aria-label={t(sound.status === "error" ? "audio.retry" : "controls.soundLabel")}
+          aria-pressed={sound.status === "playing"} onClick={() => sound.status === "error" || sound.status === "waiting" ? sound.retry() : sound.change(!sound.enabled)}>
+          {sound.status === "playing" ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          <span aria-live="polite">{t(sound.status === "error" ? "audio.retryShort" : sound.status === "loading" ? "audio.loading" : sound.status === "waiting" ? "audio.waitingShort" : "controls.sound")}</span></button>
         <button aria-label={t("controls.hideLabel")} aria-keyshortcuts="H" onClick={() => { setShowInterface(false); changePreview(null); }}><EyeOff aria-hidden="true" /><span>{t("controls.hide")}</span></button>
       </nav>
     </div>}

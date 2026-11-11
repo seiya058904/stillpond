@@ -185,6 +185,7 @@ export class SettingsStore {
   private readonly undoStack: UndoEntry[] = [];
   private readonly redoStack: UndoEntry[] = [];
   private openInteraction: { key: string; at: number } | null = null;
+  private heldInteraction: string | null = null;
   private readonly weatherOwned: SettingPath[];
   private readonly sectionEffectTags = new Map<SectionId, Set<string>>();
   // Bumped on every notification so React snapshots can be cached per version.
@@ -380,11 +381,23 @@ export class SettingsStore {
     return changes;
   }
 
+  /** A held slider/keyboard gesture remains one edit even while the visitor pauses. */
+  public beginInteraction(key: string): void {
+    this.heldInteraction = key;
+    this.openInteraction = null;
+  }
+
+  public endInteraction(key: string): void {
+    if (this.heldInteraction !== key) return;
+    this.heldInteraction = null;
+    this.openInteraction = null;
+  }
+
   private beginOrContinueInteraction(interaction: string | undefined): void {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const key = interaction ?? Math.random().toString(36);
     const open = this.openInteraction;
-    if (open && open.key === key && now - open.at <= GROUP_WINDOW_MS) {
+    if (open && open.key === key && (this.heldInteraction === key || now - open.at <= GROUP_WINDOW_MS)) {
       this.openInteraction = { key, at: now };
       return;
     }
@@ -533,8 +546,17 @@ export class SettingsStore {
   private persistHandler: (() => void) | null = null;
   private persistTimer = 0;
 
-  public onPersistRequested(handler: () => void): void {
+  public onPersistRequested(handler: () => void): () => void {
     this.persistHandler = handler;
+    return () => {
+      if (this.persistHandler !== handler) return;
+      this.persistHandler = null;
+      if (this.persistTimer) {
+        const clear = typeof window !== "undefined" ? window.clearTimeout : clearTimeout;
+        clear(this.persistTimer);
+        this.persistTimer = 0;
+      }
+    };
   }
 
   private schedulePersist(): void {

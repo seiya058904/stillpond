@@ -10,7 +10,7 @@ const url = process.env.QA_FISH_URL || 'http://127.0.0.1:4173/stillpond/';
 const out = process.env.QA_SCREENSHOT_DIR;
 const hash = buffer => createHash('sha256').update(buffer).digest('hex');
 const results = [];
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ headless: true, channel: process.env.QA_BROWSER_CHANNEL || undefined, args: ['--enable-webgl', '--ignore-gpu-blocklist'] });
 try {
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     const activate = locator => viewport.width === 390 ? locator.tap() : locator.click();
@@ -151,6 +151,10 @@ try {
         syntheticPageHideShow: true, consoleErrors: errors, consoleWarnings: warnings, failedRequests };
       results.push(result);
       console.log(JSON.stringify({ pass: true, ...result }));
+    } catch (error) {
+      results.push({ viewport, pass: false, error: String(error) });
+      if (out) { fs.mkdirSync(out, { recursive: true }); await page.screenshot({ path: path.join(out, `runtime-failed-${viewport.width}.png`) }).catch(() => {}); }
+      throw error;
     } finally {
       await context.close();
     }
@@ -166,6 +170,12 @@ try {
       await faultContext.addInitScript(mode => {
         const storage = localStorage;
         window.__faultStorage = storage;
+        const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+        const originalSetItem = Storage.prototype.setItem;
+        window.__restoreStorage = () => {
+          Storage.prototype.setItem = originalSetItem;
+          Object.defineProperty(window, 'localStorage', descriptor);
+        };
         if (mode === 'quota') {
           if (!storage.getItem('stillpond:pond-settings:v1')) storage.setItem('stillpond:pond-settings:v1', JSON.stringify({
             version: 1, config: { koi: { initialCount: 17 } }, weather: 'mist', rain: true
@@ -183,6 +193,7 @@ try {
         await faultPage.goto(url, { waitUntil: 'networkidle' });
         await faultPage.waitForFunction(() => document.querySelector('#pond')?.getContext('webgl2') && !document.querySelector('.pond-status'));
         await activate(faultPage.locator('.settings-trigger'));
+        await faultPage.locator('.settings-persistence-note').waitFor();
         const faultDensity = faultPage.locator('#pond-density');
         const initialCount = failure === 'quota' ? 17 : 14;
         assert.equal(await faultDensity.inputValue(), String(initialCount));
@@ -204,15 +215,25 @@ try {
         await activate(faultPage.locator('.settings-trigger'));
         assert.equal(await faultDensity.inputValue(), String(initialCount));
         assert.deepEqual(faultErrors, []);
-        const result = { viewport, failure, sessionSettingsUsable: true, reloadCount: initialCount, retained, consoleErrors: faultErrors };
+        // A successful write clears the warning without a page reload.
+        await faultPage.evaluate(() => window.__restoreStorage());
+        await faultDensity.press('ArrowRight');
+        await faultPage.locator('.settings-persistence-note').waitFor({ state: 'hidden' });
+        const recovered = await faultPage.evaluate(() => JSON.parse(localStorage.getItem('stillpond:pond-settings:v2')));
+        assert.equal(recovered.overrides['koi.initialCount'], initialCount + 1);
+        const result = { viewport, failure, sessionSettingsUsable: true, persistenceFeedback: true, persistenceRecovered: true, reloadCount: initialCount, retained, consoleErrors: faultErrors };
         results.push(result);
         console.log(JSON.stringify({ pass: true, ...result }));
+      } catch (error) {
+        results.push({ viewport, failure, pass: false, error: String(error) });
+        if (out) { fs.mkdirSync(out, { recursive: true }); await faultPage.screenshot({ path: path.join(out, `storage-${failure}-failed-${viewport.width}.png`) }).catch(() => {}); }
+        throw error;
       } finally {
         await faultContext.close();
       }
     }
   }
-  if (out) fs.writeFileSync(path.join(out, 'browser-settings-results.json'), JSON.stringify(results, null, 2));
 } finally {
+  if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'browser-settings-results.json'), JSON.stringify(results, null, 2)); }
   await browser.close();
 }

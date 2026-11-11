@@ -1,5 +1,8 @@
 import { Minus, Plus } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import type { SettingInteraction } from "./settings/react";
+
+const RANGE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
 
 /** The rounded, colored square that leads a row in iOS Settings. */
 export function IconTile({color, children}: {color: string; children: ReactNode}) {
@@ -28,10 +31,43 @@ export function SegmentedControl<T extends string>({label, options, value, onCha
 }
 
 /** A native range input, so keyboard and screen-reader support come with it. */
-export function RangeInput({id, min, max, step, value, onChange, ariaLabel, valueText}: {
+export function RangeInput({id, min, max, step, value, onChange, ariaLabel, valueText, onInteractionStart, onInteractionEnd}: {
   id?: string; min: number; max: number; step: number; value: number; onChange: (value: number) => void; ariaLabel?: string; valueText?: string;
-}) {
+} & Partial<SettingInteraction>) {
+  const held = useRef(false);
+  const begin = () => {
+    if (held.current) return;
+    held.current = true;
+    onInteractionStart?.();
+  };
+  const end = () => {
+    if (!held.current) return;
+    held.current = false;
+    onInteractionEnd?.();
+  };
+  useEffect(() => {
+    const finish = () => {
+      if (!held.current) return;
+      held.current = false;
+      onInteractionEnd?.();
+    };
+    const visibility = () => { if (document.hidden) finish(); };
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+    window.addEventListener("blur", finish);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      finish();
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      window.removeEventListener("blur", finish);
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, [onInteractionEnd]);
   const fill = max > min ? (value - min) / (max - min) * 100 : 0;
   return <input id={id} className="pond-range" type="range" min={min} max={max} step={step} value={value} aria-label={ariaLabel} aria-valuetext={valueText}
+    onPointerDown={event => { if (event.isPrimary && event.button === 0) begin(); }} onBlur={end}
+    onKeyDown={event => { if (RANGE_KEYS.has(event.key)) begin(); }}
+    onKeyUp={event => { if (RANGE_KEYS.has(event.key)) end(); }}
     style={{"--range": `${fill}%`} as CSSProperties} onChange={event => onChange(Number(event.target.value))} />;
 }

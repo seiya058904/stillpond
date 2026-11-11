@@ -3,7 +3,7 @@
 
 A calm digital pond with procedural koi, full-viewport scenery, and English / Simplified Chinese controls.
 
-**V1.4.0** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
+**V1.4.1** · [Open the pond](https://seiya058904.github.io/stillpond/) · [Source](https://github.com/seiya058904/stillpond)
 <!-- project:end -->
 
 <p align="center">
@@ -142,7 +142,7 @@ The everyday settings are deliberately small. More detailed controls live in a s
   <tr>
     <td width="50%" valign="top">
       <h3>🔉 Sound</h3>
-      <p>Enable or adjust optional ambient water and river sounds under your control.</p>
+      <p>Enable optional river sound. Loading and playback states are visible; if sound cannot load, retry directly from the sound button.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🖥️ Display & Language</h3>
@@ -192,13 +192,29 @@ npm run preview
 
 `verify` checks generated project metadata, runs Vitest tests, type-checks, and builds the production app. The production preview uses the project's **`/stillpond/`** path (normally **http://localhost:4173/stillpond/**). Browser-based checks of real WebGL recovery, visibility changes, pointer alignment, and touch interactions are separate from unit-test coverage.
 
-With an existing Playwright installation, `node scripts/browser-settings.mjs`
-checks GPU recovery and storage, and `node scripts/browser-settings-ui.mjs`
-checks preview, touch controls, Undo/Redo and reset focus across screen sizes and
-both languages. Set `QA_PLAYWRIGHT_PACKAGE` to an external Playwright package if
-needed, `QA_FISH_URL` to the preview URL, and `QA_SCREENSHOT_DIR` to a unique
-evidence directory outside this repository. Physical iOS and Android checks
-remain separate from Chromium touch emulation.
+The locked Playwright version runs browser acceptance against the production build:
+
+```bash
+npx playwright install chromium
+npm run build
+npm run test:browser
+```
+
+`test:browser` starts and closes its own production preview on an available local
+port. It checks GPU recovery and storage, responsive settings and reset focus,
+complete slider/keyboard gestures, and audio failure, retry and cancellation.
+Evidence goes to a unique temporary directory printed by the runner; set
+`QA_SCREENSHOT_DIR` to choose another directory outside this repository.
+CI installs Chromium with `npx playwright install --with-deps chromium`, runs
+the same command in a separate job, and uploads evidence on failure.
+Pages deployment waits for both verification and browser acceptance.
+
+The individual `scripts/browser-*.mjs` suites still support `QA_FISH_URL` for
+an existing preview and `QA_PLAYWRIGHT_PACKAGE` for an external installation.
+Set `QA_BROWSER_CHANNEL=chrome` to use an installed Chrome for hardware checks;
+inspect the recorded renderer to confirm hardware acceleration is active.
+CI uses software WebGL; hardware GPU recovery and physical iOS/Android checks
+remain separate from Chromium emulation.
 
 ### Source map
 
