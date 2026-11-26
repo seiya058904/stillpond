@@ -1,36 +1,16 @@
-# Stillpond repository guide
+# Stillpond Agent Guide
 
-## Source and lifecycle
+React + TypeScript + Vite + Three.js (`index.html` → `src/main.tsx` → `src/app.tsx`; `src/styles.css` shell). Preserve the quiet pond, procedural fish motion, pixel-art scale, `src/i18n/` (EN/ZH-CN), and `LICENSE`/`NOTICE`.
 
-- React + TypeScript + Vite + Three.js. `index.html` → `src/main.tsx` → `src/app.tsx`; `src/styles.css` owns the shell. Preserve the quiet pond, procedural fish motion and pixel-art scale. Keep English / Simplified Chinese copy in `src/i18n/` and retain `LICENSE` / `NOTICE` attribution.
-- `src/pond-runtime.ts` owns the `School`, simulation clock, resize and visibility listeners, and replaceable `FishRenderer`. React owns its creation and `dispose()` cleanup, never simulation frames.
-- The settings-effect subscription in `src/settings/effects.ts` follows the CPU `School` lifetime, including pending light/heavy changes during WebGL loss or renderer creation failure. GPU handlers resolve the current nullable renderer; do not disconnect or capture an obsolete renderer during recovery. `dispose()` ends subscriptions, cancels scheduled effects and frames, and removes listeners.
-- Hidden pages pause simulation and resume without catch-up. Resize world, renderer and pointer mapping together; the logical short edge is 270 pixels and internal DPR is 1. Desktop and touch layouts share the pond; physical iOS / Android acceptance needs actual devices.
-- `src/settings/store.ts` owns live settings, sparse overrides, weather and undo. Extend settings through `src/settings/definition.ts`. Preserve ordered koi-family assignments and v1/v2 compatibility through `src/settings/persistence.ts`; disabled or full storage must not stop the pond. Persistence flushes on `pagehide`.
-- Acquire Web Storage and check its existence inside the same `try` as each read/write/remove: the `localStorage` getter itself can throw `SecurityError` before React mounts. Denied storage must keep defaults and session settings usable.
-- Optional species are data in `src/species-art.ts`, and their default count is zero, so the default pond stays byte-identical when one is added. Do not write new swimming or tail motion: large and medium fish are `Koi` agents, and their tails and wide fins go through `membranePoint` in `src/fish-spine.ts`. Small species are Medaka that differ only in color: they inherit the live Medaka settings and are drawn by `TinyFishRenderer`. See the steps in `docs/how-it-works.md`, and check a new fish frame by frame against the koi.
-- `project.config.json` is the project metadata source. Preserve `storagePrefix` when changing branding so existing preferences remain readable. Ordinary settings load with the app; only the detailed editor is lazy-loaded.
+## Architecture & Invariants
+- `src/pond-runtime.ts` owns `School`, simulation clock, resize/visibility listeners, and replaceable `FishRenderer`. React owns creation and `dispose()` cleanup only, never simulation frames.
+- `src/settings/effects.ts` tracks CPU `School` lifetime across WebGL context loss/recovery; GPU handlers resolve the current nullable renderer (never capture/disconnect stale renderers). `dispose()` tears down all subscriptions, frames, and listeners.
+- Hidden pages pause and resume without catch-up. Resize world, renderer, and pointer mapping together (logical short edge `270px`, internal DPR `1`). Physical iOS/Android acceptance requires real devices.
+- `src/settings/store.ts` owns live settings, sparse overrides, weather, and undo; extend via `src/settings/definition.ts`. Keep koi-family order and v1/v2 compatibility in `src/settings/persistence.ts` (flushes on `pagehide`). Access `localStorage` existence + read/write/remove inside the same `try` (getter can throw `SecurityError`); denied/full storage must keep defaults/session usable.
+- Optional species live in `src/species-art.ts` with default count `0` (default pond stays byte-identical). Large/medium fish reuse `Koi` agents + `membranePoint` (`src/fish-spine.ts`); small species are color-only Medaka via `TinyFishRenderer` (see `docs/how-it-works.md`, inspect frame-by-frame against koi).
+- `project.config.json` is metadata source of truth — keep `storagePrefix` stable on rebrands; lazy-load only the detailed editor.
 
-## Commands and acceptance
-
-Use Node.js 22.12+ (CI uses 24) and the committed npm lockfile, from the repository root:
-
-```text
-npm ci
-npm run dev
-npm run verify
-npm run preview
-```
-
-`verify` checks project metadata, runs Vitest, type-checks and builds. Development uses `/`; production preview uses the pathname in `siteUrl`. Run `npm run sync:project` after intentional metadata changes, then verify the resulting diff.
-
-For runtime/settings changes, use an isolated browser profile and real WebGL2: change both light and heavy settings while the context is lost, restore it, confirm fish state and motion, then reload to check persistence. Also cover visibility pause/resume and disposal. After building, run `npm run test:browser` (install the locked Chromium with `npx playwright install chromium` first). The runner owns its preview and writes unique evidence outside the repository. CI software WebGL and unit tests alone do not establish hardware GPU recovery. Run `git diff --check`.
-
-## Delivery
-
-`.github/workflows/pages.yml` runs `verify` and browser acceptance for pull requests and deploys `dist/` on `main` after both pass. Check the exact final CI/Pages commit, deployed `build-info.json` and asset bytes. This is a fork: derive GitHub CLI `--repo` from `origin`; automatic selection can choose `upstream` instead. Preserve upstream history, attribution and unique evidence; remove only verified disposable outputs.
-
-## Browser tool selection
-
-- Prefer Ego Browser for exploratory navigation, visual review and interactive checks when available. Use Playwright for repeatable regression, CI, isolation, request interception or other automation requiring its APIs; combine tools when useful. If Ego is unavailable, use a suitable existing browser tool.
-- Keep this repository's required browser commands, versions, profiles and safety boundaries; an exploratory check does not replace required automated tests. Do not alter real user data or production state for testing. Report the tools, coverage and any untested paths.
+## Commands & Delivery
+- Node 22.12+ (CI uses 24), committed lockfile: `npm ci`, `npm run dev` (root `/`), `npm run verify` (metadata + Vitest + typecheck + build), `npm run preview` (`siteUrl` subpath), `npm run sync:project` (after metadata edits), `git diff --check`.
+- For runtime/settings changes: build, run `npm run test:browser` (`npx playwright install chromium` first; owns preview, writes evidence outside repo), and verify real WebGL2 context-loss/restore + reload persistence + visibility pause/dispose (software WebGL/unit tests alone do not prove hardware GPU recovery).
+- Fork rule: derive `gh --repo` from `origin` (never auto-select `upstream`). `.github/workflows/pages.yml` runs `verify` + browser checks and deploys `dist/` on `main`; confirm deployed SHA, `build-info.json`, and asset bytes after authorized release.
