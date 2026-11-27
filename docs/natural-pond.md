@@ -409,9 +409,9 @@ the six unexplained interval spikes. Its measurements remain original evidence,
 not newly repeated baseline/default/equal-population measurements.
 
 New evidence is outside Git at
-`C:/Users/admin/.codex/visualizations/2026/10/13/01a1339e-761a-7a42-b73b-2f1632141971/stillpond-final/`.
+`<local-visualizations-dir>/stillpond-final/`.
 Original evidence remains at
-`C:/Users/admin/.codex/visualizations/2026/10/13/01a1331e-1d79-7240-9d38-df4b40527958/stillpond-iteration/`.
+`<local-visualizations-dir>/stillpond-iteration/`.
 JSON files record actual UTC measurement times; local timezone is Asia/Shanghai
 (UTC+8). Failed seeding/selector attempts and environment corrections are retained.
 Browser plugin was unavailable; the existing Playwright package was used without
